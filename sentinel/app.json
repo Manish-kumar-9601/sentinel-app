@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "sentinel",
+    "slug": "sentinel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/sentinel-detect-icon.png",
+    "scheme": "sentinel",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/sentinel-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.sentinel",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/sentinel-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/sentinel-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-audio",
+      "expo-secure-store",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Sentinel to access your contacts to add them to your emergency circle."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "149ae237-40de-4c01-8535-aeb659ca4222"
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+Here’s a sample .gitignore file tailored for a FastAPI project. It includes common exclusions for Python, FastAPI, and related tools:
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+env/
+venv/
+ENV/
+.venv/
+
+# FastAPI specific
+instance/
+*.db
+*.sqlite3
+
+# Logs
+*.log
+*.out
+*.err
+logs/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+.cache/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.dockerignore
+docker-compose.override.yml
+
+# Environment variables
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+This .gitignore file ensures sensitive files, temporary files, and unnecessary directories are excluded from version control. You can customize it further based on your project's specific needs.
