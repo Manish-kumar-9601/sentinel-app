@@ -16,7 +16,8 @@ import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useFocusEffect, usePathname, useRouter } from 'expo-router';
 import ContactListModal from '../components/ContactListModal';
-
+import Feather from '@expo/vector-icons/Feather';
+import AntDesign from '@expo/vector-icons/AntDesign';
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
@@ -24,7 +25,7 @@ const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 // 1. UI COMPONENTS (Presentational)
 // =================================================================
 
-const Header = ({ locationText }) => (
+const Header = ({ locationText ,onTabPress}) => (
   <View style={styles.header}>
     <View style={styles.locationContainer}>
       <Ionicons name="location-sharp" size={20} color="#ff4500" />
@@ -36,7 +37,7 @@ const Header = ({ locationText }) => (
       <TouchableOpacity>
         <Ionicons name="notifications-outline" size={24} color="#333" />
       </TouchableOpacity>
-      <TouchableOpacity style={{ marginLeft: 15 }}>
+      <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => onTabPress('profile')}  >
         <FontAwesome5 name="user-circle" size={24} color="#333" />
       </TouchableOpacity>
     </View>
@@ -86,6 +87,12 @@ const EmergencyGrid = ({ onCategorySelect }) => {
     { icon: 'car-crash', name: 'Accident', color: '#9370DB', iconSet: 'FontAwesome5' },
     { icon: 'user-ninja', name: 'Violence', color: '#4682B4', iconSet: 'FontAwesome5' },
     { icon: 'hands-helping', name: 'Rescue', color: '#3CB371', iconSet: 'FontAwesome5' },
+       { 
+      icon: "video", 
+      name: "Record", 
+      color: "#5856D6", // A nice purple color
+      iconSet: "MaterialCommunity" 
+    },
   ];
 
   return (
@@ -134,13 +141,18 @@ const BottomNavBar = ({ activeTab, onTabPress }) => (
     </TouchableOpacity>
  
 
-
-
-    <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('profile')}>
-      <Ionicons name="person-outline" size={26} color={activeTab === 'profile' ? '#FF4500' : '#A9A9A9'} />
-      <Text style={[styles.navText, { color: activeTab === 'Profile' ? '#FF4500' : '#A9A9A9' }]}>Profile</Text>
+  <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('fakeCall')}>
+    <Feather name="phone-call"    size={26} color={activeTab === 'fakeCall' ? '#FF4500' : '#A9A9A9'} />
+      <Text style={[styles.navText, { color: activeTab === 'fakeCall' ? '#FF4500' : '#A9A9A9' }]}>Fake Call</Text>
     </TouchableOpacity>
 
+
+    <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('settings')}>
+      <AntDesign name="setting"  size={26} color={activeTab === 'profile' ? '#FF4500' : '#A9A9A9'} />
+      <Text style={[styles.navText, { color: activeTab === 'Profile' ? '#FF4500' : '#A9A9A9' }]}>Settings</Text>
+    </TouchableOpacity>
+
+  
 
   </View>
 );
@@ -253,9 +265,7 @@ export default function HomeScreen() {
   };
 
   // --- Other Handlers ---
-  const handleCategorySelect = (categoryName) => {
-    Alert.alert('Emergency Selected', `You have selected: ${categoryName}. Help is on the way.`, [{ text: 'OK' }]);
-  };
+ 
 
   const handleTabPress = (tabName) => {
     setActiveTab(tabName);
@@ -269,8 +279,21 @@ export default function HomeScreen() {
     }else if (tabName === 'profile') {
       router.push('/profile');
     }
+    else if (tabName === 'fakeCall') {
+      router.push('/fakeCall');
+    }
+    else if (tabName === 'settings') {
+      router.push('/settings');
+    }
     console.log(`Navigating to ${tabName}`);
   };
+  const handleCategorySelect = (categoryName) => {
+  if (categoryName === "Record") {
+    router.push('/recorder');
+  } else {
+    Alert.alert("Emergency Selected", `You have selected: ${categoryName}. Help is on the way.`, [{ text: "OK" }]);
+  }
+};
 
   // --- UI Rendering Logic ---
   let locationText = 'Waiting for location...';
@@ -291,7 +314,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header locationText={locationText} />
+        <Header locationText={locationText} onTabPress={handleTabPress} />
 
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>Are you in an emergency?</Text>

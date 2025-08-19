@@ -48,7 +48,23 @@
         {
           "contactsPermission": "Allow Sentinel to access your contacts to add them to your emergency circle."
         }
-      ]
+      ],
+       [
+    "expo-camera",
+    {
+      "cameraPermission": "Allow Sentinel to access your camera to record evidence.",
+      "microphonePermission": "Allow Sentinel to access your microphone to record audio evidence.",
+      "recordAudioAndroid": true
+    }
+  ],
+  [
+    "expo-media-library",
+    {
+      "photosPermission": "Allow Sentinel to save videos to your photos.",
+      "savePhotosPermission": "Allow Sentinel to save videos to your photos.",
+      "isAccessMediaLocationEnabled": true
+    }
+  ]
     ],
     "experiments": {
       "typedRoutes": true
