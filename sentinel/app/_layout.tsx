@@ -1,13 +1,17 @@
+ 
 import { AuthProvider } from '../context/auth'; // Adjust path if needed
+import { ModalProvider, useModal } from '../context/ModalContext';
 import { Stack } from "expo-router";
 import React from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-
+import { View } from 'react-native';
+ 
+import BottomNavBar from '../components/BottomNavBar'
 
 export default function RootLayout() {
     return (
         <AuthProvider>
-            <SafeAreaProvider style={{ marginTop: 10 }}>
+        <ModalProvider>
+
 
                 <Stack>
                     <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -25,20 +29,34 @@ export default function RootLayout() {
                             presentation: 'fullScreenModal'
                         }}
                     />
-                    <Stack.Screen name="myCircle" options={{ headerShown: true, title: 'Sentinel' }} />
+                    <Stack.Screen name="myCircle" options={{ 
+                        headerShown: true, 
+                        title:'Back'
+                         }} />
 
-                    <Stack.Screen name="profile" options={{ headerShown: true, title: 'Sentinel' }} />
+                    <Stack.Screen name="profile" options={{ headerShown: false,
+                       
+                          }} />
 
-                    <Stack.Screen name="explore" options={{ headerShown: true, title: 'Sentinel' }} />
+                    <Stack.Screen name="explore" options={{ headerShown: false,
+                      
+                          }} />
 
-                    <Stack.Screen name="map" options={{ headerShown: true, title: 'Sentinel' }} />
+                    <Stack.Screen name="map" options={{ headerShown: false,
+                        //  title: 'Sentinel'
+                          }} />
                     <Stack.Screen name="fakeCall" options={{
+                        presentation: 'fullScreenModal',
+                        headerShown: false
+                    }} />
+                    <Stack.Screen name="fakeIncomingCall" options={{
                         presentation: 'fullScreenModal',
                         headerShown: false
                     }} />
 
                 </Stack>
-            </SafeAreaProvider>
+        </ModalProvider>
+           
 
         </AuthProvider>
     );

@@ -1,4 +1,4 @@
-import React,{ useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -15,7 +15,7 @@ import PhoneContactsModal from '../components/PhoneContactsModal';
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
-export default function MyCircleScreen () {
+export default function MyCircleScreen() {
   const [contacts, setContacts] = useState([]);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
 
@@ -46,7 +46,7 @@ export default function MyCircleScreen () {
     };
     // Only save if contacts isn't the initial empty array
     if (contacts.length > 0) {
-        saveContacts();
+      saveContacts();
     }
   }, [contacts]);
 
@@ -131,7 +131,10 @@ export default function MyCircleScreen () {
 
 // --- Styles ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: {
+    paddingTop: 30,
+    flex: 1, backgroundColor: '#F7F8FA'
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -197,4 +200,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
 });
- 

@@ -1,15 +1,14 @@
-﻿import   {useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Vibration } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+﻿import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import Entypo from '@expo/vector-icons/Entypo';
+
 // --- Configuration ---
 const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
-const FAKE_CALL_RINGTONE_KEY = 'fake_call_ringtone_uri';
-const DEFAULT_CALLER_NAME = 'Work'; // A generic fallback name
+const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
+const DEFAULT_CALLER_NAME = 'Work';
+const DEFAULT_CALLER_NUMBER = '+91 9601727836';
 
 // --- Reusable UI Component for the control buttons ---
 const ControlButton = ({ icon, label, onPress, iconComponent: Icon = MaterialCommunityIcons }) => (
@@ -17,77 +16,55 @@ const ControlButton = ({ icon, label, onPress, iconComponent: Icon = MaterialCom
     <View style={styles.controlIconCircle}>
       <Icon name={icon} size={32} color="white" />
     </View>
-  {label &&   <Text style={styles.controlLabel}>{label}</Text>}
+    {label && <Text style={styles.controlLabel}>{label}</Text>}
   </TouchableOpacity>
 );
-const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
-const FakeCallScreen = () =>
-{
- 
+
+const FakeCallScreen = () => {
   const router = useRouter();
-  const sound = useRef(new Audio.Sound());
   const [callerName, setCallerName] = useState(DEFAULT_CALLER_NAME);
-  const [callerNumber, setCallerNumber] = useState('+91 9601727836'); // Example number
+  const [callerNumber, setCallerNumber] = useState(DEFAULT_CALLER_NUMBER);
+  const [callDuration, setCallDuration] = useState(0);
 
-  // Load settings and start the call simulation
-  useEffect(() =>
-  {
-    let isMounted = true;
-    const startCall = async () =>
-    {
-      try
-      {
-        // --- Load Caller Name ---
+  // --- Load Caller Info ---
+  useEffect(() => {
+    const loadCallerInfo = async () => {
+      try {
         const storedName = await AsyncStorage.getItem(FAKE_CALLER_NAME_KEY);
-        if (isMounted && storedName) setCallerName(storedName);
-          const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
-        if (isMounted && storedName) setCallerNumber(storedNumber);
+        if (storedName) setCallerName(storedName);
 
-        // --- Load and Play Ringtone ---
-        let ringtoneSource;
-        const customRingtoneUri = await AsyncStorage.getItem(FAKE_CALL_RINGTONE_KEY);
-        const fileInfo = customRingtoneUri ? await FileSystem.getInfoAsync(customRingtoneUri) : null;
-
-        if (customRingtoneUri && fileInfo && fileInfo.exists)
-        {
-          ringtoneSource = { uri: customRingtoneUri };
-        } else
-        {
-          ringtoneSource = require('../assets/ringtone.mp3');
-        }
-
-        Vibration.vibrate([500, 1000, 500], true);
-        const { sound: playbackObject } = await Audio.Sound.createAsync(
-          ringtoneSource,
-          { shouldPlay: true, isLooping: true }
-        );
-        if (isMounted) sound.current = playbackObject;
-
-      } catch (error)
-      {
-        console.error("Failed to start call simulation", error);
+        const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
+        if (storedNumber) setCallerNumber(storedNumber);
+      } catch (error) {
+        console.error("Failed to load caller info", error);
       }
     };
-
-    startCall();
-
-    return () =>
-    {
-      isMounted = false;
-      sound.current.unloadAsync();
-      Vibration.cancel();
-    };
+    loadCallerInfo();
   }, []);
 
-  const handleEndCall = () =>
-  {
+  // --- Start Call Timer ---
+  useEffect(() => {
+    const timerInterval = setInterval(() => {
+      setCallDuration(prevDuration => prevDuration + 1);
+    }, 1000);
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => clearInterval(timerInterval);
+  }, []);
+
+  const handleEndCall = () => {
     router.back();
   };
 
-  const handleDummyAction = () =>
-  {
-    // This function does nothing, as per the UI design
+  const handleDummyAction = () => {
     console.log("Control button pressed");
+  };
+
+  // --- Helper function to format the timer ---
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
   };
 
   return (
@@ -97,7 +74,8 @@ const FakeCallScreen = () =>
         <Text style={styles.callerName}>{callerName}</Text>
         <Text style={styles.callerNumber}>{callerNumber}</Text>
         <Text style={styles.callerLocation}>India</Text>
-        <Text style={styles.callStatus}>Waiting for response...</Text>
+        {/* --- Call Timer --- */}
+        <Text style={styles.callStatus}>{formatTime(callDuration)}</Text>
       </View>
 
       {/* --- Control Grid --- */}
@@ -107,20 +85,19 @@ const FakeCallScreen = () =>
         <ControlButton icon="plus" label="Add call" onPress={handleDummyAction} />
         <ControlButton icon="microphone-off" label="Mute" onPress={handleDummyAction} />
         <ControlButton icon="video-outline" label="Video call" onPress={handleDummyAction} />
-        
       </View>
 
       {/* --- Main Action Buttons --- */}
       <View style={styles.mainActionsContainer}>
-         <ControlButton icon="volume-high"  iconComponent={Ionicons} onPress={handleDummyAction} />
+        <ControlButton icon="volume-high" iconComponent={Ionicons} onPress={handleDummyAction} />
         <TouchableOpacity style={styles.endCallButton} onPress={handleEndCall}>
           <MaterialCommunityIcons name="phone-hangup" size={32} color="white" />
         </TouchableOpacity>
-    <TouchableOpacity style={styles.control}  >
-    <View style={styles.controlIconCircle}>
-        <Entypo name="dial-pad" size={32} color="white" />
-    </View>
-  </TouchableOpacity>
+        <TouchableOpacity style={styles.control}>
+          <View style={styles.controlIconCircle}>
+            <Entypo name="dial-pad" size={32} color="white" />
+          </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -135,7 +112,7 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   callerInfoContainer: {
-    alignItems: 'start',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
   },
   callerName: {
@@ -161,7 +138,7 @@ const styles = StyleSheet.create({
   controlsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'start',
+    justifyContent: 'flex-start',
     paddingHorizontal: 30,
     marginTop: 40,
   },
@@ -194,8 +171,8 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     marginBottom: 30,
-   marginLeft:5,
-   marginRight:5,
+    marginLeft: 5,
+    marginRight: 5,
     backgroundColor: '#ff4e45ff',
     justifyContent: 'center',
     alignItems: 'center',

@@ -1,4 +1,4 @@
-﻿  import React, { useState, useEffect } from 'react';
+﻿import React,{useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -14,30 +14,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useFocusEffect, usePathname, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import ContactListModal from '../components/ContactListModal';
-import Feather from '@expo/vector-icons/Feather';
-import AntDesign from '@expo/vector-icons/AntDesign';
+import BottomNavBar from '../components/BottomNavBar'
+import { useModal } from '../context/ModalContext';
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
-// =================================================================
-// 1. UI COMPONENTS (Presentational)
-// =================================================================
-
-const Header = ({ locationText ,onTabPress}) => (
+// --- UI Components (Header, SOSCard, etc. remain the same) ---
+const Header = ({ locationText }) => (
   <View style={styles.header}>
     <View style={styles.locationContainer}>
       <Ionicons name="location-sharp" size={20} color="#ff4500" />
-      <Text style={styles.locationText} numberOfLines={1}>
-        {locationText}
-      </Text>
+      <Text style={styles.locationText} numberOfLines={1}>{locationText}</Text>
     </View>
     <View style={styles.headerIcons}>
       <TouchableOpacity>
         <Ionicons name="notifications-outline" size={24} color="#333" />
       </TouchableOpacity>
-      <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => onTabPress('profile')}  >
+      <TouchableOpacity style={{ marginLeft: 15 }}>
         <FontAwesome5 name="user-circle" size={24} color="#333" />
       </TouchableOpacity>
     </View>
@@ -45,135 +40,89 @@ const Header = ({ locationText ,onTabPress}) => (
 );
 
 const SOSCard = ({ onSOSPress, isReady, buttonText }) => (
-  <View style={styles.sosCard}>
-    <TouchableOpacity onPress={onSOSPress} disabled={!isReady}>
-      <LinearGradient
-        colors={isReady ? ['#FF6B6B', '#FF4500'] : ['#D3D3D3', '#A9A9A9']}
-        style={styles.sosButton}
-      >
-        <View style={styles.sosButtonInner}>
-          {buttonText === 'PREPARING...' ? (
-            <ActivityIndicator size="large" color="white" />
-          ) : (
-            <>
-              <Text style={styles.sosText}>SOS</Text>
-              <Text style={styles.sosSubtext}>{buttonText}</Text>
-            </>
-          )}
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  </View>
+    <View style={styles.sosCard}>
+        <TouchableOpacity onPress={onSOSPress} disabled={!isReady}>
+            <LinearGradient
+                colors={isReady ? ['#FF6B6B', '#FF4500'] : ['#D3D3D3', '#A9A9A9']}
+                style={styles.sosButton}
+            >
+                <View style={styles.sosButtonInner}>
+                    {buttonText === 'PREPARING...' ? (
+                        <ActivityIndicator size="large" color="white" />
+                    ) : (
+                        <>
+                            <Text style={styles.sosText}>SOS</Text>
+                            <Text style={styles.sosSubtext}>{buttonText}</Text>
+                        </>
+                    )}
+                </View>
+            </LinearGradient>
+        </TouchableOpacity>
+    </View>
 );
 
 const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
-  const IconComponent =
-    iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : FontAwesome5;
-  return (
-    <TouchableOpacity style={styles.categoryBox} onPress={() => onPress(name)}>
-      <View style={[styles.iconContainer, { backgroundColor: color }]}>
-        <IconComponent name={icon} size={24} color="white" />
-      </View>
-      <Text style={styles.categoryText}>{name}</Text>
-    </TouchableOpacity>
-  );
+    const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : FontAwesome5;
+    return (
+        <TouchableOpacity style={styles.categoryBox} onPress={() => onPress(name)}>
+            <View style={[styles.iconContainer, { backgroundColor: color }]}>
+                <IconComponent name={icon} size={24} color="white" />
+            </View>
+            <Text style={styles.categoryText}>{name}</Text>
+        </TouchableOpacity>
+    );
 };
 
 const EmergencyGrid = ({ onCategorySelect }) => {
-  const categories = [
-    { icon: 'medical-bag', name: 'Medical', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
-    { icon: 'fire', name: 'Fire', color: '#FFA500', iconSet: 'FontAwesome5' },
-    { icon: 'cloud-showers-heavy', name: 'Natural disaster', color: '#1E90FF', iconSet: 'FontAwesome5' },
-    { icon: 'car-crash', name: 'Accident', color: '#9370DB', iconSet: 'FontAwesome5' },
-    { icon: 'user-ninja', name: 'Violence', color: '#4682B4', iconSet: 'FontAwesome5' },
-    { icon: 'hands-helping', name: 'Rescue', color: '#3CB371', iconSet: 'FontAwesome5' },
-       { 
-      icon: "video", 
-      name: "Record", 
-      color: "#5856D6", // A nice purple color
-      iconSet: "MaterialCommunity" 
-    },
-  ];
+    const router = useRouter();
+    const categories = [
+        { icon: 'medical-bag', name: 'Medical', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
+        { icon: 'fire', name: 'Fire', color: '#FFA500', iconSet: 'FontAwesome5' },
+        { icon: 'video', name: 'Record', color: '#5856D6', iconSet: 'MaterialCommunity' },
+        { icon: 'car-crash', name: 'Accident', color: '#9370DB', iconSet: 'FontAwesome5' },
+        { icon: 'user-ninja', name: 'Violence', color: '#4682B4', iconSet: 'FontAwesome5' },
+            { icon: 'cloud-showers-heavy', name: 'Natural disaster', color: '#1E90FF', iconSet: 'FontAwesome5' },
 
-  return (
-    <View style={styles.categoriesSection}>
-      <Text style={styles.sectionTitle}>What's your emergency?</Text>
-      <View style={styles.categoriesGrid}>
-        {categories.map((cat) => (
-          <EmergencyCategory
-            key={cat.name}
-            icon={cat.icon}
-            name={cat.name}
-            color={cat.color}
-            iconSet={cat.iconSet}
-            onPress={onCategorySelect}
-          />
-        ))}
-      </View>
-    </View>
-  );
+        { icon: 'hands-helping', name: 'Rescue', color: '#3CB371', iconSet: 'FontAwesome5' },
+    ];
+
+    const handlePress = (name) => {
+        if (name === 'Record') {
+            router.push('/recorder');
+        } else {
+            onCategorySelect(name);
+        }
+    };
+
+    return (
+        <View style={styles.categoriesSection}>
+            <Text style={styles.sectionTitle}>What's your emergency?</Text>
+            <View style={styles.categoriesGrid}>
+                {categories.map((cat) => (
+                    <EmergencyCategory
+                        key={cat.name}
+                        icon={cat.icon}
+                        name={cat.name}
+                        color={cat.color}
+                        iconSet={cat.iconSet}
+                        onPress={handlePress}
+                    />
+                ))}
+            </View>
+        </View>
+    );
 };
 
-const BottomNavBar = ({ activeTab, onTabPress }) => (
-  <View style={styles.navBar}>
-
- 
-    <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('home')}>
-      <Ionicons name="home" size={26} color={activeTab === '/' ? '#FF4500' : '#A9A9A9'} />
-      <Text style={[styles.navText, { color: activeTab === '/' ? '#FF4500' : '#A9A9A9' }]}>Home</Text>
-    </TouchableOpacity>
- 
-
-
- 
-
-    <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('myCircle')}>
-      <Ionicons name="people-circle-outline" size={26} color={activeTab === '/myCircle' ? '#FF4500' : '#A9A9A9'} />
-      <Text style={[styles.navText, { color: activeTab === '/myCircle' ? '#FF4500' : '#A9A9A9' }]}>My circle</Text>
-    </TouchableOpacity>
-  
-
-  
-
-    <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('explore')}>
-      <Ionicons name="compass-outline" size={26} color={activeTab === '/explore' ? '#FF4500' : '#A9A9A9'} />
-      <Text style={[styles.navText, { color: activeTab === 'Explore' ? '#FF4500' : '#A9A9A9' }]}>Explore</Text>
-    </TouchableOpacity>
- 
-
-  <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('fakeCall')}>
-    <Feather name="phone-call"    size={26} color={activeTab === 'fakeCall' ? '#FF4500' : '#A9A9A9'} />
-      <Text style={[styles.navText, { color: activeTab === 'fakeCall' ? '#FF4500' : '#A9A9A9' }]}>Fake Call</Text>
-    </TouchableOpacity>
-
-
-    <TouchableOpacity style={styles.navItem} onPress={() => onTabPress('settings')}>
-      <AntDesign name="setting"  size={26} color={activeTab === 'profile' ? '#FF4500' : '#A9A9A9'} />
-      <Text style={[styles.navText, { color: activeTab === 'Profile' ? '#FF4500' : '#A9A9A9' }]}>Settings</Text>
-    </TouchableOpacity>
-
-  
-
-  </View>
-);
-
-// =================================================================
-// 2. SCREEN COMPONENT (Container with Logic)
-// =================================================================
 
 export default function HomeScreen() {
-  const pathName=usePathname()
-  console.log("current path",pathName)
-   const router = useRouter(); 
-  const [activeTab, setActiveTab] = useState('Home');
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [isSending, setIsSending] = useState(false);
-  const [isModalVisible, setModalVisible] = useState(false);
+   
   const [emergencyContacts, setEmergencyContacts] = useState([]);
   const [locationWatcher, setLocationWatcher] = useState(null);
-
-  // --- 1. Load contacts from storage whenever the screen is focused ---
+  const router = useRouter();
+   const { isContactModalVisible, closeContactModal } = useModal();
   useFocusEffect(
     React.useCallback(() => {
       const loadContacts = async () => {
@@ -192,16 +141,9 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // --- 2. Request Permissions and Start Location Tracking ---
   useEffect(() => {
     const setupPermissionsAndTracking = async () => {
-      const enabled = await Location.hasServicesEnabledAsync();
-      if (!enabled) {
-        setErrorMsg('Location services are disabled.');
-        Alert.alert('Location Disabled', 'Please enable location services in your device settings.');
-        return;
-      }
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
         return;
@@ -223,7 +165,6 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // --- 3. Universal SMS Sending Function ---
   const sendSmsWithDevice = async (message, recipients) => {
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
@@ -235,10 +176,8 @@ export default function HomeScreen() {
     }
   };
 
-  // --- 4. SOS Button Press Handler ---
   const handleSOSPress = async () => {
     if (isSending || !location) return;
-
     if (emergencyContacts.length === 0) {
       Alert.alert(
         'No Contacts',
@@ -247,55 +186,25 @@ export default function HomeScreen() {
       );
       return;
     }
-
     const contactNumbers = emergencyContacts.map((c) => c.phone);
-    const message = `Emergency SOS! I need help! My location is: http://googleusercontent.com/maps.google.com/9{location.coords.latitude},${location.coords.longitude}`;
+    const message = `Emergency SOS! I need help! My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
     await sendSmsWithDevice(message, contactNumbers);
   };
 
-  // --- 5. Check-In Handler ---
   const handleCheckInSelect = async (contact) => {
-    setModalVisible(false);
+    
     if (!location) {
       Alert.alert('Location Not Found', 'Cannot send check-in without your location.');
       return;
     }
-    const message = `Check-in: I'm here and safe. My location is: http://maps.google.com/maps?q=$0{location.coords.latitude},${location.coords.longitude}`;
+    const message = `Check-in: I'm here and safe. My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
     await sendSmsWithDevice(message, [contact.phone]);
   };
 
-  // --- Other Handlers ---
- 
-
-  const handleTabPress = (tabName) => {
-    setActiveTab(tabName);
-    if (tabName === 'home') {
-      router.push('/');
-    } else if (tabName === 'explore') {
-      router.push('/explore');
-    }
-    else if (tabName === 'myCircle') {
-      router.push('/myCircle');
-    }else if (tabName === 'profile') {
-      router.push('/profile');
-    }
-    else if (tabName === 'fakeCall') {
-      router.push('/fakeCall');
-    }
-    else if (tabName === 'settings') {
-      router.push('/settings');
-    }
-    console.log(`Navigating to ${tabName}`);
-  };
   const handleCategorySelect = (categoryName) => {
-  if (categoryName === "Record") {
-    router.push('/recorder');
-  } else {
-    Alert.alert("Emergency Selected", `You have selected: ${categoryName}. Help is on the way.`, [{ text: "OK" }]);
-  }
-};
+    Alert.alert('Emergency Selected', `You have selected: ${categoryName}. Help is on the way.`, [{ text: 'OK' }]);
+  };
 
-  // --- UI Rendering Logic ---
   let locationText = 'Waiting for location...';
   if (errorMsg) {
     locationText = errorMsg;
@@ -310,49 +219,40 @@ export default function HomeScreen() {
   } else if (!location) {
     sosButtonText = 'LOCATING...';
   }
-
+ 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header locationText={locationText} onTabPress={handleTabPress} />
-
+        <Header locationText={locationText} />
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>Are you in an emergency?</Text>
           <Text style={styles.subtitle}>
             Press the SOS button, an SMS with your live location will be sent to your emergency contacts.
           </Text>
-          <TouchableOpacity style={styles.checkInButton} onPress={() => setModalVisible(true)}>
-            <Text style={styles.checkInButtonText}>Send a Check-In</Text>
-          </TouchableOpacity>
+           
         </View>
-
         <SOSCard onSOSPress={handleSOSPress} isReady={isReady} buttonText={sosButtonText} />
-
         <EmergencyGrid onCategorySelect={handleCategorySelect} />
       </ScrollView>
-
+  
+      <BottomNavBar     />
       <ContactListModal
-        visible={isModalVisible}
-        onClose={() => setModalVisible(false)}
-        onSelectContact={handleCheckInSelect}
-        contacts={emergencyContacts}
-      />
-      <BottomNavBar activeTab={pathName} onTabPress={handleTabPress} />
+                visible={isContactModalVisible}
+                onClose={closeContactModal}            
+            />
+    
     </SafeAreaView>
   );
 }
 
-// =================================================================
-// 4. STYLES
-// =================================================================
-
 const styles = StyleSheet.create({
   container: {
+    paddingTop:15,
     flex: 1,
-    backgroundColor: '#F7F8FA',
+    backgroundColor: '#ffffffff',
   },
   scrollContent: {
-    paddingBottom: 80,
+    paddingBottom: 80, // Space for the custom nav bar
   },
   header: {
     flexDirection: 'row',
@@ -405,16 +305,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   sosCard: {
-    // backgroundColor: 'white',
-    // borderRadius: 30,
-    // margin: 10,
-    // padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    // margin: 20,
+    padding: 10,
     alignItems: 'center',
     // shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 4 },
+    // shadowOffset: { width: 0, height: 5 },
     // shadowOpacity: 0.1,
     // shadowRadius: 15,
-    // elevation: 4,
+    // elevation: 5,
   },
   sosButton: {
     width: 150,
@@ -479,24 +379,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
-  navBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 75,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#E8E8E8',
-  },
-  navItem: {
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-}); 
+});
