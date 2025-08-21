@@ -1,6 +1,9 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 .vs* 
 .vs 
+/android
+/ios
+
 sentinel-app
 # dependencies
 node_modules/
@@ -12,8 +15,8 @@ web-build/
 expo-env.d.ts
 
 # Native
-/android
-android/
+ios
+android
 .kotlin/
 *.orig.*
 *.jks
