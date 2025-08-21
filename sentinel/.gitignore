@@ -1,8 +1,7 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 .vs* 
 .vs 
-/android
-/ios
+
 
 sentinel-app
 # dependencies
@@ -46,3 +45,5 @@ yarn-error.*
 app-example
 "sentinel/.env" 
 "sentinel/.env" 
+/android
+/ios
