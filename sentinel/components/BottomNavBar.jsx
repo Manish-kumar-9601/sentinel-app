@@ -26,7 +26,7 @@ const BottomNavBar = ( ) => {
       router.push(item.path);
       // closeContactModal()
     } else {
-      router.replace(item.path);
+      router.push(item.path);
       // closeContactModal()
     }
   };
@@ -44,7 +44,7 @@ const BottomNavBar = ( ) => {
           >
             <IconComponent
               name={item.icon}
-              size={26}
+              size={28}
               color={isActive ? '#FF4500' : '#A9A9A9'}
             />
             <Text style={[styles.navText, { color: isActive ? '#FF4500' : '#A9A9A9' }]}>
@@ -60,16 +60,16 @@ const BottomNavBar = ( ) => {
 const styles = StyleSheet.create({
   navBar: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 5,
     left: 0,
     right: 0,
-    height: 75,
+    height: 70,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#E8E8E8',
+    borderTopWidth: 0,
+    borderTopColor: '#e8e8e8',
   },
   navItem: {
     alignItems: 'center',

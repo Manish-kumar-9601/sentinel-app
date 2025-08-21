@@ -1,4 +1,4 @@
-﻿import React,{useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -22,95 +22,96 @@ import { useModal } from '../context/ModalContext';
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
 // --- UI Components (Header, SOSCard, etc. remain the same) ---
-const Header = ({ locationText }) => (
+const Header = ({ }) => (
   <View style={styles.header}>
-    <View style={styles.locationContainer}>
-      <Ionicons name="location-sharp" size={20} color="#ff4500" />
-      <Text style={styles.locationText} numberOfLines={1}>{locationText}</Text>
-    </View>
+
     <View style={styles.headerIcons}>
       <TouchableOpacity>
-        <Ionicons name="notifications-outline" size={24} color="#333" />
+        <Ionicons name="notifications-outline" size={28} color="#333" />
       </TouchableOpacity>
       <TouchableOpacity style={{ marginLeft: 15 }}>
-        <FontAwesome5 name="user-circle" size={24} color="#333" />
+        <FontAwesome5 name="user-circle" size={28} color="#333" />
       </TouchableOpacity>
     </View>
   </View>
 );
 
-const SOSCard = ({ onSOSPress, isReady, buttonText }) => (
-    <View style={styles.sosCard}>
-        <TouchableOpacity onPress={onSOSPress} disabled={!isReady}>
-            <LinearGradient
-                colors={isReady ? ['#FF6B6B', '#FF4500'] : ['#D3D3D3', '#A9A9A9']}
-                style={styles.sosButton}
-            >
-                <View style={styles.sosButtonInner}>
-                    {buttonText === 'PREPARING...' ? (
-                        <ActivityIndicator size="large" color="white" />
-                    ) : (
-                        <>
-                            <Text style={styles.sosText}>SOS</Text>
-                            <Text style={styles.sosSubtext}>{buttonText}</Text>
-                        </>
-                    )}
-                </View>
-            </LinearGradient>
-        </TouchableOpacity>
+const SOSCard = ({ onSOSPress, isReady, buttonText, locationText }) => (
+  <View style={styles.sosCard}>
+    <TouchableOpacity onPress={onSOSPress} disabled={!isReady}>
+      <LinearGradient
+        colors={isReady ? ['#FF6B6B', '#FF4500'] : ['#D3D3D3', '#A9A9A9']}
+        style={styles.sosButton}
+      >
+        <View style={styles.sosButtonInner}>
+          {buttonText === 'PREPARING...' ? (
+            <ActivityIndicator size="large" color="white" />
+          ) : (
+            <>
+              <Text style={styles.sosText}>SOS</Text>
+              <Text style={styles.sosSubtext}>{buttonText}</Text>
+            </>
+          )}
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+    <View style={styles.locationContainer}>
+      <Ionicons name="location-sharp" size={20} color="#ff4500" />
+      <Text style={styles.locationText} numberOfLines={1}>{locationText}</Text>
     </View>
+  </View>
 );
 
 const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
-    const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : FontAwesome5;
-    return (
-        <TouchableOpacity style={styles.categoryBox} onPress={() => onPress(name)}>
-            <View style={[styles.iconContainer, { backgroundColor: color }]}>
-                <IconComponent name={icon} size={24} color="white" />
-            </View>
-            <Text style={styles.categoryText}>{name}</Text>
-        </TouchableOpacity>
-    );
+  const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : FontAwesome5;
+  return (
+    <TouchableOpacity style={styles.categoryBox} onPress={() => onPress(name)}>
+      <View style={[styles.iconContainer, { backgroundColor: color }]}>
+        <IconComponent name={icon} size={24} color="white" />
+      </View>
+      <Text style={styles.categoryText}>{name}</Text>
+    </TouchableOpacity>
+  );
 };
 
 const EmergencyGrid = ({ onCategorySelect }) => {
-    const router = useRouter();
-    const categories = [
-        { icon: 'medical-bag', name: 'Medical', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
-        { icon: 'fire', name: 'Fire', color: '#FFA500', iconSet: 'FontAwesome5' },
-        { icon: 'video', name: 'Record', color: '#5856D6', iconSet: 'MaterialCommunity' },
-        { icon: 'car-crash', name: 'Accident', color: '#9370DB', iconSet: 'FontAwesome5' },
-        { icon: 'user-ninja', name: 'Violence', color: '#4682B4', iconSet: 'FontAwesome5' },
-            { icon: 'cloud-showers-heavy', name: 'Natural disaster', color: '#1E90FF', iconSet: 'FontAwesome5' },
+  const router = useRouter();
+  const categories = [
+    { icon: 'medical-bag', name: 'Medical', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
+    { icon: 'fire', name: 'Fire', color: '#FFA500', iconSet: 'FontAwesome5' },
+    { icon: 'video', name: 'Record', color: '#5856D6', iconSet: 'MaterialCommunity' },
+    { icon: 'car-crash', name: 'Accident', color: '#9370DB', iconSet: 'FontAwesome5' },
+    { icon: 'user-ninja', name: 'Violence', color: '#4682B4', iconSet: 'FontAwesome5' },
+    { icon: 'cloud-showers-heavy', name: 'Natural disaster', color: '#1E90FF', iconSet: 'FontAwesome5' },
 
-        { icon: 'hands-helping', name: 'Rescue', color: '#3CB371', iconSet: 'FontAwesome5' },
-    ];
+    { icon: 'hands-helping', name: 'Rescue', color: '#3CB371', iconSet: 'FontAwesome5' },
+  ];
 
-    const handlePress = (name) => {
-        if (name === 'Record') {
-            router.push('/recorder');
-        } else {
-            onCategorySelect(name);
-        }
-    };
+  const handlePress = (name) => {
+    if (name === 'Record') {
+      router.push('/recorder');
+    } else {
+      onCategorySelect(name);
+    }
+  };
 
-    return (
-        <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>What's your emergency?</Text>
-            <View style={styles.categoriesGrid}>
-                {categories.map((cat) => (
-                    <EmergencyCategory
-                        key={cat.name}
-                        icon={cat.icon}
-                        name={cat.name}
-                        color={cat.color}
-                        iconSet={cat.iconSet}
-                        onPress={handlePress}
-                    />
-                ))}
-            </View>
-        </View>
-    );
+  return (
+    <View style={styles.categoriesSection}>
+      <Text style={styles.sectionTitle}>What's your emergency?</Text>
+      <View style={styles.categoriesGrid}>
+        {categories.map((cat) => (
+          <EmergencyCategory
+            key={cat.name}
+            icon={cat.icon}
+            name={cat.name}
+            color={cat.color}
+            iconSet={cat.iconSet}
+            onPress={handlePress}
+          />
+        ))}
+      </View>
+    </View>
+  );
 };
 
 
@@ -118,11 +119,11 @@ export default function HomeScreen() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [isSending, setIsSending] = useState(false);
-   
+
   const [emergencyContacts, setEmergencyContacts] = useState([]);
   const [locationWatcher, setLocationWatcher] = useState(null);
   const router = useRouter();
-   const { isContactModalVisible, closeContactModal } = useModal();
+  const { isContactModalVisible, closeContactModal } = useModal();
   useFocusEffect(
     React.useCallback(() => {
       const loadContacts = async () => {
@@ -192,7 +193,7 @@ export default function HomeScreen() {
   };
 
   const handleCheckInSelect = async (contact) => {
-    
+
     if (!location) {
       Alert.alert('Location Not Found', 'Cannot send check-in without your location.');
       return;
@@ -219,35 +220,36 @@ export default function HomeScreen() {
   } else if (!location) {
     sosButtonText = 'LOCATING...';
   }
- 
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header locationText={locationText} />
+        <Header />
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>Are you in an emergency?</Text>
           <Text style={styles.subtitle}>
             Press the SOS button, an SMS with your live location will be sent to your emergency contacts.
           </Text>
-           
+
         </View>
-        <SOSCard onSOSPress={handleSOSPress} isReady={isReady} buttonText={sosButtonText} />
+        <SOSCard onSOSPress={handleSOSPress} isReady={isReady} buttonText={sosButtonText} locationText={locationText} />
+
         <EmergencyGrid onCategorySelect={handleCategorySelect} />
       </ScrollView>
-  
-      <BottomNavBar     />
+
+      <BottomNavBar />
       <ContactListModal
-                visible={isContactModalVisible}
-                onClose={closeContactModal}            
-            />
-    
+        visible={isContactModalVisible}
+        onClose={closeContactModal}
+      />
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop:15,
+    paddingTop: 15,
     flex: 1,
     backgroundColor: '#ffffffff',
   },
@@ -256,19 +258,28 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 30,
     paddingBottom: 10,
+    borderBottomColor:'#000000ff'
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginTop: 20,
+    padding: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    backgroundColor: 'white',
+    borderRadius:20,
   },
   locationText: {
-    marginLeft: 5,
     fontSize: 14,
     color: '#555',
     flexShrink: 1,
@@ -307,7 +318,7 @@ const styles = StyleSheet.create({
   sosCard: {
     backgroundColor: 'white',
     borderRadius: 20,
-    // margin: 20,
+    margin: 20,
     padding: 10,
     alignItems: 'center',
     // shadowColor: '#000',
