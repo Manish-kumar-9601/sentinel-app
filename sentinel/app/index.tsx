@@ -22,11 +22,11 @@ import { useModal } from '../context/ModalContext';
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
 // --- UI Components (Header, SOSCard, etc. remain the same) ---
-const Header = ({ }) => (
+const Header = ({onProfile }) => (
   <View style={styles.header}>
 
     <View style={styles.headerIcons}>
-      <TouchableOpacity>
+      <TouchableOpacity onPress={onProfile} >
         <Ionicons name="notifications-outline" size={28} color="#333" />
       </TouchableOpacity>
       <TouchableOpacity style={{ marginLeft: 15 }}>
@@ -221,10 +221,14 @@ export default function HomeScreen() {
     sosButtonText = 'LOCATING...';
   }
 
+  const onProfile=()=>{
+  router.push('/settings')
+}
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header />
+        <Header onProfile={onProfile} />
         <View style={styles.titleContainer}>
           <Text style={styles.mainTitle}>Are you in an emergency?</Text>
           <Text style={styles.subtitle}>
