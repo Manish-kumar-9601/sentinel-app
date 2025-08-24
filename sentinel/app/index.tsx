@@ -1,6 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -9,34 +8,38 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import {  MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
+ 
 import ContactListModal from '../components/ContactListModal';
 import BottomNavBar from '../components/BottomNavBar'
-import { useModal } from '../context/ModalContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
+import { useRouter, usePathname ,useFocusEffect} from 'expo-router';
+import { useModal } from '@/context/ModalContext';
+import i18n from '../lib/i18n'
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
 // --- UI Components (Header, SOSCard, etc. remain the same) ---
-const Header = ({onProfile }) => (
+const Header = ({ onProfile }) => (
   <View style={styles.header}>
 
     <View style={styles.headerIcons}>
-      <TouchableOpacity onPress={onProfile} >
-        <Ionicons name="notifications-outline" size={28} color="#333" />
+      <TouchableOpacity  >
+        <Ionicons name="notifications-outline" size={30} color="#333" />
       </TouchableOpacity>
-      <TouchableOpacity style={{ marginLeft: 15 }}>
-        <FontAwesome5 name="user-circle" size={28} color="#333" />
+      <TouchableOpacity style={{ marginLeft: 15 }} onPress={onProfile}>
+        <FontAwesome5 name="user-circle" size={30} color="#333" />
       </TouchableOpacity>
     </View>
   </View>
 );
 
-const SOSCard = ({ onSOSPress, isReady, buttonText, locationText }) => (
+const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress }) => (
   <View style={styles.sosCard}>
     <TouchableOpacity onPress={onSOSPress} disabled={!isReady}>
       <LinearGradient
@@ -55,10 +58,13 @@ const SOSCard = ({ onSOSPress, isReady, buttonText, locationText }) => (
         </View>
       </LinearGradient>
     </TouchableOpacity>
-    <View style={styles.locationContainer}>
-      <Ionicons name="location-sharp" size={20} color="#ff4500" />
-      <Text style={styles.locationText} numberOfLines={1}>{locationText}</Text>
-    </View>
+    <TouchableOpacity onPress={onLocationPress} style={styles.locationContainer} >
+      <View style={styles.locationBox} >
+        <Ionicons name="location-sharp" size={20} color="#ff4500" />
+        <Text style={styles.locationText} numberOfLines={1}>{locationText}</Text>
+      </View>
+    </TouchableOpacity>
+
   </View>
 );
 
@@ -73,44 +79,56 @@ const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
     </TouchableOpacity>
   );
 };
+const CATEGORY_CONFIG = [
+    { id: 'medical', icon: 'medical-bag', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
+    { id: 'fire', icon: 'fire', color: '#FFA500', iconSet: 'FontAwesome5' },
+    { id: 'record', icon: 'video', color: '#5856D6', iconSet: 'MaterialCommunity' },
+    { id: 'accident', icon: 'car-crash', color: '#9370DB', iconSet: 'FontAwesome5' },
+    { id: 'violence', icon: 'user-ninja', color: '#4682B4', iconSet: 'FontAwesome5' },
+    { id: 'natural_disaster', icon: 'cloud-showers-heavy', color: '#1E90FF', iconSet: 'FontAwesome5' },
+    { id: 'rescue', icon: 'hands-helping', color: '#3CB371', iconSet: 'FontAwesome5' },
+];
 
 const EmergencyGrid = ({ onCategorySelect }) => {
   const router = useRouter();
-  const categories = [
-    { icon: 'medical-bag', name: 'Medical', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
-    { icon: 'fire', name: 'Fire', color: '#FFA500', iconSet: 'FontAwesome5' },
-    { icon: 'video', name: 'Record', color: '#5856D6', iconSet: 'MaterialCommunity' },
-    { icon: 'car-crash', name: 'Accident', color: '#9370DB', iconSet: 'FontAwesome5' },
-    { icon: 'user-ninja', name: 'Violence', color: '#4682B4', iconSet: 'FontAwesome5' },
-    { icon: 'cloud-showers-heavy', name: 'Natural disaster', color: '#1E90FF', iconSet: 'FontAwesome5' },
+  
+  // --- Create categories with translated names ---
+  const categories = CATEGORY_CONFIG.map(cat => ({
+      ...cat,
+      name: i18n.t(`home.categories.${cat.id}`)
+  }));
 
-    { icon: 'hands-helping', name: 'Rescue', color: '#3CB371', iconSet: 'FontAwesome5' },
-  ];
-
-  const handlePress = (name) => {
-    if (name === 'Record') {
+ const handlePress = (category) => {
+    if (category.id === 'record') {
       router.push('/recorder');
     } else {
-      onCategorySelect(name);
+
+      router.push({
+        pathname: '/guide',
+        params: { 
+          categoryId: category.id, 
+          categoryName: category.name 
+        }
+      });
     }
   };
 
   return (
-    <View style={styles.categoriesSection}>
-      <Text style={styles.sectionTitle}>What's your emergency?</Text>
+    <SafeAreaView style={styles.categoriesSection}>
+      <Text style={styles.sectionTitle}>{i18n.t('home.emergencyGridTitle')}</Text>
       <View style={styles.categoriesGrid}>
         {categories.map((cat) => (
           <EmergencyCategory
-            key={cat.name}
+            key={cat.id}
             icon={cat.icon}
             name={cat.name}
             color={cat.color}
             iconSet={cat.iconSet}
-            onPress={handlePress}
+            onPress={()=>handlePress(cat)}
           />
         ))}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -119,11 +137,10 @@ export default function HomeScreen() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [isSending, setIsSending] = useState(false);
-
   const [emergencyContacts, setEmergencyContacts] = useState([]);
-  const [locationWatcher, setLocationWatcher] = useState(null);
   const router = useRouter();
   const { isContactModalVisible, closeContactModal } = useModal();
+  
   useFocusEffect(
     React.useCallback(() => {
       const loadContacts = async () => {
@@ -143,27 +160,35 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    const setupPermissionsAndTracking = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        return;
-      }
-      const watcher = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-        (newLocation) => {
-          setLocation(newLocation);
-          setErrorMsg(null);
+     const setupAndGetLocation = async () => {
+        // --- 1. Request Permissions ---
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+            setErrorMsg('Permission to access location was denied');
+            return;
         }
-      );
-      setLocationWatcher(watcher);
+
+        // --- 2. Get Last Known Location (Instant) ---
+        // This provides an immediate location to the UI.
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown) {
+            setLocation(lastKnown);
+        }
+
+        // --- 3. Get a Fresh, High-Accuracy Location ---
+        // This runs in the background and updates the state when ready.
+        try {
+            const freshLocation = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.High,
+            });
+            setLocation(freshLocation); // Update with the better location
+        } catch (error) {
+            console.error("Could not get high-accuracy location", error);
+            // If this fails, the app still has the lastKnown location.
+        }
     };
-    setupPermissionsAndTracking();
-    return () => {
-      if (locationWatcher) {
-        locationWatcher.remove();
-      }
-    };
+
+    setupAndGetLocation();
   }, []);
 
   const sendSmsWithDevice = async (message, recipients) => {
@@ -192,15 +217,15 @@ export default function HomeScreen() {
     await sendSmsWithDevice(message, contactNumbers);
   };
 
-  const handleCheckInSelect = async (contact) => {
+  // const handleCheckInSelect = async (contact) => {
 
-    if (!location) {
-      Alert.alert('Location Not Found', 'Cannot send check-in without your location.');
-      return;
-    }
-    const message = `Check-in: I'm here and safe. My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
-    await sendSmsWithDevice(message, [contact.phone]);
-  };
+  //   if (!location) {
+  //     Alert.alert('Location Not Found', 'Cannot send check-in without your location.');
+  //     return;
+  //   }
+  //   const message = `Check-in: I'm here and safe. My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
+  //   await sendSmsWithDevice(message, [contact.phone]);
+  // };
 
   const handleCategorySelect = (categoryName) => {
     Alert.alert('Emergency Selected', `You have selected: ${categoryName}. Help is on the way.`, [{ text: 'OK' }]);
@@ -221,27 +246,59 @@ export default function HomeScreen() {
     sosButtonText = 'LOCATING...';
   }
 
-  const onProfile=()=>{
-  router.push('/settings')
-}
-
+  const onProfile = () => {
+    router.push('/profile')
+  }
+  const handleLocationPress = () => {
+    if (location) {
+      router.push({
+        pathname: "/map",
+        params: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        }
+      });
+    } else {
+      Alert.alert("Location Not Available", "We are still trying to find your location.");
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Header onProfile={onProfile} />
         <View style={styles.titleContainer}>
-          <Text style={styles.mainTitle}>Are you in an emergency?</Text>
-          <Text style={styles.subtitle}>
-            Press the SOS button, an SMS with your live location will be sent to your emergency contacts.
-          </Text>
+         <Text style={styles.mainTitle}>{i18n.t('home.title')}</Text>
+          <Text style={styles.subtitle}>{i18n.t('home.subtitle')}</Text>
 
         </View>
-        <SOSCard onSOSPress={handleSOSPress} isReady={isReady} buttonText={sosButtonText} locationText={locationText} />
+        <SOSCard onSOSPress={handleSOSPress} isReady={isReady} onLocationPress={handleLocationPress} buttonText={sosButtonText} locationText={locationText} />
 
         <EmergencyGrid onCategorySelect={handleCategorySelect} />
       </ScrollView>
 
-      <BottomNavBar />
+     {/* < View style={styles.navBar}>
+         {NAV_ITEMS.map((item) => {
+           const isActive = pathname === item.path;
+           const IconComponent = item.iconComponent;
+           return (
+             <TouchableOpacity
+               key={item.name}
+               style={styles.navItem}
+               onPress={() => handlePress(item)}
+             >
+               <IconComponent
+                 name={item.icon}
+                 size={28}
+                 color={isActive ? '#FF4500' : '#A9A9A9'}
+               />
+               <Text style={[styles.navText, { color: isActive ? '#FF4500' : '#A9A9A9' }]}>
+                 {item.name}
+               </Text>
+             </TouchableOpacity>
+           );
+         })}
+       </View> */}
+       <BottomNavBar />
       <ContactListModal
         visible={isContactModalVisible}
         onClose={closeContactModal}
@@ -253,12 +310,12 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 15,
+    paddingTop: 0,
     flex: 1,
     backgroundColor: '#ffffffff',
   },
   scrollContent: {
-    paddingBottom: 80, // Space for the custom nav bar
+    paddingBottom: 50,  
   },
   header: {
     flexDirection: 'row',
@@ -266,14 +323,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 10,
-    borderBottomColor:'#000000ff'
+    paddingBottom: 0,
+    borderBottomColor: '#000000ff'
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginTop: 20,
+    marginTop: 10,
     padding: 15,
     elevation: 2,
     shadowColor: '#000',
@@ -281,8 +338,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 15,
     backgroundColor: 'white',
-    borderRadius:20,
+    borderRadius: 20,
   },
+  locationBox:{
+    display:'flex',
+    flexDirection:'row',
+    gap:2
+  },
+
   locationText: {
     fontSize: 14,
     color: '#555',
@@ -290,10 +353,11 @@ const styles = StyleSheet.create({
   },
   headerIcons: {
     flexDirection: 'row',
+    gap: 2
   },
   titleContainer: {
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 10,
   },
   mainTitle: {
     fontSize: 26,
@@ -322,8 +386,8 @@ const styles = StyleSheet.create({
   sosCard: {
     backgroundColor: 'white',
     borderRadius: 20,
-    margin: 20,
-    padding: 10,
+    marginTop: 20,
+    padding: 0,
     alignItems: 'center',
     // shadowColor: '#000',
     // shadowOffset: { width: 0, height: 5 },
@@ -363,7 +427,7 @@ const styles = StyleSheet.create({
   },
   categoriesSection: {
     paddingHorizontal: 20,
-    marginTop: 10,
+    marginTop: 0,
   },
   sectionTitle: {
     fontSize: 18,
@@ -387,11 +451,31 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   categoryText: {
     fontSize: 13,
     fontWeight: '500',
     color: '#333',
+  },
+   navBar: {
+    // position: 'absolute',
+    // bottom: 0,
+    // left: 0,
+    // right: 0,
+    height: 45,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderTopWidth: 0,
+    borderTopColor: '#e8e8e8',
+  },
+  navItem: {
+    alignItems: 'center',
+  },
+  navText: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

@@ -4,18 +4,27 @@ import React from 'react';
 export default function SettingsLayout() {
   return (
     <Stack>
-     
       <Stack.Screen 
         name="index" 
         options={{ 
-     headerShown:false
+          headerShown: false 
         }} 
       />
       
-      {/* Other specific settings screens */}
-      <Stack.Screen name="emergency-contacts" options={{ title: 'Emergency Contacts' }} />
-      <Stack.Screen name="shake-and-voice" options={{ title: 'Shake & Voice Activation' }} />
-      <Stack.Screen name="privacy" options={{ title: 'Privacy & Security' }} />
+
+
+      <Stack.Screen name="shake-and-voice" options={{ title: 'Shake & Voice Activation'
+        , headerShown: false, 
+       }} />
+      
+      
+      <Stack.Screen 
+        name="language" 
+        options={{ 
+          headerShown: true, 
+          title: 'Select Language' 
+        }} 
+      />
     </Stack>
   );
 }

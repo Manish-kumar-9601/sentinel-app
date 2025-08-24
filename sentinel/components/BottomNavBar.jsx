@@ -1,8 +1,9 @@
 ﻿import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity,   } from 'react-native';
 import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useModal } from '@/context/ModalContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
   { name: 'Home', path: '/', icon: 'home', iconComponent: Ionicons },
@@ -32,7 +33,7 @@ const BottomNavBar = ( ) => {
   };
 
   return (
-    <View style={styles.navBar}>
+    < View style={styles.navBar}>
       {NAV_ITEMS.map((item) => {
         const isActive = pathname === item.path;
         const IconComponent = item.iconComponent;
@@ -59,11 +60,11 @@ const BottomNavBar = ( ) => {
 
 const styles = StyleSheet.create({
   navBar: {
-    position: 'absolute',
-    bottom: 5,
-    left: 0,
-    right: 0,
-    height: 70,
+    // position: 'absolute',
+    // bottom: 10,
+    // left: 0,
+    // right: 0,
+    height: 50,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',

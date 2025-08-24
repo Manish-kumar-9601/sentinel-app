@@ -1,0 +1,303 @@
+﻿{
+  "home": {
+    "title": "Are you in an emergency?",
+    "subtitle": "Press the SOS button, an SMS with your live location will be sent to your emergency contacts.",
+    "checkInButton": "Send a Check-In",
+    "emergencyGridTitle": "What's your emergency?",
+    "categories": {
+      "medical": "Medical",
+      "fire": "Fire",
+      "record": "Record",
+      "accident": "Accident",
+      "violence": "Violence",
+      "natural_disaster": "Natural disaster",
+      "rescue": "Rescue"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "sections": {
+      "myCircle": {
+        "title": "My Circle",
+        "rows": {
+          "manageContacts": {
+            "label": "Manage Emergency Contacts",
+            "description": "Add or remove trusted contacts"
+          }
+        }
+      },
+      "fakeCall": {
+        "title": "Fake Call",
+        "callerNameLabel": "Caller Name",
+        "callerNumberLabel": "Caller Number",
+        "ringtoneLabel": "Ringtone",
+        "saveButton": "Save Fake Call Settings"
+      },
+      "app": {
+        "title": "App",
+        "themeLabel": "Theme",
+        "languageLabel": "Language"
+      },
+      "logout": {
+        "label": "Log Out"
+      }
+    }
+  },
+  "emergencies": [
+    {
+      "category": "Medical",
+      "title": "Medical Emergency Instructions",
+      "summary": "If someone is unconscious, bleeding heavily, or having trouble breathing, act quickly.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "Assess the Situation",
+          "details": [
+            "Check the area for any dangers to yourself or the victim (like traffic, fire, or fumes).",
+            "Try to wake the person by gently tapping their shoulders and shouting, \"Are you okay?\""
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Call for an Ambulance (108 or 112)",
+          "details": [
+            "Tell the operator your exact location.",
+            "Describe the person's condition (e.g., \"not breathing,\" \"bleeding from the head,\" \"chest pain\").",
+            "Follow all instructions the operator gives you."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Provide Basic Care (If you can do so safely)",
+          "details": [
+            "If not breathing: If you are trained, start CPR (Cardiopulmonary Resuscitation).",
+            "For heavy bleeding: Apply firm, direct pressure to the wound using a clean cloth or bandage.",
+            "Do NOT move a person with a suspected neck or spine injury unless they are in immediate danger.",
+            "Stay with the person and keep them calm until help arrives."
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Fire",
+      "title": "Fire Emergency Instructions",
+      "summary": "Your priority is to get everyone out safely. Things can be replaced, people cannot.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "Alert Everyone",
+          "details": [
+            "Shout \"FIRE!\" loudly to wake up and warn everyone in the building."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Evacuate Immediately",
+          "details": [
+            "Get out as fast as you can. Do not stop to collect personal belongings.",
+            "Stay low to the ground to avoid inhaling smoke. The cleanest air is near the floor.",
+            "Before opening a door, feel it with the back of your hand. If it is hot, DO NOT open it. Find another way out.",
+            "Once you are out, stay out. Never go back inside a burning building."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Call the Fire Brigade (101 or 112)",
+          "details": [
+            "Call for help only after you are safely outside.",
+            "Tell the operator your exact address."
+          ]
+        },
+        {
+          "step": 4,
+          "title": "If Trapped",
+          "details": [
+            "Go to a room with a window. Close the door to keep smoke out.",
+            "Block the gap under the door with clothes or a towel.",
+            "Signal for help from the window."
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Natural_Disaster",
+      "title": "Natural Disaster Safety",
+      "summary": "Instructions will vary depending on the disaster (e.g., earthquake, flood, cyclone). Follow official news and alerts from authorities.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "Find Safe Shelter",
+          "details": [
+            "Earthquake: Drop to the ground, take Cover under a sturdy table, and Hold On. Stay away from windows.",
+            "Flood: Immediately move to higher ground. Do not walk or drive through floodwaters.",
+            "Cyclone/Strong Winds: Stay indoors, away from windows and doors."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Stay Informed",
+          "details": [
+            "Listen to the radio or follow official social media channels for updates and instructions."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Emergency Kit",
+          "details": [
+            "Keep a kit ready with water, non-perishable food, a flashlight, batteries, a first-aid kit, and important documents."
+          ]
+        },
+        {
+          "step": 4,
+          "title": "After the Event",
+          "details": [
+            "Watch out for downed power lines, broken glass, and damaged buildings. Do not enter damaged structures."
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Accident",
+      "title": "Road Accident Instructions",
+      "summary": null,
+      "instructions": [
+        {
+          "step": 1,
+          "title": "Secure the Area",
+          "details": [
+            "Stop your vehicle at a safe distance and turn on your hazard lights to warn other drivers.",
+            "Check for immediate dangers like fuel leaks, fire, or oncoming traffic. If it's safe, place a warning triangle."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Call for Help (100 for Police, 108 for Ambulance)",
+          "details": [
+            "Provide the precise location of the accident.",
+            "Describe the number of vehicles and people involved and the extent of injuries."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Assist the Injured",
+          "details": [
+            "Your safety comes first. Only approach if it is safe to do so.",
+            "Check if the victims are conscious and breathing.",
+            "Do not move an injured person unless they are in immediate danger (e.g., from fire). Moving someone can worsen neck or spinal injuries.",
+            "Offer first aid if you are trained (e.g., applying pressure to bleeding wounds).",
+            "Talk to the victims in a calm and reassuring voice until help arrives."
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Violence",
+      "title": "Responding to a Violent Threat (Assault/Robbery)",
+      "summary": "Your personal safety is the single most important goal. Follow this principle: RUN, HIDE, or FIGHT.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "RUN (Escape)",
+          "details": [
+            "If there is a clear escape path, use it immediately.",
+            "Leave your belongings behind.",
+            "Do not try to be a hero. Get yourself to safety first.",
+            "Once safe, call the Police (100 or 112)."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "HIDE (If you cannot run)",
+          "details": [
+            "Find a place where the attacker is less likely to find you.",
+            "Lock or barricade the door.",
+            "Silence your mobile phone completely (including vibration).",
+            "Stay quiet and out of sight."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "FIGHT (As a last resort)",
+          "details": [
+            "Only fight if your life is in immediate danger and you cannot run or hide.",
+            "Be as aggressive as possible. Commit to your actions.",
+            "Use any object as a weapon (chair, fire extinguisher, keys, pen).",
+            "Aim for vulnerable areas."
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Rescue",
+      "title": "Rescue Situation Instructions",
+      "summary": "If you see someone trapped, fallen, or in danger, your first step is to get professional help.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "DO NOT put yourself in danger!",
+          "details": [
+            "Assess the situation from a safe distance. Look for hazards like fire, deep water, electric wires, or unstable ground.",
+            "Many rescuers get injured or killed by rushing in without thinking. You cannot help if you also become a victim."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Call Emergency Services Immediately (101, 108, or 112)",
+          "details": [
+            "Give them the exact location and describe the situation clearly. (e.g., \"A person has fallen into a well,\" \"A child is trapped under a collapsed wall\").",
+            "Professionals have the right training and equipment to perform a safe rescue."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Help from a Safe Distance (If possible)",
+          "details": [
+            "DO NOT enter the dangerous area.",
+            "Talk to the person. Keep them calm and let them know help is on the way.",
+            "For water rescue: Do not go in. Try the \"Reach, Throw\" method. Reach with a stick or branch, or throw them something that floats (a rope, a plastic bottle).",
+            "Follow any instructions given by the emergency operator."
+          ]
+        }
+      ]
+    }, 
+    {
+      "category": "Natural Disaster",
+      "title": "Natural Disaster Safety",
+      "summary": "Instructions will vary depending on the disaster (e.g., earthquake, flood, cyclone). Follow official news and alerts from authorities.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "Find Safe Shelter",
+          "details": [
+            "Earthquake: Drop to the ground, take Cover under a sturdy table, and Hold On. Stay away from windows.",
+            "Flood: Immediately move to higher ground. Do not walk or drive through floodwaters.",
+            "Cyclone/Strong Winds: Stay indoors, away from windows and doors."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Stay Informed",
+          "details": [
+            "Listen to the radio or follow official social media channels for updates and instructions."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Emergency Kit",
+          "details": [
+            "Keep a kit ready with water, non-perishable food, a flashlight, batteries, a first-aid kit, and important documents."
+          ]
+        },
+        {
+          "step": 4,
+          "title": "After the Event",
+          "details": [
+            "Watch out for downed power lines, broken glass, and damaged buildings. Do not enter damaged structures."
+          ]
+        }
+      ]
+    }
+    
+  ]
+}
+
