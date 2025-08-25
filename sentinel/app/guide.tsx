@@ -13,6 +13,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../lib/i18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StringKeyframeTrack } from 'three/src/Three.Core.js';
 
 // --- Helper function to get the correct emergency number ---
 const getEmergencyNumber = (categoryId) => {
@@ -43,7 +44,7 @@ console.log(categoryId,categoryName)
     console.log(i)
   ))
   // Find the correct guide by the category ID
-  const content = allGuides.find(e => e.category.toLowerCase() === categoryId.toLowerCase() );
+  const content = allGuides.find((e) => e.category.toLowerCase() === categoryId.toLowerCase() );
 console.log('content',content)
   const { number: emergencyNumber, label: callButtonLabel } = getEmergencyNumber(categoryId);
 
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 10,
   },
   categoryTag: {
     flexDirection: 'row',

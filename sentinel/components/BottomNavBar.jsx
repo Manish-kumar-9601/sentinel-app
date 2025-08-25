@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity,   } from 'react-native';
 import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useModal } from '@/context/ModalContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
   { name: 'Home', path: '/', icon: 'home', iconComponent: Ionicons },
   { name: 'Check Contact', path: '/checkContact', icon: 'people-circle-outline', iconComponent: Ionicons },
-  { name: 'Explore', path: '/explore', icon: 'explore', iconComponent: MaterialIcons },
+  { name: 'Explore', path: '/explores', icon: 'explore', iconComponent: MaterialIcons },
   { name: 'Fake Call', path: '/fakeIncomingCall', icon: 'phone-call', iconComponent: Feather },
 
 ];
@@ -64,7 +63,7 @@ const styles = StyleSheet.create({
     // bottom: 10,
     // left: 0,
     // right: 0,
-    height: 50,
+    height: 60,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',

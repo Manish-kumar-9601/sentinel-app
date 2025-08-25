@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Updates from 'expo-updates'; // <-- CORRECTED IMPORT
+import * as Updates from 'expo-updates'; 
 import i18n from '../../lib/i18n';
 
 const LANGUAGES = [

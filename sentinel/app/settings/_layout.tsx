@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import React from 'react';
 
-export default function SettingsLayout() {
+export default function RootLayout() {
   return (
     <Stack>
       <Stack.Screen 
@@ -10,12 +10,9 @@ export default function SettingsLayout() {
           headerShown: false 
         }} 
       />
-      
-
-
+  
       <Stack.Screen name="shake-and-voice" options={{ title: 'Shake & Voice Activation'
-        , headerShown: false, 
-       }} />
+        , headerShown: false, }} />
       
       
       <Stack.Screen 
