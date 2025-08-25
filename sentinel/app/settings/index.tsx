@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import i18n from '../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 
 // --- Configuration ---
 const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
@@ -39,7 +40,7 @@ export default function SettingsScreen() {
   const [ringtoneName, setRingtoneName] = useState('Default');
   const [theme, setTheme] = useState('Light'); // Placeholder state
   const [language, setLanguage] = useState(i18n.locale);
-
+const {t} =useTranslation()
   // --- Load saved settings ---
   useEffect(() => {
     const loadSettings = async () => {

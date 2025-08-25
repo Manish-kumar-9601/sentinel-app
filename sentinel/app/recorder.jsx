@@ -1,6 +1,6 @@
-﻿import React, {useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Button } from 'react-native';
-import { CameraView, useCameraPermissions, Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
@@ -10,23 +10,22 @@ const EvidenceRecorderScreen = () => {
   const [facing, setFacing] = useState('back');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // <-- New state to disable button
   const cameraRef = useRef(null);
   const intervalRef = useRef(null);
 
+  // --- Modern Permission Hooks ---
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const [mediaLibraryPermission, requestMediaLibraryPermission] = MediaLibrary.usePermissions();
-  const [microphonePermission, setMicrophonePermission] = useState(null);
 
+  // --- Request all necessary permissions on load ---
   useEffect(() => {
-    (async () => {
-        await requestCameraPermission();
-        await requestMediaLibraryPermission();
-        const microphoneStatus = await Camera.requestMicrophonePermissionsAsync();
-        setMicrophonePermission(microphoneStatus.status === 'granted');
-    })();
+    if (!cameraPermission?.granted) requestCameraPermission();
+    if (!microphonePermission?.granted) requestMicrophonePermission();
+    if (!mediaLibraryPermission?.granted) requestMediaLibraryPermission();
   }, []);
 
+  // --- Timer Logic ---
   useEffect(() => {
     if (isRecording) {
       intervalRef.current = setInterval(() => {
@@ -39,56 +38,59 @@ const EvidenceRecorderScreen = () => {
     return () => clearInterval(intervalRef.current);
   }, [isRecording]);
 
+  // --- Handlers ---
   function toggleCameraFacing() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
 
-  const handleRecording = async () => {
+  const startRecording = async () => {
     if (!cameraRef.current) return;
-
-    if (isRecording) {
-      // --- Stop Recording ---
-      cameraRef.current.stopRecording();
-      setIsRecording(false);
-    } else {
-      // --- Start Recording ---
-      setIsRecording(true);
-      setIsButtonDisabled(true); // Disable the button immediately
-      setTimeout(() => setIsButtonDisabled(false), 1000); // Re-enable after 1 second
-
-      try {
-        const videoRecordPromise = cameraRef.current.recordAsync({ quality: '720p' });
-        if (videoRecordPromise) {
-          const data = await videoRecordPromise;
-          await MediaLibrary.saveToLibraryAsync(data.uri);
-          Alert.alert("Video Saved", "Your evidence has been saved to your photo library.");
-        }
-      } catch (error) {
-        console.error("Error recording video: ", error);
-        // Don't show an alert for this specific timing error
-        if (!error.message.includes('Recording was stopped before any data could be produced')) {
-          Alert.alert("Error", "Could not save the video.");
-        }
-      } finally {
-        setIsRecording(false);
+    setIsRecording(true);
+    try {
+      const videoRecordPromise = cameraRef.current.recordAsync({ quality: '720p' });
+      if (videoRecordPromise) {
+        const data = await videoRecordPromise;
+        await MediaLibrary.saveToLibraryAsync(data.uri);
+        Alert.alert("Video Saved", "Your evidence has been saved to your photo library.");
       }
+    } catch (error) {
+      console.error("Error recording or saving video: ", error);
+      if (!error.message.includes('Recording was stopped')) {
+        Alert.alert("Error", "Could not record or save the video.");
+      }
+    } finally {
+      setIsRecording(false);
     }
   };
 
-  if (!cameraPermission || !mediaLibraryPermission || microphonePermission === null) {
-    return <View />;
+  const stopRecording = () => {
+    if (cameraRef.current) {
+      cameraRef.current.stopRecording();
+    }
+  };
+
+  const handleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  // --- Permission Loading/Denied States ---
+  if (!cameraPermission || !microphonePermission || !mediaLibraryPermission) {
+    return <View style={styles.container} />; // Permissions are still loading
   }
 
-  if (!cameraPermission.granted || !mediaLibraryPermission.granted || !microphonePermission) {
+  if (!cameraPermission.granted || !microphonePermission.granted || !mediaLibraryPermission.granted) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionMessage}>We need your permission to access the camera, microphone, and media library.</Text>
+        <Text style={styles.permissionMessage}>We need full access to your camera, microphone, and media library to record evidence.</Text>
         <Button onPress={async () => {
             await requestCameraPermission();
+            await requestMicrophonePermission();
             await requestMediaLibraryPermission();
-            const micStatus = await Camera.requestMicrophonePermissionsAsync();
-            setMicrophonePermission(micStatus.status === 'granted');
-        }} title="Grant Permissions" />
+        }} title="Grant All Permissions" />
       </View>
     );
   }
@@ -101,7 +103,9 @@ const EvidenceRecorderScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+      <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+      
+      <View style={styles.controlsContainer}>
         <View style={styles.topControls}>
           {isRecording && <Text style={styles.timerText}>{formatTime(recordingDuration)}</Text>}
         </View>
@@ -112,7 +116,6 @@ const EvidenceRecorderScreen = () => {
           <TouchableOpacity 
             style={styles.recordButton} 
             onPress={handleRecording}
-            disabled={isButtonDisabled} // <-- Disable button when needed
           >
             <View style={isRecording ? styles.stopIcon : styles.recordIcon} />
           </TouchableOpacity>
@@ -120,14 +123,18 @@ const EvidenceRecorderScreen = () => {
             <Ionicons name="camera-reverse" size={35} color="white" />
           </TouchableOpacity>
         </View>
-      </CameraView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  camera: { flex: 1, justifyContent: 'space-between' },
+  container: { flex: 1, backgroundColor: 'black' },
+  camera: { ...StyleSheet.absoluteFillObject },
+  controlsContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+  },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',

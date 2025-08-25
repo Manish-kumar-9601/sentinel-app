@@ -48,11 +48,13 @@
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.10",
     "expo-task-manager": "~13.1.6",
+    "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
     "i18n-js": "^4.5.1",
-    "i18next": "^25.4.1",
+    "i18next": "^25.4.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "react-i18next": "^15.7.2",
     "react-native": "0.79.5",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-maps": "1.20.1",
@@ -62,8 +64,7 @@
     "react-native-shake": "^6.7.8",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "twilio": "^5.8.0",
-    "expo-updates": "~0.28.17"
+    "twilio": "^5.8.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -11,10 +11,11 @@ import {
   FlatList,
   Keyboard,
   ScrollView,
+  Image,
 } from 'react-native';
-import { Stack } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
 
+import { Ionicons, Feather } from '@expo/vector-icons';
+import sentinel_detect_icon from '../../assets/images/heroIcon.png'
 const DataLeakScreen = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,18 +59,27 @@ console.log(results)
         <Feather name="alert-triangle" size={24} color="#D93025" />
       </View>
       <View style={styles.resultTextContainer}>
-        <Text style={styles.resultTitle}>{item.source}</Text>
-        <Text style={styles.resultDescription}>{item.password}</Text>
+        <Text style={styles.resultTitle}>Source:{item.source}</Text>
+        <Text style={styles.resultDescription}>{item.hash}</Text>
       </View>
     </View>
   );
   } 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Data Leak Check', headerShown: true }} />
+     
+     <View>
+    
+     </View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Ionicons name="shield-checkmark-outline" size={60} color="#FF4500" />
+             <Image
+        style={styles.heroIconImage}
+        source={ sentinel_detect_icon}
+        placeholder={ 'sentinel-detect-icon' }
+        contentFit="contain"
+        transition={1}
+      />
           <Text style={styles.title}>Data Leak Check</Text>
           <Text style={styles.subtitle}>
             See if your email has been compromised in a public data breach.
@@ -105,7 +115,7 @@ console.log(results)
                 <Text style={styles.resultsHeader}>Breaches Found ({results.results.length})</Text>
                 <View style={styles.card}>
                     <FlatList
-                        data={results.results}
+                        data={results.results }
                         renderItem={renderResultItem}
                         keyExtractor={(item, index) => index.toString()}
                         scrollEnabled={false}
@@ -128,8 +138,17 @@ console.log(results)
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
-  scrollContainer: { padding: 20 },
-  header: { alignItems: 'center', marginBottom: 30 },
+  scrollContainer: { padding:5 },
+  heroIconImage:{
+    width: 150,
+    height:150,
+    borderRadius: 100,
+    marginBottom: 0,
+    alignSelf: 'center',
+    elevation: 5,
+ 
+  },
+  header: { alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 28, fontWeight: 'bold', marginTop: 16, textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 8, paddingHorizontal: 20 },
   card: {

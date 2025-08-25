@@ -8,28 +8,27 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import {  MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as SMS from 'expo-sms';
 import AsyncStorage from '@react-native-async-storage/async-storage';
- 
-import ContactListModal from '../components/ContactListModal';
-import BottomNavBar from '../components/BottomNavBar'
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { useRouter, usePathname ,useFocusEffect} from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useModal } from '@/context/ModalContext';
-import i18n from '../lib/i18n'
+import { useTranslation } from 'react-i18next';
+import BottomNavBar from '../components/BottomNavBar';
+import ContactListModal from '../components/ContactListModal';
+
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
-// --- UI Components (Header, SOSCard, etc. remain the same) ---
+// --- UI Components ---
 const Header = ({ onProfile }) => (
   <View style={styles.header}>
-
     <View style={styles.headerIcons}>
-      <TouchableOpacity  >
+      <TouchableOpacity>
         <Ionicons name="notifications-outline" size={30} color="#333" />
       </TouchableOpacity>
       <TouchableOpacity style={{ marginLeft: 15 }} onPress={onProfile}>
@@ -58,20 +57,19 @@ const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPres
         </View>
       </LinearGradient>
     </TouchableOpacity>
-    <TouchableOpacity onPress={onLocationPress} style={styles.locationContainer} >
-      <View style={styles.locationBox} >
+    <TouchableOpacity onPress={onLocationPress} style={styles.locationContainer}>
+      <View style={styles.locationBox}>
         <Ionicons name="location-sharp" size={20} color="#ff4500" />
         <Text style={styles.locationText} numberOfLines={1}>{locationText}</Text>
       </View>
     </TouchableOpacity>
-
   </View>
 );
 
 const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
   const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : FontAwesome5;
   return (
-    <TouchableOpacity style={styles.categoryBox} onPress={() => onPress(name)}>
+    <TouchableOpacity style={styles.categoryBox} onPress={onPress}>
       <View style={[styles.iconContainer, { backgroundColor: color }]}>
         <IconComponent name={icon} size={24} color="white" />
       </View>
@@ -79,6 +77,7 @@ const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
     </TouchableOpacity>
   );
 };
+
 const CATEGORY_CONFIG = [
     { id: 'medical', icon: 'medical-bag', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
     { id: 'fire', icon: 'fire', color: '#FFA500', iconSet: 'FontAwesome5' },
@@ -91,31 +90,24 @@ const CATEGORY_CONFIG = [
 
 const EmergencyGrid = ({ onCategorySelect }) => {
   const router = useRouter();
-  
-  // --- Create categories with translated names ---
+  const { t } = useTranslation();
+
   const categories = CATEGORY_CONFIG.map(cat => ({
-      ...cat,
-      name: i18n.t(`home.categories.${cat.id}`)
+    ...cat,
+    name: t(`home.categories.${cat.id}`),
   }));
 
- const handlePress = (category) => {
+  const handlePress = (category) => {
     if (category.id === 'record') {
       router.push('/recorder');
     } else {
-
-      router.push({
-        pathname: '/guide',
-        params: { 
-          categoryId: category.id, 
-          categoryName: category.name 
-        }
-      });
+      onCategorySelect(category);
     }
   };
 
   return (
-    <SafeAreaView style={styles.categoriesSection}>
-      <Text style={styles.sectionTitle}>{i18n.t('home.emergencyGridTitle')}</Text>
+    <View style={styles.categoriesSection}>
+      <Text style={styles.sectionTitle}>{t('home.emergencyGridTitle')}</Text>
       <View style={styles.categoriesGrid}>
         {categories.map((cat) => (
           <EmergencyCategory
@@ -124,14 +116,13 @@ const EmergencyGrid = ({ onCategorySelect }) => {
             name={cat.name}
             color={cat.color}
             iconSet={cat.iconSet}
-            onPress={()=>handlePress(cat)}
+            onPress={() => handlePress(cat)}
           />
         ))}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
-
 
 export default function HomeScreen() {
   const [location, setLocation] = useState(null);
@@ -139,8 +130,9 @@ export default function HomeScreen() {
   const [isSending, setIsSending] = useState(false);
   const [emergencyContacts, setEmergencyContacts] = useState([]);
   const router = useRouter();
+  const { t } = useTranslation();
   const { isContactModalVisible, closeContactModal } = useModal();
-  
+
   useFocusEffect(
     React.useCallback(() => {
       const loadContacts = async () => {
@@ -160,34 +152,25 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-     const setupAndGetLocation = async () => {
-        // --- 1. Request Permissions ---
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            setErrorMsg('Permission to access location was denied');
-            return;
-        }
-
-        // --- 2. Get Last Known Location (Instant) ---
-        // This provides an immediate location to the UI.
-        const lastKnown = await Location.getLastKnownPositionAsync();
-        if (lastKnown) {
-            setLocation(lastKnown);
-        }
-
-        // --- 3. Get a Fresh, High-Accuracy Location ---
-        // This runs in the background and updates the state when ready.
-        try {
-            const freshLocation = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High,
-            });
-            setLocation(freshLocation); // Update with the better location
-        } catch (error) {
-            console.error("Could not get high-accuracy location", error);
-            // If this fails, the app still has the lastKnown location.
-        }
+    const setupAndGetLocation = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+      const lastKnown = await Location.getLastKnownPositionAsync();
+      if (lastKnown) {
+        setLocation(lastKnown);
+      }
+      try {
+        const freshLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        setLocation(freshLocation);
+      } catch (error) {
+        console.error("Could not get high-accuracy location", error);
+      }
     };
-
     setupAndGetLocation();
   }, []);
 
@@ -217,18 +200,14 @@ export default function HomeScreen() {
     await sendSmsWithDevice(message, contactNumbers);
   };
 
-  // const handleCheckInSelect = async (contact) => {
-
-  //   if (!location) {
-  //     Alert.alert('Location Not Found', 'Cannot send check-in without your location.');
-  //     return;
-  //   }
-  //   const message = `Check-in: I'm here and safe. My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
-  //   await sendSmsWithDevice(message, [contact.phone]);
-  // };
-
-  const handleCategorySelect = (categoryName) => {
-    Alert.alert('Emergency Selected', `You have selected: ${categoryName}. Help is on the way.`, [{ text: 'OK' }]);
+  const handleCategorySelect = (category) => {
+    router.push({
+      pathname: '/guide',
+      params: {
+        categoryId: category.id,
+        categoryName: category.name,
+      },
+    });
   };
 
   let locationText = 'Waiting for location...';
@@ -247,63 +226,45 @@ export default function HomeScreen() {
   }
 
   const onProfile = () => {
-    router.push('/profile')
-  }
+    router.push('/profile');
+  };
+
   const handleLocationPress = () => {
     if (location) {
       router.push({
         pathname: "/map",
         params: {
           latitude: location.coords.latitude,
-          longitude: location.coords.longitude
-        }
+          longitude: location.coords.longitude,
+        },
       });
     } else {
       Alert.alert("Location Not Available", "We are still trying to find your location.");
     }
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Header onProfile={onProfile} />
         <View style={styles.titleContainer}>
-         <Text style={styles.mainTitle}>{i18n.t('home.title')}</Text>
-          <Text style={styles.subtitle}>{i18n.t('home.subtitle')}</Text>
-
+          <Text style={styles.mainTitle}>{t('home.title')}</Text>
+          <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
         </View>
-        <SOSCard onSOSPress={handleSOSPress} isReady={isReady} onLocationPress={handleLocationPress} buttonText={sosButtonText} locationText={locationText} />
-
+        <SOSCard
+          onSOSPress={handleSOSPress}
+          isReady={isReady}
+          onLocationPress={handleLocationPress}
+          buttonText={sosButtonText}
+          locationText={locationText}
+        />
         <EmergencyGrid onCategorySelect={handleCategorySelect} />
       </ScrollView>
-
-     {/* < View style={styles.navBar}>
-         {NAV_ITEMS.map((item) => {
-           const isActive = pathname === item.path;
-           const IconComponent = item.iconComponent;
-           return (
-             <TouchableOpacity
-               key={item.name}
-               style={styles.navItem}
-               onPress={() => handlePress(item)}
-             >
-               <IconComponent
-                 name={item.icon}
-                 size={28}
-                 color={isActive ? '#FF4500' : '#A9A9A9'}
-               />
-               <Text style={[styles.navText, { color: isActive ? '#FF4500' : '#A9A9A9' }]}>
-                 {item.name}
-               </Text>
-             </TouchableOpacity>
-           );
-         })}
-       </View> */}
-       <BottomNavBar />
+      <BottomNavBar />
       <ContactListModal
         visible={isContactModalVisible}
         onClose={closeContactModal}
       />
-
     </SafeAreaView>
   );
 }
@@ -315,7 +276,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffffff',
   },
   scrollContent: {
-    paddingBottom: 50,  
+    paddingBottom: 50,
   },
   header: {
     flexDirection: 'row',
@@ -324,7 +285,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 30,
     paddingBottom: 0,
-    borderBottomColor: '#000000ff'
+    borderBottomColor: '#000000ff',
   },
   locationContainer: {
     flexDirection: 'row',
@@ -339,13 +300,14 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     backgroundColor: 'white',
     borderRadius: 20,
-  },
-  locationBox:{
-    display:'flex',
-    flexDirection:'row',
-    gap:2
-  },
+    marginBottom:20
 
+  },
+  locationBox: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 2,
+  },
   locationText: {
     fontSize: 14,
     color: '#555',
@@ -353,7 +315,7 @@ const styles = StyleSheet.create({
   },
   headerIcons: {
     flexDirection: 'row',
-    gap: 2
+    gap: 2,
   },
   titleContainer: {
     paddingHorizontal: 20,
@@ -370,30 +332,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     lineHeight: 20,
   },
-  checkInButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginTop: 15,
-  },
-  checkInButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   sosCard: {
     backgroundColor: 'white',
     borderRadius: 20,
     marginTop: 20,
     padding: 0,
     alignItems: 'center',
-    // shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 5 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 15,
-    // elevation: 5,
   },
   sosButton: {
     width: 150,
@@ -458,11 +402,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
-   navBar: {
-    // position: 'absolute',
-    // bottom: 0,
-    // left: 0,
-    // right: 0,
+  navBar: {
     height: 45,
     flexDirection: 'row',
     justifyContent: 'space-around',

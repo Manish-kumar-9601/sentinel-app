@@ -74,18 +74,8 @@ console.log('content',content)
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: true,title:`${categoryName}` }} />
-      <ScrollView>
-        {/* <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={28} color="#333" />
-          </TouchableOpacity>
-          <View style={styles.categoryTag}>
-            <Ionicons name="lock-closed-outline" size={14} color="#333" />
-            <Text style={styles.categoryTagText}>{categoryName}</Text>
-          </View>
-        </View> */}
-
+      
+      <ScrollView >
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{content.title}</Text>
@@ -120,25 +110,14 @@ console.log('content',content)
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
+  container: { flex: 1,  paddingTop: 0, backgroundColor: 'white' ,padding:0,margin:0},
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 0,
+    marginBottom: 0,
   },
-  categoryTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginLeft: 16,
-  },
-  categoryTagText: {
-    marginLeft: 6,
-    fontWeight: '500',
-  },
+ 
   content: {
     paddingHorizontal: 20,
   },
@@ -170,7 +149,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   stepContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   stepTitle: {
     fontSize: 18,
@@ -184,8 +163,9 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   footer: {
-    padding: 20,
-    borderTopWidth: 1,
+    paddingBlockEnd: 20,
+    paddingHorizontal: 20,
+    borderTopWidth: 0,
     borderTopColor: '#f0f0f0',
   },
   secondaryButton: {

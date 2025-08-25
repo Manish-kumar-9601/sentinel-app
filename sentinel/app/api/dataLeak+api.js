@@ -10,9 +10,6 @@ export async function GET(request) {
     }
 
     const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
-    // --- DEBUG: Check if the API key is loaded ---
-    console.log("Using RapidAPI Key:", RAPIDAPI_KEY ? `${RAPIDAPI_KEY.substring(0, 5)}...` : "Not Found");
-
     if (!RAPIDAPI_KEY) {
         console.error("RapidAPI Key is not configured.");
         return new Response(JSON.stringify({ error: 'Server configuration error.' }), { status: 500 });
@@ -32,10 +29,6 @@ export async function GET(request) {
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
         const result = await response.json();
-        
-        // --- DEBUG: Log the raw result from the API ---
-        console.log("Raw API Result (JSON):", JSON.stringify(result, null, 2));
-
         if (!response.ok) {
             return new Response(JSON.stringify({ error: result.error || 'Could not check for leaks.' }), { status: response.status });
         }
@@ -44,9 +37,16 @@ export async function GET(request) {
             found: result.found > 0,
             results: (result.result || []).map(breach => {
                 const sourceText = breach.sources ? String(breach.sources).replace(/,/g, ', ') : 'Unknown Source';
+                
+                const passwordText = typeof breach.password === undefined 
+                    ? JSON.stringify(breach.password) 
+                    : breach.password;
+
                 return {
                     source: sourceText,
-                    details: `Data leaked on ${breach.last_breach}`
+                    hash: breach.hash,
+                    email: breach.email,
+                    details: `Leaked Password: ${passwordText}`
                 };
             })
         };
@@ -56,7 +56,6 @@ export async function GET(request) {
         });
     } else {
         const textError = await response.text();
-        // --- DEBUG: Log the non-JSON error response ---
         console.error("Non-JSON response from RapidAPI:", textError);
         return new Response(JSON.stringify({ error: 'The external service is currently unavailable or quota has been exceeded.' }), { status: 503 });
     }

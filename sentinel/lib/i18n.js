@@ -1,36 +1,45 @@
-﻿import { I18n } from 'i18n-js';
-import * as Localization from 'expo-localization';
-import { english as en, gujarati as gu, hindi as hi, kannada as kn, marathi as mr, rajasthani as raj } from '../locales';
+﻿import i18next from 'i18next';
+import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Localization from 'expo-localization';
+import {english as en,gujarati as gu,hindi as hi,kannada as kn,  marathi as mr,rajasthani as raj } from '../locales';
+
 const LANGUAGE_KEY = 'user_language';
 
-const i18n = new I18n();
-
-// Set up the translations
-i18n.translations = {
-  en,
-  hi,
-  gu,
-  mr,
-  kn,
-  raj,
+const resources = {
+  en: { translation: en },
+  hi: { translation: hi },
+  gu: { translation: gu },
+  mr: { translation: mr },
+  kn: { translation: kn },
+  raj: { translation: raj },
 };
 
-// This function will be called on app startup
-export const setI18nConfig = async () => {
-  const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
+// Get the device's language as a default
+const deviceLanguage = Localization.getLocales()[0].languageCode;
 
-  // If a language is saved, use it. Otherwise, use the device's language.
-  const locale = savedLanguage || Localization.getLocales()[0].languageCode;
-  
-  i18n.locale = locale;
-  i18n.enableFallback = true;
-  
-  return i18n;
+i18next
+  .use(initReactI18next)
+  .init({
+    resources:resources,
+    lng:  deviceLanguage || 'en', 
+    fallbackLng: 'en',
+    compatibilityJSON: 'v3',
+    interpolation: {
+      escapeValue: false,
+    },
+  });
+
+// This function will be called when the app starts
+export const loadSavedLanguage = async () => {
+  try {
+    const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
+    if (savedLanguage) {
+      await i18next.changeLanguage(savedLanguage);
+    }
+  } catch (error) {
+    console.error('Failed to load saved language.', error);
+  }
 };
-
-// Set a default language initially
-i18n.locale = Localization.getLocales()[0].languageCode;
-i18n.enableFallback = true;
-
-export default i18n;
+loadSavedLanguage();
+export default i18next;
