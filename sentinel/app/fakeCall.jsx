@@ -53,7 +53,7 @@ const FakeCallScreen = () => {
   }, []);
 
   const handleEndCall = () => {
-    router.back();
+    router.push('/');
   };
 
   const handleDummyAction = () => {

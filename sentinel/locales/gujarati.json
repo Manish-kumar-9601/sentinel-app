@@ -1,45 +1,46 @@
 ﻿{
   "home": {
-    "title": "क्या आप आपात स्थिति में हैं?",
-    "subtitle": "एसओएस बटन दबाएं, आपके लाइव स्थान के साथ एक एसएमएस आपके आपातकालीन संपर्कों को भेजा जाएगा।",
-    "checkInButton": "चेक-इन भेजें",
-    "emergencyGridTitle": "आपकी आपात स्थिति क्या है?",
+    "title": "શું તમે કટોકટીમાં છો?",
+    "subtitle": "SOS બટન દબાવો, તમારા જીવંત સ્થાન સાથેનો એક SMS તમારા કટોકટીના સંપર્કોને મોકલવામાં આવશે.",
+    "checkInButton": "ચેક-ઇન મોકલો",
+    "emergencyGridTitle": "તમારી કટોકટી શું છે?",
     "categories": {
-      "medical": "चिकित्सा",
-      "fire": "आग",
-      "record": "रिकॉर्ड",
-      "accident": "दुर्घटना",
-      "violence": "हिंसा",
-      "natural_disaster": "प्राकृतिक आपदा",
-      "rescue": "बचाव"
+      "medical": "તબીબી",
+      "fire": "આગ",
+      "record": "રેકોર્ડ",
+       "sound_recorder": "સાઉન્ડ રેકોર્ડર",
+      "accident": "અકસ્માત",
+      "violence": "હિંસા",
+      "natural_disaster": "કુદરતી આપત્તિ",
+      "rescue": "બચાવ"
     }
   },
   "settings": {
-    "title": "सेटिंग्स",
+    "title": "સેટિંગ્સ",
     "sections": {
       "myCircle": {
-        "title": "मेरा सर्कल",
+        "title": "મારું સર્કલ",
         "rows": {
           "manageContacts": {
-            "label": "आपातकालीन संपर्क प्रबंधित करें",
-            "description": "विश्वसनीय संपर्क जोड़ें या हटाएं"
+            "label": "કટોકટીના સંપર્કોનું સંચાલન કરો",
+            "description": "વિશ્વસનીય સંપર્કો ઉમેરો અથવા દૂર કરો"
           }
         }
       },
       "fakeCall": {
-        "title": "फेक कॉल",
-        "callerNameLabel": "कॉलर का नाम",
-        "callerNumberLabel": "कॉलर का नंबर",
-        "ringtoneLabel": "रिंगटोन",
-        "saveButton": "फेक कॉल सेटिंग्स सहेजें"
+        "title": "ફેક કૉલ",
+        "callerNameLabel": "કોલરનું નામ",
+        "callerNumberLabel": "કોલરનો નંબર",
+        "ringtoneLabel": "રિંગટોન",
+        "saveButton": "ફેક કૉલ સેટિંગ્સ સાચવો"
       },
       "app": {
-        "title": "ऐप",
-        "themeLabel": "थीम",
-        "languageLabel": "भाषा"
+        "title": "એપ્લિકેશન",
+        "themeLabel": "થીમ",
+        "languageLabel": "ભાષા"
       },
       "logout": {
-        "label": "लॉग आउट"
+        "label": "લૉગ આઉટ"
       }
     }
   },

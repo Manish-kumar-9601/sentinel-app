@@ -39,6 +39,13 @@ export default function RootLayout() {
                                 presentation: 'fullScreenModal'
                             }}
                         />
+                        <Stack.Screen
+                            name="audioRecorder"
+                            options={{
+                                headerShown: false,
+                                presentation: 'fullScreenModal'
+                            }}
+                        />
                         <Stack.Screen name="myCircle" options={{
                             headerShown: true,
                             title: 'Back', statusBarStyle: "dark"

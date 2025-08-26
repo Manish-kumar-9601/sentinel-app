@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
-import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialCommunityIcons, FontAwesome5,MaterialIcons } from '@expo/vector-icons';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as SMS from 'expo-sms';
@@ -67,7 +69,7 @@ const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPres
 );
 
 const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
-  const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : FontAwesome5;
+  const IconComponent = iconSet === 'MaterialCommunity' ?(iconSet==='MaterialIcons') ?MaterialIcons: MaterialCommunityIcons : (iconSet==='MaterialIcons') ?MaterialIcons : FontAwesome5;
   return (
     <TouchableOpacity style={styles.categoryBox} onPress={onPress}>
       <View style={[styles.iconContainer, { backgroundColor: color }]}>
@@ -82,6 +84,7 @@ const CATEGORY_CONFIG = [
     { id: 'medical', icon: 'medical-bag', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
     { id: 'fire', icon: 'fire', color: '#FFA500', iconSet: 'FontAwesome5' },
     { id: 'record', icon: 'video', color: '#5856D6', iconSet: 'MaterialCommunity' },
+    { id: 'sound_recorder', icon: 'multitrack-audio', color: '#7a78f0ff', iconSet: 'MaterialIcons' },
     { id: 'accident', icon: 'car-crash', color: '#9370DB', iconSet: 'FontAwesome5' },
     { id: 'violence', icon: 'user-ninja', color: '#4682B4', iconSet: 'FontAwesome5' },
     { id: 'natural_disaster', icon: 'cloud-showers-heavy', color: '#1E90FF', iconSet: 'FontAwesome5' },
@@ -100,7 +103,9 @@ const EmergencyGrid = ({ onCategorySelect }) => {
   const handlePress = (category) => {
     if (category.id === 'record') {
       router.push('/recorder');
-    } else {
+    } else if (category.id === 'sound_recorder'){
+router.push('/audioRecorder');
+    }else {
       onCategorySelect(category);
     }
   };
@@ -129,10 +134,18 @@ export default function HomeScreen() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [emergencyContacts, setEmergencyContacts] = useState([]);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationPermissionStatus, setLocationPermissionStatus] = useState(null);
+  
   const router = useRouter();
   const { t } = useTranslation();
   const { isContactModalVisible, closeContactModal } = useModal();
+  
+  // Refs to prevent multiple simultaneous location requests
+  const locationRequestInProgress = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
 
+  // Load contacts when screen is focused
   useFocusEffect(
     React.useCallback(() => {
       const loadContacts = async () => {
@@ -151,28 +164,119 @@ export default function HomeScreen() {
     }, [])
   );
 
-  useEffect(() => {
-    const setupAndGetLocation = async () => {
+  // Enhanced location fetching function
+  const fetchLocation = async (forceRefresh = false) => {
+    if (locationRequestInProgress.current && !forceRefresh) {
+      return;
+    }
+
+    locationRequestInProgress.current = true;
+    setIsLoadingLocation(true);
+    setErrorMsg(null);
+
+    try {
+      // Check and request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermissionStatus(status);
+
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        setErrorMsg('Location permission denied');
+        setLocation(null);
         return;
       }
-      const lastKnown = await Location.getLastKnownPositionAsync();
-      if (lastKnown) {
-        setLocation(lastKnown);
+
+      // Check if location services are enabled
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+      if (!isLocationEnabled) {
+        setErrorMsg('Location services disabled');
+        setLocation(null);
+        return;
       }
+
+      // Get last known position first for faster response
+      if (!location) {
+        try {
+          const lastKnown = await Location.getLastKnownPositionAsync({
+            maxAge: 5 * 60 * 1000, // 5 minutes
+            requiredAccuracy: 1000, // 1km accuracy
+          });
+          if (lastKnown) {
+            setLocation(lastKnown);
+          }
+        } catch (error) {
+          console.log('No last known location available');
+        }
+      }
+
+      // Get current position with timeout
       try {
-        const freshLocation = await Location.getCurrentPositionAsync({
+        const locationPromise = Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
+          timeout: 15000, // 15 seconds timeout
         });
-        setLocation(freshLocation);
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Location timeout')), 15000)
+        );
+
+        const currentLocation = await Promise.race([locationPromise, timeoutPromise]);
+        setLocation(currentLocation);
+        setErrorMsg(null);
       } catch (error) {
-        console.error("Could not get high-accuracy location", error);
+        console.log('High accuracy location failed, trying balanced accuracy');
+        try {
+          const fallbackLocation = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            timeout: 10000,
+          });
+          setLocation(fallbackLocation);
+          setErrorMsg(null);
+        } catch (fallbackError) {
+          if (!location) {
+            setErrorMsg('Unable to get location');
+          }
+          console.error('Location fetch failed:', fallbackError);
+        }
       }
-    };
-    setupAndGetLocation();
+    } catch (error) {
+      console.error('Location permission or setup failed:', error);
+      setErrorMsg('Location access failed');
+    } finally {
+      setIsLoadingLocation(false);
+      locationRequestInProgress.current = false;
+    }
+  };
+
+  // Initial location fetch on mount
+  useEffect(() => {
+    fetchLocation();
   }, []);
+
+  // Listen for app state changes to refresh location when app becomes active
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came to foreground, refresh location if we don't have it or if it's old
+        if (!location || (Date.now() - location.timestamp > 5 * 60 * 1000)) {
+          fetchLocation(true);
+        }
+      }
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [location]);
+
+  // Focus effect to check location when screen becomes focused
+  useFocusEffect(
+    React.useCallback(() => {
+      // Check if location is stale (older than 5 minutes) when screen focuses
+      if (!location || (Date.now() - location.timestamp > 5 * 60 * 1000)) {
+        fetchLocation(true);
+      }
+    }, [location])
+  );
 
   const sendSmsWithDevice = async (message, recipients) => {
     const isAvailable = await SMS.isAvailableAsync();
@@ -186,7 +290,17 @@ export default function HomeScreen() {
   };
 
   const handleSOSPress = async () => {
-    if (isSending || !location) return;
+    if (isSending) return;
+    
+    // If no location, try to get it one more time
+    if (!location) {
+      await fetchLocation(true);
+      if (!location) {
+        Alert.alert('Location Required', 'Unable to get your location for emergency alert.');
+        return;
+      }
+    }
+    
     if (emergencyContacts.length === 0) {
       Alert.alert(
         'No Contacts',
@@ -195,6 +309,7 @@ export default function HomeScreen() {
       );
       return;
     }
+    
     const contactNumbers = emergencyContacts.map((c) => c.phone);
     const message = `Emergency SOS! I need help! My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
     await sendSmsWithDevice(message, contactNumbers);
@@ -210,25 +325,6 @@ export default function HomeScreen() {
     });
   };
 
-  let locationText = 'Waiting for location...';
-  if (errorMsg) {
-    locationText = errorMsg;
-  } else if (location) {
-    locationText = `Lat: ${location.coords.latitude.toFixed(4)}, Lon: ${location.coords.longitude.toFixed(4)}`;
-  }
-
-  const isReady = !isSending && location;
-  let sosButtonText = 'Press to Send';
-  if (isSending) {
-    sosButtonText = 'PREPARING...';
-  } else if (!location) {
-    sosButtonText = 'LOCATING...';
-  }
-
-  const onProfile = () => {
-    router.push('/profile');
-  };
-
   const handleLocationPress = () => {
     if (location) {
       router.push({
@@ -239,8 +335,41 @@ export default function HomeScreen() {
         },
       });
     } else {
-      Alert.alert("Location Not Available", "We are still trying to find your location.");
+      // Try to get location when pressed
+      fetchLocation(true);
+      Alert.alert("Getting Location", "Trying to get your current location...");
     }
+  };
+
+  // Determine location display text
+  let locationText = 'Getting location...';
+  if (isLoadingLocation) {
+    locationText = 'Getting location...';
+  } else if (errorMsg) {
+    if (errorMsg.includes('denied')) {
+      locationText = 'Location permission needed';
+    } else if (errorMsg.includes('disabled')) {
+      locationText = 'Turn on location services';
+    } else {
+      locationText = 'Location unavailable';
+    }
+  } else if (location) {
+    locationText = `Lat: ${location.coords.latitude.toFixed(4)}, Lon: ${location.coords.longitude.toFixed(4)}`;
+  }
+
+  // Determine SOS button state
+  const isReady = !isSending && location && !isLoadingLocation;
+  let sosButtonText = 'Press to Send';
+  if (isSending) {
+    sosButtonText = 'SENDING...';
+  } else if (isLoadingLocation) {
+    sosButtonText = 'LOCATING...';
+  } else if (!location) {
+    sosButtonText = 'NO LOCATION';
+  }
+
+  const onProfile = () => {
+    router.push('/profile');
   };
 
   return (
@@ -381,7 +510,7 @@ const styles = StyleSheet.create({
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent:'space-between',
     marginTop: 15,
   },
   categoryBox: {

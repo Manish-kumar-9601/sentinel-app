@@ -9,10 +9,9 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Updates from 'expo-updates'; 
-import i18n from '../../lib/i18n';
+import * as Updates from 'expo-updates';
 import { useTranslation } from 'react-i18next';
 
 const LANGUAGES = [
@@ -26,24 +25,30 @@ const LANGUAGES = [
 const LANGUAGE_KEY = 'user_language';
 
 const LanguageScreen = () => {
-  const router = useRouter();
-  const [currentLang, setCurrentLang] = useState('en');
-const {t,i18n} = useTranslation();
+  const { i18n } = useTranslation();
+  // Initialize state with the currently active language from i18next
+  const [currentLang, setCurrentLang] = useState(i18n.language);
+
   const handleSelectLanguage = async (langCode) => {
     try {
-      i18n.changeLanguage(langCode).then(( ) =>{
-        console.log("Language changed to", langCode)
-         Alert.alert(
+      // 1. Change the language
+      await i18n.changeLanguage(langCode);
+      
+      // 2. Save the new language preference to storage
+      await AsyncStorage.setItem(LANGUAGE_KEY, langCode);
+
+      // 3. Update the local state to show the checkmark immediately
+      setCurrentLang(langCode);
+      
+      // 4. Alert the user and offer to restart the app
+      Alert.alert(
         "Language Changed",
         "The app will now restart to apply the new language.",
         [{ text: "OK", onPress: () => Updates.reloadAsync() }]
-      )
-    }).catch(err => console.error("Language change error:", err));
-      setCurrentLang(langCode);
-      await AsyncStorage.setItem(LANGUAGE_KEY, langCode);
-     
+      );
     } catch (error) {
-      console.error("Failed to save language", error);
+      console.error("Failed to save or change language", error);
+      Alert.alert("Error", "Could not apply the selected language.");
     }
   };
 

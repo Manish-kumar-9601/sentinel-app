@@ -1,8 +1,8 @@
-﻿import React, {useEffect, useRef, useState } from 'react';
+﻿import   {useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -24,44 +24,85 @@ const DEFAULT_CALLER_NUMBER = '+91 81606 17183';
 
 const FakeIncomingCallScreen = () => {
   const router = useRouter();
-  const sound = useRef(new Audio.Sound());
   const [callerName, setCallerName] = useState(DEFAULT_CALLER_NAME);
   const [callerNumber, setCallerNumber] = useState(DEFAULT_CALLER_NUMBER);
+  const [ringtoneSource, setRingtoneSource] = useState(null);
+  
+  // Create audio player instance
+  const player = useAudioPlayer();
 
   // --- Animation Value ---
   const translateY = useSharedValue(0);
 
-  // --- Load settings and start the call simulation ---
+  // --- Load settings and prepare ringtone ---
   useEffect(() => {
     let isMounted = true;
-    const startRinging = async () => {
+    
+    const loadSettings = async () => {
       try {
+        // Load caller settings
         const storedName = await AsyncStorage.getItem(FAKE_CALLER_NAME_KEY);
         if (isMounted && storedName) setCallerName(storedName);
 
         const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
         if (isMounted && storedNumber) setCallerNumber(storedNumber);
         
-        let ringtoneSource = require('../assets/ringtone.mp3');
+        // Load ringtone
+        let ringtoneUri = require('../assets/ringtone.mp3');
         const customRingtoneUri = await AsyncStorage.getItem(FAKE_CALL_RINGTONE_KEY);
-        const fileInfo = customRingtoneUri ? await FileSystem.getInfoAsync(customRingtoneUri) : null;
-        if (customRingtoneUri && fileInfo?.exists) {
-            ringtoneSource = { uri: customRingtoneUri };
+        
+        if (customRingtoneUri) {
+          const fileInfo = await FileSystem.getInfoAsync(customRingtoneUri);
+          if (fileInfo?.exists) {
+            ringtoneUri = customRingtoneUri;
+          }
         }
 
+        if (isMounted) {
+          setRingtoneSource(ringtoneUri);
+        }
+      } catch (error) {
+        console.error("Failed to load settings", error);
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // --- Start ringing when ringtone is loaded ---
+  useEffect(() => {
+    if (!ringtoneSource) return;
+
+    const startRinging = async () => {
+      try {
+        // Start vibration
         Vibration.vibrate([500, 1000, 500], true);
-        const { sound: playbackObject } = await Audio.Sound.createAsync(
-           ringtoneSource,
-           { shouldPlay: true,}
-        );
-        if (isMounted) sound.current = playbackObject;
+
+        // Load and play ringtone
+        if (typeof ringtoneSource === 'string') {
+          // Custom ringtone from file system
+          player.replace(ringtoneSource);
+        } else {
+          // Default ringtone from assets
+          player.replace(ringtoneSource);
+        }
+        
+        // Set to loop and play
+        player.loop = true;
+        player.play();
+
       } catch (error) {
         console.error("Failed to start ringing", error);
       }
     };
+
     startRinging();
 
-    // --- Start Bouncing Animation ---
+    // Start bouncing animation
     translateY.value = withRepeat(
       withSequence(
         withTiming(-5, { duration: 700, easing: Easing.inOut(Easing.quad) }),
@@ -71,20 +112,32 @@ const FakeIncomingCallScreen = () => {
       true // Reverse animation
     );
 
+    // Cleanup function
     return () => {
-      isMounted = false;
-      sound.current.unloadAsync();
+      player.pause();
+      Vibration.cancel();
+    };
+  }, [ringtoneSource]);
+
+  // --- Cleanup on unmount ---
+  useEffect(() => {
+    return () => {
+      player.pause();
       Vibration.cancel();
     };
   }, []);
 
-  const onDecline = () => {router.back();
-    sound.current.pauseAsync()
-  }
+  const onDecline = () => {
+    player.pause();
+    Vibration.cancel();
+    router.push('/');
+  };
+
   const onAccept = () => {
-    router.replace('/fakeCall');
-sound.current.pauseAsync()
-  }
+    player.pause();
+    Vibration.cancel();
+    router.push('/fakeCall');
+  };
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -109,7 +162,6 @@ sound.current.pauseAsync()
         </View>
 
         <View style={styles.controlsContainer}>
-    
           <View style={styles.callActions}>
             <TouchableOpacity onPress={onDecline}>
               <Animated.View style={[styles.callButton, styles.declineButton, animatedStyle]}>
@@ -123,7 +175,8 @@ sound.current.pauseAsync()
               </Animated.View>
             </TouchableOpacity>
           </View>
-                <TouchableOpacity style={styles.smsButton}>
+          
+          <TouchableOpacity style={styles.smsButton}>
             <Text style={styles.smsButtonText}>SMS reply</Text>
           </TouchableOpacity>
         </View>

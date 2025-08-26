@@ -46,7 +46,18 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-audio",
+      [
+        "expo-background-task",
+        {
+          "backgroundModes": ["background-processing"]
+        }
+      ],
+     [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Sentinel to access your microphone to record audio evidence."
+        }
+      ],
       "expo-secure-store",
       [
         "expo-contacts",

@@ -39,7 +39,10 @@ export default function SettingsScreen() {
   const [fakeCallerNumber, setFakeCallerNumber] = useState('');
   const [ringtoneName, setRingtoneName] = useState('Default');
   const [theme, setTheme] = useState('Light'); // Placeholder state
-  const [language, setLanguage] = useState(i18n.locale);
+    const { i18n } = useTranslation();
+  // Initialize state with the currently active language from i18next
+   
+  const [language, setLanguage] = useState(i18n.language);
 const {t} =useTranslation()
   // --- Load saved settings ---
   useEffect(() => {
@@ -196,7 +199,7 @@ const {t} =useTranslation()
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
+  container: { flex: 1, backgroundColor: '#F2F2F7',paddingTop:20 },
   header: {
     paddingVertical: 16,
     alignItems: 'center',

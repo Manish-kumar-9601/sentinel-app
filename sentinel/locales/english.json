@@ -8,6 +8,7 @@
       "medical": "Medical",
       "fire": "Fire",
       "record": "Record",
+      "sound_recorder": "Sound Recorder",
       "accident": "Accident",
       "violence": "Violence",
       "natural_disaster": "Natural disaster",
@@ -259,7 +260,7 @@
           ]
         }
       ]
-    }, 
+    },
     {
       "category": "Natural Disaster",
       "title": "Natural Disaster Safety",
@@ -297,7 +298,5 @@
         }
       ]
     }
-    
   ]
 }
-
