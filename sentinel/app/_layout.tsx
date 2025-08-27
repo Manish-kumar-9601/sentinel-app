@@ -23,10 +23,9 @@ export default function RootLayout() {
     return (
         <SafeAreaProvider>
             <I18nextProvider i18n={i18next}>
-
                 <ModalProvider>
                     <Stack>
-                        <Stack.Screen name="(auth)" options={{ headerShown: false, statusBarStyle: "dark" }} />
+                        {/* <Stack.Screen name="(auth)" options={{ headerShown: false, statusBarStyle: "dark" }} /> */}
                         <Stack.Screen name="settings" options={{ title: "Settings", statusBarStyle: "dark", headerShown: false }} />
                         <Stack.Screen name="explores" options={{ title: "Explore Tools", statusBarStyle: "dark" }} />
                         <Stack.Screen name="index" options={{
@@ -77,7 +76,6 @@ export default function RootLayout() {
                     </Stack>
                 </ModalProvider>
             </I18nextProvider>
-
         </SafeAreaProvider>
 
 
