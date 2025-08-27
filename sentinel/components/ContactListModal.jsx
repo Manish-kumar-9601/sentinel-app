@@ -66,7 +66,7 @@ const ContactListModal = ({ visible, onClose }) =>
       Alert.alert('Error', 'SMS is not available on this device.');
     }
   };
-console.log('modal vi',modalVisible)
+// console.log('modal vi',modalVisible)
  
   return (
     <Modal animationType="slide" transparent={true } visible={modalVisible } onRequestClose={onClose}>

@@ -70,10 +70,11 @@ const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPres
 
 const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
   const IconComponent = iconSet === 'MaterialCommunity' ?(iconSet==='MaterialIcons') ?MaterialIcons: MaterialCommunityIcons : (iconSet==='MaterialIcons') ?MaterialIcons : FontAwesome5;
+  const IconSize= iconSet === 'MaterialCommunity' ?36:(iconSet==='MaterialIcons') ?36: 28;
   return (
     <TouchableOpacity style={styles.categoryBox} onPress={onPress}>
       <View style={[styles.iconContainer, { backgroundColor: color }]}>
-        <IconComponent name={icon} size={24} color="white" />
+        <IconComponent name={icon} size={IconSize} color="white" />
       </View>
       <Text style={styles.categoryText}>{name}</Text>
     </TouchableOpacity>
@@ -83,12 +84,16 @@ const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
 const CATEGORY_CONFIG = [
     { id: 'medical', icon: 'medical-bag', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
     { id: 'fire', icon: 'fire', color: '#FFA500', iconSet: 'FontAwesome5' },
-    { id: 'record', icon: 'video', color: '#5856D6', iconSet: 'MaterialCommunity' },
-    { id: 'sound_recorder', icon: 'multitrack-audio', color: '#7a78f0ff', iconSet: 'MaterialIcons' },
+   
     { id: 'accident', icon: 'car-crash', color: '#9370DB', iconSet: 'FontAwesome5' },
     { id: 'violence', icon: 'user-ninja', color: '#4682B4', iconSet: 'FontAwesome5' },
     { id: 'natural_disaster', icon: 'cloud-showers-heavy', color: '#1E90FF', iconSet: 'FontAwesome5' },
     { id: 'rescue', icon: 'hands-helping', color: '#3CB371', iconSet: 'FontAwesome5' },
+    
+    { id: 'psychiatrist', icon: 'psychology', color: '#d44ec2ff', iconSet: 'MaterialIcons' },
+    
+    { id: 'record', icon: 'video', color: '#5856D6', iconSet: 'MaterialCommunity' },
+    { id: 'sound_recorder', icon: 'multitrack-audio', color: '#7a78f0ff', iconSet: 'MaterialIcons' },
 ];
 
 const EmergencyGrid = ({ onCategorySelect }) => {

@@ -12,7 +12,8 @@
       "accident": "Accident",
       "violence": "Violence",
       "natural_disaster": "Natural disaster",
-      "rescue": "Rescue"
+      "rescue": "Rescue",
+      "psychiatrist": "Psychiatrist"
     }
   },
   "settings": {
