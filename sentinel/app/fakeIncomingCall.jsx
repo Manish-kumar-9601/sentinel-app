@@ -1,7 +1,7 @@
 ﻿import   {useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { useAudioPlayer } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
@@ -23,6 +23,7 @@ const DEFAULT_CALLER_NAME = 'Nevil Modi BMP Clg';
 const DEFAULT_CALLER_NUMBER = '+91 81606 17183';
 
 const FakeIncomingCallScreen = () => {
+    const navigation = useNavigation();
   const router = useRouter();
   const [callerName, setCallerName] = useState(DEFAULT_CALLER_NAME);
   const [callerNumber, setCallerNumber] = useState(DEFAULT_CALLER_NUMBER);
@@ -65,14 +66,23 @@ const FakeIncomingCallScreen = () => {
         console.error("Failed to load settings", error);
       }
     };
-
     loadSettings();
 
     return () => {
       isMounted = false;
     };
   }, []);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // router.push('/');
+      // This runs for ANY back action (button, gesture, etc.)
+      console.log('beforeRemove event triggered. Cleaning up...');
+      player.pause();
+      Vibration.cancel();
+    });
 
+    return unsubscribe;
+  }, [navigation]);
   // --- Start ringing when ringtone is loaded ---
   useEffect(() => {
     if (!ringtoneSource) return;
@@ -114,18 +124,22 @@ const FakeIncomingCallScreen = () => {
 
     // Cleanup function
     return () => {
-      player.pause();
-      Vibration.cancel();
+      //     if (player.playing){
+      //   player.pause();
+      //   Vibration.cancel();
+      // }
     };
   }, [ringtoneSource]);
 
   // --- Cleanup on unmount ---
-  useEffect(() => {
-    return () => {
-      player.pause();
-      Vibration.cancel();
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+     
+  //       player.pause();
+  //       Vibration.cancel();
+      
+  //   };
+  // }, []);
 
   const onDecline = () => {
     player.pause();

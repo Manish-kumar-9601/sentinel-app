@@ -117,6 +117,8 @@ aiText = aiText.replace(/\*\*/g, "");
   };
 
   return (
+    <>
+  
     <Modal animationType="slide" visible={visible} onRequestClose={onClose}>
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
@@ -153,6 +155,7 @@ aiText = aiText.replace(/\*\*/g, "");
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
+    </>
   );
 };
 
@@ -207,16 +210,35 @@ const EmergencyGuideScreen = () => {
   }
 
   return (
+    <>
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
+      {/* <Stack.Screen   options={{title:`${categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}`,headerShown:true}} /> */}
+
+      <Stack.Screen options={{ headerShown: true ,headerTitle:()=>(   
+        
+
+
+        <View style={{ flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 0}}  >
+          <Text  style={{fontSize:24,fontWeight:'bold'}} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
+        <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
+              <Ionicons name="sparkles" size={16} color="white" />
+              <Text style={styles.aiHelpButtonText}>AI Help</Text>
+            </TouchableOpacity>
+          </View>
+
+
+          )}} />
       <ScrollView>
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{content.title}</Text>
-            <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
+            {/* <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
               <Ionicons name="sparkles" size={16} color="white" />
               <Text style={styles.aiHelpButtonText}>AI Help</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           {content.summary && <Text style={styles.summary}>{content.summary}</Text>}
 
@@ -247,12 +269,14 @@ const EmergencyGuideScreen = () => {
         />
       )}
     </SafeAreaView>
+    </>
+
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white',paddingTop:20 },
-  content: { padding: 20 },
+  container: { flex: 1, backgroundColor: 'white',},
+  content: { paddingHorizontal: 20 },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -270,7 +294,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#5856D6',
     borderRadius: 20,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 24,
   },
   aiHelpButtonText: {

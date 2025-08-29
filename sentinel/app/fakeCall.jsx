@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- Configuration ---
@@ -21,11 +21,20 @@ const ControlButton = ({ icon, label, onPress, iconComponent: Icon = MaterialCom
 );
 
 const FakeCallScreen = () => {
+    const navigation = useNavigation();
   const router = useRouter();
   const [callerName, setCallerName] = useState(DEFAULT_CALLER_NAME);
   const [callerNumber, setCallerNumber] = useState(DEFAULT_CALLER_NUMBER);
   const [callDuration, setCallDuration] = useState(0);
+ useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // This runs for ANY back action (button, gesture, etc.)
+      console.log('beforeRemove event triggered. Cleaning up...');
+      router.push('/');
+    });
 
+    return unsubscribe;
+  }, [navigation]);
   // --- Load Caller Info ---
   useEffect(() => {
     const loadCallerInfo = async () => {

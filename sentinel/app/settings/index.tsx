@@ -9,7 +9,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import i18n from '../../lib/i18n';
 import { useTranslation } from 'react-i18next';
-
+import { API_Storing } from '../../components/APIStore';
 // --- Configuration ---
 const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
 const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
@@ -169,7 +169,7 @@ const {t} =useTranslation()
             <Text style={styles.saveButtonText}>Save Fake Call Settings</Text>
           </TouchableOpacity>
         </View>
-        
+        <API_Storing />
         {/* --- App Settings Section --- */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App</Text>

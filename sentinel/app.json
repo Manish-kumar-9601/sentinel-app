@@ -4,7 +4,7 @@
     "slug": "sentinel",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/sentinel-detect-icon.png",
+    "icon": "./assets/images/sentinel-icon.png",
     "scheme": "sentinel",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

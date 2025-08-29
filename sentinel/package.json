@@ -66,7 +66,8 @@
     "react-native-shake": "^6.7.8",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "twilio": "^5.8.0"
+    "twilio": "^5.8.0",
+    "expo-brightness": "~13.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
