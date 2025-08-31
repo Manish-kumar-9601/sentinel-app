@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -27,14 +29,18 @@
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.sentinel",
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-         "RECORD_AUDIO",
-        "WRITE_EXTERNAL_STORAGE",
-        "FOREGROUND_SERVICE",
-        "WAKE_LOCK"
+        "android.permission.WRITE_SETTINGS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -56,10 +62,12 @@
       [
         "expo-background-task",
         {
-          "backgroundModes": ["background-processing"]
+          "backgroundModes": [
+            "background-processing"
+          ]
         }
       ],
-     [
+      [
         "expo-audio",
         {
           "microphonePermission": "Allow Sentinel to access your microphone to record audio evidence."

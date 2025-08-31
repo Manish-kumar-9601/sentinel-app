@@ -48,3 +48,11 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+For Android Builds:
+Trigger the Build:
+Run the eas build command, specifying the platform and a profile configured for preview or internal distribution (e.g., eas build --platform android --profile preview).
+```bash
+npx eas build --platform android --profile preview
+```
