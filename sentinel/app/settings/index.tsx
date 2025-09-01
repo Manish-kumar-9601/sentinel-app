@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Keyboard, SafeAreaView
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link, Stack, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -118,9 +118,14 @@ const {t} =useTranslation()
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
-        </View>
+       <Stack.Screen 
+        options={{ 
+          title: 'Setting', 
+          headerShown: true,
+          headerStyle: { backgroundColor: '#fff' },
+          headerTintColor: '#000',
+        }} 
+      />
 
         {/* --- My Circle Section --- */}
         <View style={styles.section}>

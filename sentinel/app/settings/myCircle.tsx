@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PhoneContactsModal from '../../components/PhoneContactsModal';
+import { Stack } from 'expo-router';
 
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
@@ -99,13 +100,26 @@ export default function MyCircleScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Circle</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setIsPickerVisible(true)}>
-          <Ionicons name="add" size={24} color="white" />
-          <Text style={styles.addButtonText}>Add</Text>
-        </TouchableOpacity>
-      </View>
+      <Stack.Screen
+        options={{
+          title: 'My Contacts Circle',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#fff' },
+          headerTintColor: '#000',
+          headerTitle: () => (
+
+
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>My Contacts Circle</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => setIsPickerVisible(true)}>
+                <Ionicons name="add" size={24} color="white" />
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }}
+      />
+
 
       <FlatList
         data={contacts}
@@ -139,17 +153,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 0,
     backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
   },
-  headerTitle: { fontSize: 28, fontWeight: 'bold' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold' },
   addButton: {
     flexDirection: 'row',
     backgroundColor: '#FF4500',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderRadius: 20,
     alignItems: 'center',
   },

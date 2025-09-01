@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, Stack } from 'expo-router';
 
 // --- Mock User Data ---
 // In a real app, this would come from your authentication context or API
@@ -27,7 +27,14 @@ const ProfileScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* --- Header --- */}
       
-
+   <Stack.Screen 
+        options={{ 
+          title: 'Profile', 
+          headerShown: true,
+          headerStyle: { backgroundColor: '#fff' },
+          headerTintColor: '#000',
+        }} 
+      />
       {/* --- User Info Section --- */}
       <View style={styles.userInfoSection}>
         <Image source={{ uri: user.avatar }} style={styles.avatar} />
