@@ -21,11 +21,7 @@
         "foregroundImage": "./assets/images/sentinel-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyAHBm7T74Sop85U-8sameaAMTTVUt350CI"
-        }
-      },
+ 
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.sentinel",
       "permissions": [
