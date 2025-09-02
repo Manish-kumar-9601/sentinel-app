@@ -1,6 +1,13 @@
 {
-    "cSpell.words": [
-        "multitrack",
-        "RAPIDAPI"
-    ]
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  },
+  "cSpell.words": [
+    "breachdirectory",
+    "notifee",
+    "rapidapi",
+    "sentinelapp"
+  ]
 }
