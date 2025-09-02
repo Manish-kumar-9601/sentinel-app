@@ -87,6 +87,9 @@ export default function RootLayout() {
                         <Stack.Screen name="map" options={{
                             headerShown: false, statusBarStyle: "dark"
                         }} />
+                        <Stack.Screen name="webMap" options={{
+                            headerShown: false, statusBarStyle: "dark"
+                        }} />
                         <Stack.Screen name="guide" options={{
                             headerShown: false, statusBarStyle: "dark"
                         }} />

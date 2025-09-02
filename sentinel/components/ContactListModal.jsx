@@ -23,26 +23,49 @@ const ContactListModal = ({ visible, onClose }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [isPhonePickerVisible, setIsPhonePickerVisible] = useState(false);
   const [isManageMode, setIsManageMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load contacts when component mounts (not just when modal becomes visible)
+  useEffect(() => {
+    loadContacts();
+  }, []);
 
   useEffect(() => {
     if (visible) {
       setModalVisible(true);
-      loadData();
+      loadLocation(); // Only load location when modal opens
     } else {
       setModalVisible(false);
       setIsManageMode(false); // Reset manage mode when modal closes
     }
   }, [visible]);
 
-  const loadData = async () => {
+  // Separate function to load contacts
+  const loadContacts = async () => {
     try {
-      // Load contacts
+      setIsLoading(true);
       const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
+      console.log('Loaded contacts from storage:', storedContacts); // Debug log
+      
       if (storedContacts) {
-        setContacts(JSON.parse(storedContacts));
+        const parsedContacts = JSON.parse(storedContacts);
+        setContacts(parsedContacts);
+        console.log('Parsed contacts:', parsedContacts); // Debug log
+      } else {
+        console.log('No contacts found in storage'); // Debug log
+        setContacts([]);
       }
+    } catch (error) {
+      console.error("Failed to load contacts from storage", error);
+      setContacts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      // Get location permission and current location
+  // Separate function to load location
+  const loadLocation = async () => {
+    try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const currentLocation = await Location.getCurrentPositionAsync({});
@@ -51,25 +74,23 @@ const ContactListModal = ({ visible, onClose }) => {
         Alert.alert("Permission Denied", "Location access is needed for check-in messages.");
       }
     } catch (error) {
-      console.error("Failed to load data for modal", error);
+      console.error("Failed to get location", error);
     }
   };
 
-  // Save contacts to storage whenever the list changes
-  useEffect(() => {
-    const saveContacts = async () => {
-      try {
-        const jsonValue = JSON.stringify(contacts);
-        await AsyncStorage.setItem(CONTACTS_STORAGE_KEY, jsonValue);
-      } catch (error) {
-        console.error('Failed to save contacts.', error);
-      }
-    };
-    
-    if (contacts.length >= 0) { // Save even empty array to clear storage
-      saveContacts();
+  // Save contacts to storage - more robust implementation
+  const saveContacts = async (contactsToSave) => {
+    try {
+      const jsonValue = JSON.stringify(contactsToSave);
+      await AsyncStorage.setItem(CONTACTS_STORAGE_KEY, jsonValue);
+      console.log('Contacts saved successfully:', jsonValue); // Debug log
+      return true;
+    } catch (error) {
+      console.error('Failed to save contacts:', error);
+      Alert.alert('Error', 'Failed to save contacts. Please try again.');
+      return false;
     }
-  }, [contacts]);
+  };
 
   const handleSelectContact = async (contact) => {
     if (isManageMode) return; // Don't send SMS in manage mode
@@ -103,10 +124,12 @@ const ContactListModal = ({ visible, onClose }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
-          onPress: () => {
-            setContacts(currentContacts =>
-              currentContacts.filter(contact => contact.id !== contactToRemove.id)
-            );
+          onPress: async () => {
+            const updatedContacts = contacts.filter(contact => contact.id !== contactToRemove.id);
+            const saved = await saveContacts(updatedContacts);
+            if (saved) {
+              setContacts(updatedContacts);
+            }
           },
           style: 'destructive',
         },
@@ -114,18 +137,29 @@ const ContactListModal = ({ visible, onClose }) => {
     );
   };
 
-  const handleAddFromPhone = (selectedContact) => {
+  const handleAddFromPhone = async (selectedContact) => {
     // Check if contact already exists
     if (contacts.some(c => c.id === selectedContact.id)) {
       Alert.alert("Contact Exists", `${selectedContact.name} is already in your circle.`);
-    } else {
-      setContacts(currentContacts => [...currentContacts, selectedContact]);
+      return;
+    }
+
+    const updatedContacts = [...contacts, selectedContact];
+    const saved = await saveContacts(updatedContacts);
+    
+    if (saved) {
+      setContacts(updatedContacts);
       Alert.alert("Success", `${selectedContact.name} has been added to your circle.`);
     }
   };
 
   const toggleManageMode = () => {
     setIsManageMode(!isManageMode);
+  };
+
+  // Add refresh function for debugging
+  const handleRefreshContacts = () => {
+    loadContacts();
   };
 
   const ContactItem = ({ item }) => (
@@ -167,6 +201,14 @@ const ContactListModal = ({ visible, onClose }) => {
                 {isManageMode ? 'Manage Contacts' : 'Select a Contact'}
               </Text>
               <View style={styles.headerButtons}>
+                {/* Debug button - remove in production */}
+                <TouchableOpacity 
+                  style={styles.headerButton} 
+                  onPress={handleRefreshContacts}
+                >
+                  <Ionicons name="refresh" size={20} color="#666" />
+                </TouchableOpacity>
+                
                 {contacts.length > 0 && (
                   <TouchableOpacity 
                     style={[styles.headerButton, isManageMode && styles.headerButtonActive]} 
@@ -195,30 +237,36 @@ const ContactListModal = ({ visible, onClose }) => {
               </TouchableOpacity>
             )}
 
-            <FlatList
-              data={contacts}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <ContactItem item={item} />}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Ionicons name="people-outline" size={64} color="#ccc" style={styles.emptyIcon} />
-                  <Text style={styles.emptyText}>No contacts found.</Text>
-                  <Text style={styles.emptySubtext}>
-                    {isManageMode 
-                      ? "Tap 'Add New Contact' to get started." 
-                      : "Add contacts by switching to manage mode."}
-                  </Text>
-                  {!isManageMode && (
-                    <TouchableOpacity 
-                      style={styles.addFirstContactButton} 
-                      onPress={() => setIsManageMode(true)}
-                    >
-                      <Text style={styles.addFirstContactButtonText}>Manage Contacts</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              }
-            />
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <Text>Loading contacts...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={contacts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => <ContactItem item={item} />}
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="people-outline" size={64} color="#ccc" style={styles.emptyIcon} />
+                    <Text style={styles.emptyText}>No contacts found.</Text>
+                    <Text style={styles.emptySubtext}>
+                      {isManageMode 
+                        ? "Tap 'Add New Contact' to get started." 
+                        : "Add contacts by switching to manage mode."}
+                    </Text>
+                    {!isManageMode && (
+                      <TouchableOpacity 
+                        style={styles.addFirstContactButton} 
+                        onPress={() => setIsManageMode(true)}
+                      >
+                        <Text style={styles.addFirstContactButtonText}>Manage Contacts</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                }
+              />
+            )}
 
             {!isManageMode && contacts.length > 0 && (
               <View style={styles.footer}>
@@ -329,6 +377,11 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     color: '#666', 
     marginTop: 2 
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   emptyContainer: { 
     flex: 1, 

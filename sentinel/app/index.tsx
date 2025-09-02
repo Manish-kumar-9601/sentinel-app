@@ -700,7 +700,7 @@ export default function HomeScreen() {
     const handleLocationPress = async () => {
         if (location) {
             router.push({
-                pathname: "/map",
+                pathname: "/webMap",
                 params: {
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,

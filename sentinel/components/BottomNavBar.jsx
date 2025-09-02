@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity,   } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, } from 'react-native';
 import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useModal } from '@/context/ModalContext';
@@ -12,20 +12,25 @@ const NAV_ITEMS = [
 
 ];
 
-const BottomNavBar = ( ) => {
+const BottomNavBar = () =>
+{
   const router = useRouter();
   const pathname = usePathname();
   const { openContactModal } = useModal(); // Get the function from context
 
-  const handlePress = (item) => {
-    if (item.path === '/checkContact') {
-       openContactModal()
+  const handlePress = (item) =>
+  {
+    if (item.path === '/checkContact')
+    {
+      openContactModal()
       console.log('check Contact')
       // Open the modal instead of navigating
-    } else if (item.path === '/fakeIncomingCall') {
+    } else if (item.path === '/fakeIncomingCall')
+    {
       router.push(item.path);
       // closeContactModal()
-    } else {
+    } else
+    {
       router.push(item.path);
       // closeContactModal()
     }
@@ -33,7 +38,8 @@ const BottomNavBar = ( ) => {
 
   return (
     < View style={styles.navBar}>
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.map((item) =>
+      {
         const isActive = pathname === item.path;
         const IconComponent = item.iconComponent;
         return (
