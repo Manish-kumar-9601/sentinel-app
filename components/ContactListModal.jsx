@@ -232,7 +232,7 @@ const ContactListModal = ({ visible, onClose }) => {
                 style={styles.addContactButton} 
                 onPress={() => setIsPhonePickerVisible(true)}
               >
-                <Ionicons name="add" size={20} color="#FF4500" />
+                <Ionicons name="add" size={20} color="#3186c3" />
                 <Text style={styles.addContactText}>Add New Contact</Text>
               </TouchableOpacity>
             )}
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   headerButtonActive: {
-    backgroundColor: '#FF4500'
+    backgroundColor: '#3186c3'
   },
   addContactButton: {
     flexDirection: 'row',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   addContactText: {
     marginLeft: 10,
     fontSize: 16,
-    color: '#FF4500',
+    color: '#3186c3',
     fontWeight: '500'
   },
   contactItem: { 
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     width: 50, 
     height: 50, 
     borderRadius: 25, 
-    backgroundColor: '#FF4500', 
+    backgroundColor: '#3186c3', 
     justifyContent: 'center', 
     alignItems: 'center', 
     marginRight: 15 
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   addFirstContactButton: {
     marginTop: 20,
-    backgroundColor: '#FF4500',
+    backgroundColor: '#3186c3',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20

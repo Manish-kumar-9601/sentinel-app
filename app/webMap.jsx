@@ -105,13 +105,13 @@ const WebMapScreen = () =>
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Emergency Map</title>
+        <title>Enhanced Emergency Map</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <style>
-            body { margin: 0; padding: 0; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             #map { height: 100vh; width: 100vw; }
             .category-buttons {
                 position: absolute;
@@ -123,11 +123,13 @@ const WebMapScreen = () =>
                 border-radius: 15px;
                 padding: 15px;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                max-height: 200px;
+                overflow-y: auto;
             }
             .category-grid {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 10px;
+                gap: 8px;
                 justify-content: center;
             }
             .category-btn {
@@ -135,15 +137,31 @@ const WebMapScreen = () =>
                 border: none;
                 border-radius: 20px;
                 color: white;
-                font-size: 12px;
+                font-size: 11px;
                 cursor: pointer;
-                min-width: 80px;
+                min-width: 70px;
+                font-weight: bold;
+                transition: transform 0.2s;
+            }
+            .category-btn:hover {
+                transform: scale(1.05);
+            }
+            .category-btn:active {
+                transform: scale(0.95);
             }
             .category-title {
                 text-align: center;
                 margin-bottom: 10px;
                 font-weight: bold;
                 color: #333;
+                font-size: 14px;
+            }
+            .category-subtitle {
+                text-align: center;
+                margin-bottom: 15px;
+                font-size: 10px;
+                color: #666;
+                font-style: italic;
             }
             .loading {
                 position: absolute;
@@ -154,14 +172,71 @@ const WebMapScreen = () =>
                 background: white;
                 padding: 20px;
                 border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                text-align: center;
+            }
+            .loading-spinner {
+                width: 30px;
+                height: 30px;
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #FF4500;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 10px;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .controls {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                background: white;
+                border-radius: 10px;
+                padding: 10px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .control-btn {
+                display: block;
+                margin: 5px 0;
+                padding: 8px;
+                border: none;
+                background: #f0f0f0;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 12px;
+            }
+            .results-info {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                z-index: 1000;
+                background: rgba(255, 69, 0, 0.9);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: bold;
+                display: none;
             }
         </style>
     </head>
     <body>
         <div id="map"></div>
+        
+        <div class="results-info" id="resultsInfo"></div>
+        
+        <div class="controls">
+            <button class="control-btn" onclick="changeRadius()">Radius: <span id="radiusText">2km</span></button>
+            <button class="control-btn" onclick="clearResults()">Clear</button>
+            <button class="control-btn" onclick="centerMap()">📍 Center</button>
+        </div>
+        
         <div class="category-buttons">
-            <div class="category-title">Find Nearby Emergency Services</div>
+            <div class="category-title">Enhanced Emergency Services Finder</div>
+            <div class="category-subtitle">Multiple detection methods • Better coverage</div>
             <div class="category-grid">
                 <button class="category-btn" style="background-color: #FF6B6B;" onclick="searchNearby('hospital')">🏥 Hospitals</button>
                 <button class="category-btn" style="background-color: #4A90E2;" onclick="searchNearby('police')">👮 Police</button>
@@ -200,16 +275,58 @@ const WebMapScreen = () =>
 
             let markersGroup = L.layerGroup().addTo(map);
             let searchCircle = null;
+            let currentRadius = 2000;
 
+            // Enhanced category configuration with multiple OSM tags
             const categoryConfig = {
-                hospital: { tag: 'amenity=hospital', color: '#FF6B6B', name: 'Hospitals' },
-                police: { tag: 'amenity=police', color: '#4A90E2', name: 'Police Stations' },
-                fire_station: { tag: 'amenity=fire_station', color: '#FF8C00', name: 'Fire Stations' },
-                fuel: { tag: 'amenity=fuel', color: '#32CD32', name: 'Gas Stations' },
-                pharmacy: { tag: 'amenity=pharmacy', color: '#9370DB', name: 'Pharmacies' },
-                atm: { tag: 'amenity=atm', color: '#20B2AA', name: 'ATMs' },
-                restaurant: { tag: 'amenity=restaurant', color: '#FFD700', name: 'Restaurants' },
-                school: { tag: 'amenity=school', color: '#8A2BE2', name: 'Schools' }
+                hospital: { 
+                    tags: ['amenity=hospital', 'amenity=clinic', 'healthcare=hospital', 'healthcare=clinic', 'building=hospital'],
+                    color: '#FF6B6B', 
+                    name: 'Hospitals & Clinics',
+                    icon: '🏥'
+                },
+                police: { 
+                    tags: ['amenity=police', 'office=police', 'building=police_station'],
+                    color: '#4A90E2', 
+                    name: 'Police Stations',
+                    icon: '👮'
+                },
+                fire_station: { 
+                    tags: ['amenity=fire_station', 'emergency=fire_station', 'building=fire_station', 'office=fire_department'],
+                    color: '#FF8C00', 
+                    name: 'Fire Stations',
+                    icon: '🚒'
+                },
+                fuel: { 
+                    tags: ['amenity=fuel', 'shop=gas_station', 'shop=fuel'],
+                    color: '#32CD32', 
+                    name: 'Gas Stations',
+                    icon: '⛽'
+                },
+                pharmacy: { 
+                    tags: ['amenity=pharmacy', 'shop=pharmacy', 'healthcare=pharmacy'],
+                    color: '#9370DB', 
+                    name: 'Pharmacies',
+                    icon: '💊'
+                },
+                atm: { 
+                    tags: ['amenity=atm', 'amenity=bank', 'shop=bank'],
+                    color: '#20B2AA', 
+                    name: 'ATMs & Banks',
+                    icon: '🏧'
+                },
+                restaurant: { 
+                    tags: ['amenity=restaurant', 'amenity=fast_food', 'amenity=cafe', 'shop=food'],
+                    color: '#FFD700', 
+                    name: 'Restaurants & Food',
+                    icon: '🍴'
+                },
+                school: { 
+                    tags: ['amenity=school', 'amenity=university', 'amenity=college', 'building=school'],
+                    color: '#8A2BE2', 
+                    name: 'Schools & Education',
+                    icon: '🏫'
+                }
             };
 
             function showLoading(show, message = 'Searching...') {
@@ -219,9 +336,10 @@ const WebMapScreen = () =>
                         loading = document.createElement('div');
                         loading.id = 'loading';
                         loading.className = 'loading';
-                        loading.innerHTML = '<div>' + message + '</div>';
+                        loading.innerHTML = '<div class="loading-spinner"></div><div>' + message + '</div>';
                         document.body.appendChild(loading);
                     }
+                    loading.querySelector('div:last-child').textContent = message;
                 } else {
                     if (loading) {
                         loading.remove();
@@ -229,9 +347,49 @@ const WebMapScreen = () =>
                 }
             }
 
+            function showResults(count, category, closest = null) {
+                const info = document.getElementById('resultsInfo');
+                if (count > 0) {
+                    let text = count + ' ' + categoryConfig[category].name.toLowerCase() + ' found';
+                    if (closest) {
+                        text += ' • Closest: ' + closest.toFixed(1) + 'km';
+                    }
+                    info.textContent = text;
+                    info.style.display = 'block';
+                } else {
+                    info.style.display = 'none';
+                }
+            }
+
+            function changeRadius() {
+                const radii = [1000, 2000, 5000, 10000, 20000];
+                const labels = ['1km', '2km', '5km', '10km', '20km'];
+                const currentIndex = radii.indexOf(currentRadius);
+                const nextIndex = (currentIndex + 1) % radii.length;
+                
+                currentRadius = radii[nextIndex];
+                document.getElementById('radiusText').textContent = labels[nextIndex];
+                
+                if (searchCircle) {
+                    searchCircle.setRadius(currentRadius);
+                }
+            }
+
+            function clearResults() {
+                markersGroup.clearLayers();
+                if (searchCircle) {
+                    map.removeLayer(searchCircle);
+                }
+                document.getElementById('resultsInfo').style.display = 'none';
+            }
+
+            function centerMap() {
+                map.setView([${latitude}, ${longitude}], 15);
+            }
+
             async function searchNearby(category) {
                 try {
-                    showLoading(true, 'Searching ' + categoryConfig[category].name.toLowerCase() + '...');
+                    showLoading(true, 'Enhanced search for ' + categoryConfig[category].name.toLowerCase() + '...');
                     
                     // Clear previous markers and circle
                     markersGroup.clearLayers();
@@ -240,61 +398,139 @@ const WebMapScreen = () =>
                     }
 
                     const config = categoryConfig[category];
-                    const radius = 2000; // 2km
 
                     // Add search radius circle
                     searchCircle = L.circle([${latitude}, ${longitude}], {
                         color: config.color,
                         fillColor: config.color,
                         fillOpacity: 0.1,
-                        radius: radius
+                        radius: currentRadius
                     }).addTo(map);
 
-                    // Build Overpass query
+                    // Build enhanced Overpass query with multiple tags
+                    const tagQueries = config.tags.map(tag => {
+                        return \`
+                            node["\${tag}"](around:\${currentRadius},${latitude},${longitude});
+                            way["\${tag}"](around:\${currentRadius},${latitude},${longitude});
+                            relation["\${tag}"](around:\${currentRadius},${latitude},${longitude});
+                        \`;
+                    }).join('');
+
                     const query = \`
-                        [out:json][timeout:25];
+                        [out:json][timeout:45];
                         (
-                            node["\${config.tag}"](around:\${radius},${latitude},${longitude});
-                            way["\${config.tag}"](around:\${radius},${latitude},${longitude});
+                            \${tagQueries}
                         );
-                        out center;
+                        out center meta tags;
                     \`;
 
-                    const response = await fetch('https://overpass-api.de/api/interpreter', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: 'data=' + encodeURIComponent(query)
-                    });
+                    console.log('Searching with', config.tags.length, 'tag variations for', category);
+
+                    // Try primary API first, then fallback
+                    let response;
+                    try {
+                        response = await fetch('https://overpass-api.de/api/interpreter', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: 'data=' + encodeURIComponent(query)
+                        });
+                    } catch (error) {
+                        console.log('Primary API failed, trying backup...');
+                        response = await fetch('https://overpass.openstreetmap.org/api/interpreter', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: 'data=' + encodeURIComponent(query)
+                        });
+                    }
 
                     if (!response.ok) {
-                        throw new Error('Failed to fetch data');
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
                     }
 
                     const data = await response.json();
+                    console.log('API returned', data.elements?.length || 0, 'elements');
+
                     let count = 0;
+                    let closestDistance = Infinity;
+                    const processedIds = new Set();
 
                     data.elements.forEach(element => {
+                        // Avoid duplicate markers from multiple tag matches
+                        const elementId = element.type + element.id;
+                        if (processedIds.has(elementId)) {
+                            return;
+                        }
+                        processedIds.add(elementId);
+
                         const lat = element.lat || (element.center && element.center.lat);
                         const lon = element.lon || (element.center && element.center.lon);
                         
                         if (lat && lon) {
                             const distance = calculateDistance(${latitude}, ${longitude}, lat, lon);
                             
-                            const marker = L.marker([lat, lon]);
-                            const name = element.tags?.name || config.name;
-                            const address = element.tags?.['addr:street'] ? 
-                                (element.tags['addr:housenumber'] || '') + ' ' + element.tags['addr:street'] : 
-                                'Address not available';
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                            }
+                            
+                            // Enhanced marker creation
+                            const customIcon = L.divIcon({
+                                className: 'custom-marker',
+                                html: '<div style="width: 30px; height: 30px; background: ' + config.color + '; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">' + config.icon + '</div>',
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15]
+                            });
+
+                            const marker = L.marker([lat, lon], { icon: customIcon });
+                            
+                            // Enhanced name extraction
+                            let name = element.tags?.name || 
+                                      element.tags?.brand || 
+                                      element.tags?.operator || 
+                                      element.tags?.['name:en'] ||
+                                      config.name.slice(0, -1); // Remove 's' from end
+
+                            // Enhanced address extraction
+                            let address = 'Address not available';
+                            if (element.tags) {
+                                const addressParts = [];
+                                if (element.tags['addr:housenumber']) addressParts.push(element.tags['addr:housenumber']);
+                                if (element.tags['addr:street']) addressParts.push(element.tags['addr:street']);
+                                if (element.tags['addr:city']) addressParts.push(element.tags['addr:city']);
+                                
+                                if (addressParts.length > 0) {
+                                    address = addressParts.join(' ');
+                                } else if (element.tags['addr:full']) {
+                                    address = element.tags['addr:full'];
+                                }
+                            }
+
+                            // Find which tag matched
+                            const matchedTag = config.tags.find(tag => {
+                                const [key, value] = tag.split('=');
+                                return element.tags?.[key] === value;
+                            }) || 'unknown';
                             
                             const popupContent = \`
-                                <div style="min-width: 200px;">
-                                    <strong>\${name}</strong><br>
-                                    <small>\${address}</small><br>
-                                    <small>📍 \${distance.toFixed(1)} km away</small>
-                                    \${element.tags?.phone ? '<br><small>📞 ' + element.tags.phone + '</small>' : ''}
-                                    \${element.tags?.opening_hours ? '<br><small>🕒 ' + element.tags.opening_hours + '</small>' : ''}
+                                <div style="min-width: 220px; max-width: 280px;">
+                                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; color: \${config.color};">
+                                        \${config.icon} \${name}
+                                    </div>
+                                    <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
+                                        📍 \${address}
+                                    </div>
+                                    <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
+                                        📏 \${distance.toFixed(1)} km away
+                                    </div>
+                                    \${element.tags?.phone ? '<div style="font-size: 11px; color: #4A90E2; margin-bottom: 3px;">📞 ' + element.tags.phone + '</div>' : ''}
+                                    \${element.tags?.website ? '<div style="font-size: 11px; color: #32CD32; margin-bottom: 3px;">🌐 Website available</div>' : ''}
+                                    \${element.tags?.opening_hours ? '<div style="font-size: 10px; color: #666; margin-bottom: 5px;">🕒 ' + element.tags.opening_hours + '</div>' : ''}
+                                    <div style="font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 3px; margin-top: 5px;">
+                                        OSM: \${element.type} #\${element.id} • Tag: \${matchedTag}
+                                    </div>
                                 </div>
                             \`;
                             
@@ -305,12 +541,29 @@ const WebMapScreen = () =>
                     });
 
                     showLoading(false);
+                    showResults(count, category, closestDistance < Infinity ? closestDistance : null);
                     
                     if (count === 0) {
-                        alert('No ' + config.name.toLowerCase() + ' found within 2km radius.');
+                        const radiusKm = currentRadius / 1000;
+                        const message = 'No ' + config.name.toLowerCase() + ' found within ' + radiusKm + 'km radius.\\n\\n' +
+                                      'This could be because:\\n' +
+                                      '• The area may not be fully mapped\\n' +
+                                      '• Try increasing the search radius\\n' +
+                                      '• Facilities might be tagged differently\\n\\n' +
+                                      'Would you like to try a larger search area?';
+                        
+                        if (confirm(message)) {
+                            if (currentRadius < 20000) {
+                                changeRadius();
+                                setTimeout(() => searchNearby(category), 500);
+                            }
+                        }
                     } else {
-                        alert('Found ' + count + ' ' + config.name.toLowerCase());
-                        // Fit map to show all markers
+                        const message = 'Found ' + count + ' ' + config.name.toLowerCase() + 
+                                      (closestDistance < Infinity ? '\\nClosest: ' + closestDistance.toFixed(1) + 'km away' : '');
+                        alert(message);
+                        
+                        // Fit map to show results
                         if (markersGroup.getLayers().length > 0) {
                             const group = new L.featureGroup([searchCircle, ...markersGroup.getLayers()]);
                             map.fitBounds(group.getBounds().pad(0.1));
@@ -319,8 +572,16 @@ const WebMapScreen = () =>
 
                 } catch (error) {
                     showLoading(false);
-                    console.error('Error searching:', error);
-                    alert('Failed to search for places. Please try again.');
+                    console.error('Enhanced search error:', error);
+                    
+                    const errorMessage = 'Failed to search for places.\\n\\n' +
+                                       'Error: ' + error.message + '\\n\\n' +
+                                       'This might be due to:\\n' +
+                                       '• Network connectivity issues\\n' +
+                                       '• Overpass API server being busy\\n' +
+                                       '• Location data not available\\n\\n' +
+                                       'Please check your connection and try again.';
+                    alert(errorMessage);
                 }
             }
 
@@ -347,10 +608,12 @@ const WebMapScreen = () =>
                     location: { lat: ${latitude}, lng: ${longitude} }
                 }));
             }
+
+            console.log('Enhanced Emergency Map initialized with multiple detection methods');
         </script>
     </body>
     </html>
-    `;
+        `;
 
         setMapHtml(html);
     };
@@ -364,7 +627,7 @@ const WebMapScreen = () =>
 
             if (message.type === 'mapReady')
             {
-                console.log('WebView map is ready');
+                console.log('Enhanced WebView map is ready');
             }
         } catch (error)
         {
@@ -377,7 +640,7 @@ const WebMapScreen = () =>
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color="#FF4500" />
-                <Text style={styles.loadingText}>Loading map...</Text>
+                <Text style={styles.loadingText}>Loading enhanced map...</Text>
             </View>
         );
     }
@@ -386,7 +649,7 @@ const WebMapScreen = () =>
     {
         return (
             <View style={styles.centered}>
-                <Text style={styles.errorText}>Failed to load map</Text>
+                <Text style={styles.errorText}>Failed to load enhanced map</Text>
                 <TouchableOpacity style={styles.retryButton} onPress={initializeMap}>
                     <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
@@ -398,7 +661,7 @@ const WebMapScreen = () =>
         <>
             <Stack.Screen
                 options={{
-                    title: 'Emergency Map (Web)',
+                    title: 'Enhanced Emergency Map (Web)',
                     headerShown: true,
                     headerStyle: { backgroundColor: '#fff' },
                     headerTintColor: '#000',
@@ -417,14 +680,14 @@ const WebMapScreen = () =>
                     renderLoading={() => (
                         <View style={styles.webviewLoading}>
                             <ActivityIndicator size="large" color="#FF4500" />
-                            <Text style={styles.loadingText}>Loading map...</Text>
+                            <Text style={styles.loadingText}>Loading enhanced map...</Text>
                         </View>
                     )}
                     onError={(syntheticEvent) =>
                     {
                         const { nativeEvent } = syntheticEvent;
                         console.error('WebView error: ', nativeEvent);
-                        Alert.alert('Map Error', 'Failed to load web map');
+                        Alert.alert('Map Error', 'Failed to load enhanced web map');
                     }}
                 />
             </View>

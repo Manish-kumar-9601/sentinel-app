@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   checkButton: {
-    backgroundColor: '#FF4500',
+    backgroundColor: '#3186c3',
     height: 50,
     borderRadius: 10,
     justifyContent: 'center',

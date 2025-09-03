@@ -1,23 +1,24 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Linking,
-  Alert,
-  Modal,
-  TextInput,
-  FlatList,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+﻿import { Ionicons } from '@expo/vector-icons';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import i18n from '../lib/i18n';  
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import i18n from '../lib/i18n';
 // --- Reusable Chat Bubble Component ---
 const ChatBubble = ({ message, isUser }) => (
   <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
@@ -42,7 +43,7 @@ Never provide strong prescription drugs or complex treatments. If the user descr
   **Instructions:**
   ${guideContent.instructions.map(step => `Step ${step.step}: ${step.title} - ${step.details.join(' ')}`).join('\n')}
   `;
-  
+
   // Add an initial message from the AI when the modal opens
   useEffect(() => {
     if (visible) {
@@ -68,10 +69,10 @@ Never provide strong prescription drugs or complex treatments. If the user descr
       // For Expo, environment variables must be prefixed with EXPO_PUBLIC_
       // Ensure you have this set in your .env file
       const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-      
+
       // --- FIX 1: Use the correct, latest model name ---
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-      
+
       // --- FIX 2: Send the entire conversation history in the payload ---
       const payload = {
         // Map messages to the format required by the API
@@ -90,14 +91,14 @@ Never provide strong prescription drugs or complex treatments. If the user descr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
-  const result = await response.json();
 
-// Safely access the AI response text
-let aiText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const result = await response.json();
 
-// Remove all ** from the text
-aiText = aiText.replace(/\*\*/g, "");
+      // Safely access the AI response text
+      let aiText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      // Remove all ** from the text
+      aiText = aiText.replace(/\*\*/g, "");
       if (aiText) {
         const aiMessage = { role: 'model', text: aiText };
         setMessages(prev => [...prev, aiMessage]);
@@ -118,56 +119,56 @@ aiText = aiText.replace(/\*\*/g, "");
 
   return (
     <>
-  
-    <Modal animationType="slide" visible={visible} onRequestClose={onClose}>
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>AI Emergency Assistant</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close-circle" size={30} color="#ccc" />
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={({ item }) => <ChatBubble message={item.text} isUser={item.role === 'user'} />}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.chatContainer}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        />
-        {isLoading && <ActivityIndicator style={{ marginVertical: 10 }} size="large" />}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-        >
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ask for guidance..."
-              value={input}
-              onChangeText={setInput}
-              onSubmitEditing={handleSend} // Allows sending with the return key
-            />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={isLoading}>
-              <Ionicons name="send" size={24} color="white" />
+
+      <Modal animationType="slide" visible={visible} onRequestClose={onClose}>
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>AI Emergency Assistant</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close-circle" size={30} color="#ccc" />
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={({ item }) => <ChatBubble message={item.text} isUser={item.role === 'user'} />}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={styles.chatContainer}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          />
+          {isLoading && <ActivityIndicator style={{ marginVertical: 10 }} size="large" />}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+          >
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Ask for guidance..."
+                value={input}
+                onChangeText={setInput}
+                onSubmitEditing={handleSend} // Allows sending with the return key
+              />
+              <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={isLoading}>
+                <Ionicons name="send" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </>
   );
 };
 
 
 const EmergencyGuideScreen = () => {
-  const { categoryId = 'medical' } = useLocalSearchParams(); // Default to 'medical' for demonstration
+  const { categoryId= 'medical' }: { categoryId: string } = useLocalSearchParams(); // Default to 'medical' for demonstration
   const [isAiModalVisible, setAiModalVisible] = useState(false);
 
   const allGuides = i18n.t('emergencies', { returnObjects: true });
   const content = allGuides.find((e) => e.category.toLowerCase() === categoryId.toLowerCase());
 
-  const getEmergencyNumber = (catId) => {
+  const getEmergencyNumber = (catId:String) => {
     switch (catId.toLowerCase()) {
       case 'medical':
       case 'accident':
@@ -185,17 +186,50 @@ const EmergencyGuideScreen = () => {
 
   const handleCall = async (number) => {
     const phoneUrl = `tel:${number}`;
+
     try {
-      const supported = await Linking.canOpenURL(phoneUrl);
-      if (supported) {
+      // Check if the device can handle phone calls
+      const canCall = await Linking.canOpenURL(phoneUrl);
+
+      if (canCall) {
+        // Device supports phone calls, attempt to make the call
         await Linking.openURL(phoneUrl);
       } else {
-        Alert.alert('Phone number is not available');
+        // Device doesn't support phone calls (like simulator/tablet)
+        showManualDialAlert(number);
       }
     } catch (error) {
-      Alert.alert('Failed to call', 'An error occurred while trying to make the phone call.');
-      console.error('An error occurred', error);
+      console.error('Phone call error:', error);
+      // Fallback to manual dial alert
+      showManualDialAlert(number);
     }
+  };
+
+  // Helper function to show manual dial alert with clipboard support
+  const showManualDialAlert = (number) => {
+    Alert.alert(
+      'Manual Dialing Required',
+      `Your device doesn't support direct calling. Please manually dial: ${number}`,
+      [
+        {
+          text: 'Copy Number',
+          onPress: async () => {
+            try {
+              await Clipboard.setString(number);
+              Alert.alert('Copied!', 'Emergency number copied to clipboard');
+            } catch (error) {
+              console.error('Failed to copy to clipboard:', error);
+              Alert.alert('Emergency Number', number);
+            }
+          }
+        },
+        {
+          text: 'OK',
+          style: 'default'
+        }
+      ],
+      { cancelable: true }
+    );
   };
 
   if (!content) {
@@ -211,71 +245,75 @@ const EmergencyGuideScreen = () => {
 
   return (
     <>
-    <SafeAreaView style={styles.container}>
-      {/* <Stack.Screen   options={{title:`${categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}`,headerShown:true}} /> */}
+      <SafeAreaView style={styles.container}>
+        {/* <Stack.Screen   options={{title:`${categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}`,headerShown:true}} /> */}
 
-      <Stack.Screen options={{ headerShown: true ,headerTitle:()=>(   
-        
-
-
-        <View style={{ flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 0}}  >
-          <Text  style={{fontSize:24,fontWeight:'bold'}} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
-        <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
-              <Ionicons name="sparkles" size={16} color="white" />
-              <Text style={styles.aiHelpButtonText}>AI Help</Text>
-            </TouchableOpacity>
-          </View>
+        <Stack.Screen options={{
+          headerShown: true, headerTitle: () => (
 
 
-          )}} />
-      <ScrollView>
-        <View style={styles.content}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{content.title}</Text>
-            {/* <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
+
+            <View style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 0
+            }}  >
+              <Text style={{ fontSize: 24, fontWeight: 'bold' }} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
+              <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
+                <Ionicons name="sparkles" size={16} color="white" />
+                <Text style={styles.aiHelpButtonText}>AI Help</Text>
+              </TouchableOpacity>
+            </View>
+
+
+          )
+        }} />
+        <ScrollView>
+          <View style={styles.content}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{content.title}</Text>
+              {/* <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
               <Ionicons name="sparkles" size={16} color="white" />
               <Text style={styles.aiHelpButtonText}>AI Help</Text>
             </TouchableOpacity> */}
-          </View>
-          {content.summary && <Text style={styles.summary}>{content.summary}</Text>}
-
-          {content.instructions.map((item) => (
-            <View key={item.step} style={styles.stepContainer}>
-              <Text style={styles.stepTitle}>Step {item.step}: {item.title}</Text>
-              {item.details.map((detail, index) => (
-                <Text key={index} style={styles.stepDetail}>• {detail}</Text>
-              ))}
             </View>
-          ))}
-        </View>
-      </ScrollView>
+            {content.summary && <Text style={styles.summary}>{content.summary}</Text>}
 
-      <View style={styles.footer}>
-       
-        <TouchableOpacity style={styles.primaryButton} onPress={() => handleCall(emergencyNumber)}>
-          <Ionicons name="call" size={24} color="white" />
-          <Text style={styles.primaryButtonText}>{callButtonLabel} ({emergencyNumber})</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {content && (
-        <AiHelpModal
-          visible={isAiModalVisible}
-          onClose={() => setAiModalVisible(false)}
-          guideContent={content}
-        />
-      )}
-    </SafeAreaView>
+            {content.instructions.map((item) => (
+              <View key={item.step} style={styles.stepContainer}>
+                <Text style={styles.stepTitle}>Step {item.step}: {item.title}</Text>
+                {item.details.map((detail, index) => (
+                  <Text key={index} style={styles.stepDetail}>• {detail}</Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+
+          <TouchableOpacity style={styles.primaryButton} onPress={() => handleCall(emergencyNumber)}>
+            <Ionicons name="call" size={24} color="white" />
+            <Text style={styles.primaryButtonText}>{callButtonLabel} ({emergencyNumber})</Text>
+          </TouchableOpacity>
+        </View>
+
+        {content && (
+          <AiHelpModal
+            visible={isAiModalVisible}
+            onClose={() => setAiModalVisible(false)}
+            guideContent={content}
+          />
+        )}
+      </SafeAreaView>
     </>
 
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white',},
+  container: { flex: 1, backgroundColor: 'white', },
   content: { paddingHorizontal: 20 },
   titleRow: {
     flexDirection: 'row',

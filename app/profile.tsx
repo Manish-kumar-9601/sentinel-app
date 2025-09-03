@@ -2,16 +2,23 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Link, Stack } from 'expo-router';
+import userProfileImg from '../assets/images/user-profile-img.png';
 
 // --- Mock User Data ---
-// In a real app, this would come from your authentication context or API
 const user = {
-  name: 'User ',
+  name: 'User',
   email: 'User1234@gmail.com',
-  avatar: 'https://placehold.co/100x100/FF4500/FFFFFF?text=NM', // Placeholder avatar
+  avatar: userProfileImg,
 };
 
-// --- Reusable Row Component ---
+// --- REFACTOR: Menu items defined in an array for cleaner rendering ---
+const menuItems = [
+  { icon: 'settings', label: 'Settings', href: '/settings' },
+  { icon: 'shield', label: 'Privacy Policy', href: '/privacy' },
+  { icon: 'help-circle', label: 'Help & Support', href: '/support' },
+];
+
+// --- Reusable Row Component (No changes needed here) ---
 const ProfileRow = ({ icon, label, href }) => (
   <Link href={href} asChild>
     <TouchableOpacity style={styles.row}>
@@ -25,28 +32,28 @@ const ProfileRow = ({ icon, label, href }) => (
 const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
-      {/* --- Header --- */}
-      
-   <Stack.Screen 
-        options={{ 
-          title: 'Profile', 
+      <Stack.Screen
+        options={{
+          title: 'Profile',
           headerShown: true,
+          headerShadowVisible: false, // Cleaner look without a shadow
           headerStyle: { backgroundColor: '#fff' },
           headerTintColor: '#000',
-        }} 
+        }}
       />
       {/* --- User Info Section --- */}
       <View style={styles.userInfoSection}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
+        <Image source={user.avatar} style={styles.avatar} />
         <Text style={styles.userName}>{user.name}</Text>
         <Text style={styles.userEmail}>{user.email}</Text>
       </View>
 
       {/* --- Menu Section --- */}
       <View style={styles.menuWrapper}>
-        <ProfileRow icon="settings" label="Settings" href="/settings" />
-        <ProfileRow icon="shield" label="Privacy Policy" href="/privacy" />
-        <ProfileRow icon="help-circle" label="Help & Support" href="/support" />
+        {/* --- REFACTOR: Dynamically render rows from the array --- */}
+        {menuItems.map((item) => (
+          <ProfileRow key={item.label} icon={item.icon} label={item.label} href={item.href} />
+        ))}
       </View>
     </SafeAreaView>
   );
@@ -55,29 +62,24 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F8FA',
-  },
-  header: {
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    backgroundColor: '#f2f2f2', // Changed for consistency
   },
   userInfoSection: {
-    paddingHorizontal: 30,
-    paddingVertical: 0,
+    paddingHorizontal: 0,
+    paddingBottom: 20, 
     alignItems: 'center',
     backgroundColor: 'white',
+    borderBottomWidth: 0, 
+    borderBottomColor: '#929292ff',
   },
   avatar: {
+    marginTop: 0,
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: 70,
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: '#f0f0f0',
   },
   userName: {
     marginTop: 15,
@@ -87,10 +89,10 @@ const styles = StyleSheet.create({
   userEmail: {
     marginTop: 5,
     fontSize: 16,
-    color: '#666',
+    color: '#6c6c6c',
   },
   menuWrapper: {
-    marginTop: 20,
+    marginTop: 0,  
   },
   row: {
     flexDirection: 'row',
@@ -98,8 +100,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 20,
     backgroundColor: 'white',
+    
     borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    borderBottomColor: '#f0f0f0',
   },
   rowLabel: {
     flex: 1,

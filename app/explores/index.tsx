@@ -22,7 +22,7 @@ const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => 
       disabled={comingSoon}
     >
       <View style={styles.iconContainer}>
-        <Feather name={icon} size={28} color="#FF4500" />
+        <Feather name={icon} size={28} color="#3186c3" />
       </View>
       <View style={styles.textContainer}>
         <Text style={styles.cardTitle}>{title}</Text>
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FFF0E5',
+    backgroundColor: '#e6f8ffff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,

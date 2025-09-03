@@ -22,66 +22,103 @@ import * as Location from 'expo-location';
 
 const { width, height } = Dimensions.get('window');
 
-// Free OpenStreetMap + Overpass API for nearby places
+// Enhanced OpenStreetMap queries with multiple tag variations
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
 
-// Landmark categories with OpenStreetMap tags
+// Enhanced landmark categories with multiple OSM tag variations
 const LANDMARK_CATEGORIES = {
   hospital: {
     icon: 'local-hospital',
     color: '#FF6B6B',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=hospital',
-    displayName: 'Hospitals'
+    osmTags: [
+      'amenity=hospital',
+      'amenity=clinic',
+      'healthcare=hospital',
+      'healthcare=clinic',
+      'building=hospital'
+    ],
+    displayName: 'Hospitals & Clinics'
   },
   police: {
     icon: 'local-police',
     color: '#4A90E2',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=police',
+    osmTags: [
+      'amenity=police',
+      'office=police',
+      'building=police_station'
+    ],
     displayName: 'Police Stations'
   },
   fire_station: {
     icon: 'fire-truck',
     color: '#FF8C00',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=fire_station',
+    osmTags: [
+      'amenity=fire_station',
+      'emergency=fire_station',
+      'building=fire_station',
+      'office=fire_department'
+    ],
     displayName: 'Fire Stations'
   },
   fuel: {
     icon: 'local-gas-station',
     color: '#32CD32',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=fuel',
+    osmTags: [
+      'amenity=fuel',
+      'shop=gas_station',
+      'shop=fuel'
+    ],
     displayName: 'Gas Stations'
   },
   pharmacy: {
     icon: 'local-pharmacy',
     color: '#9370DB',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=pharmacy',
+    osmTags: [
+      'amenity=pharmacy',
+      'shop=pharmacy',
+      'healthcare=pharmacy'
+    ],
     displayName: 'Pharmacies'
   },
   atm: {
     icon: 'local-atm',
     color: '#20B2AA',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=atm',
-    displayName: 'ATMs'
+    osmTags: [
+      'amenity=atm',
+      'amenity=bank',
+      'shop=bank'
+    ],
+    displayName: 'ATMs & Banks'
   },
   restaurant: {
     icon: 'restaurant',
     color: '#FFD700',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=restaurant',
-    displayName: 'Restaurants'
+    osmTags: [
+      'amenity=restaurant',
+      'amenity=fast_food',
+      'amenity=cafe',
+      'shop=food'
+    ],
+    displayName: 'Restaurants & Food'
   },
   school: {
     icon: 'school',
     color: '#8A2BE2',
     iconSet: 'MaterialIcons',
-    osmTag: 'amenity=school',
-    displayName: 'Schools'
+    osmTags: [
+      'amenity=school',
+      'amenity=university',
+      'amenity=college',
+      'building=school'
+    ],
+    displayName: 'Schools & Education'
   }
 };
 
@@ -212,7 +249,7 @@ const MapScreen = () => {
     setRegion(newRegion);
   };
 
-  // Fetch nearby places using FREE Overpass API (OpenStreetMap)
+  // Enhanced fetch function with multiple tag queries and better error handling
   const fetchNearbyPlaces = async (category) => {
     if (!currentLocation) {
       Alert.alert('Location Required', 'Please allow location access to find nearby places.');
@@ -224,30 +261,53 @@ const MapScreen = () => {
       const categoryConfig = LANDMARK_CATEGORIES[category];
       const radiusInMeters = searchRadius;
 
-      // Build Overpass QL query with error handling
+      // Build multiple queries for different tag variations
+      const queryParts = categoryConfig.osmTags.map(tag => {
+        return `
+          node["${tag}"](around:${radiusInMeters},${currentLocation.latitude},${currentLocation.longitude});
+          way["${tag}"](around:${radiusInMeters},${currentLocation.latitude},${currentLocation.longitude});
+          relation["${tag}"](around:${radiusInMeters},${currentLocation.latitude},${currentLocation.longitude});
+        `;
+      }).join('');
+
+      // Enhanced Overpass QL query with better timeout and multiple tag support
       const overpassQuery = `
-        [out:json][timeout:30];
+        [out:json][timeout:45];
         (
-          node["${categoryConfig.osmTag}"](around:${radiusInMeters},${currentLocation.latitude},${currentLocation.longitude});
-          way["${categoryConfig.osmTag}"](around:${radiusInMeters},${currentLocation.latitude},${currentLocation.longitude});
-          relation["${categoryConfig.osmTag}"](around:${radiusInMeters},${currentLocation.latitude},${currentLocation.longitude});
+          ${queryParts}
         );
-        out center meta;
+        out center meta tags;
       `;
 
-      console.log('Fetching places for category:', category);
+      console.log('Enhanced query for category:', category);
+      console.log('Tags being searched:', categoryConfig.osmTags);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-      const response = await fetch(OVERPASS_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `data=${encodeURIComponent(overpassQuery)}`,
-        signal: controller.signal,
-      });
+      // Try primary Overpass API first
+      let response;
+      try {
+        response = await fetch(OVERPASS_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `data=${encodeURIComponent(overpassQuery)}`,
+          signal: controller.signal,
+        });
+      } catch (error) {
+        // Try backup Overpass API if primary fails
+        console.log('Primary API failed, trying backup...');
+        response = await fetch('https://overpass.openstreetmap.org/api/interpreter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `data=${encodeURIComponent(overpassQuery)}`,
+          signal: controller.signal,
+        });
+      }
 
       clearTimeout(timeoutId);
 
@@ -256,15 +316,36 @@ const MapScreen = () => {
       }
 
       const data = await response.json();
-      console.log('Overpass API response elements:', data.elements?.length || 0);
+      console.log('Enhanced API response elements:', data.elements?.length || 0);
 
       if (!data.elements || data.elements.length === 0) {
         setNearbyPlaces([]);
         setSelectedCategory(category);
-        Alert.alert('No Results', `No ${categoryConfig.displayName.toLowerCase()} found within ${searchRadius / 1000}km radius.`);
+        
+        // Show more detailed "no results" message with suggestions
+        Alert.alert(
+          'No Results Found', 
+          `No ${categoryConfig.displayName.toLowerCase()} found within ${searchRadius / 1000}km.\n\n` +
+          `This could be because:\n` +
+          `• The area may not be fully mapped in OpenStreetMap\n` +
+          `• Try increasing the search radius\n` +
+          `• The facilities might be tagged differently\n\n` +
+          `Would you like to try a larger search area?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Search 5km', 
+              onPress: () => {
+                setSearchRadius(5000);
+                setTimeout(() => fetchNearbyPlaces(category), 500);
+              }
+            }
+          ]
+        );
         return;
       }
 
+      // Enhanced place processing with better data extraction
       const places = data.elements
         .filter(element => {
           const lat = element.lat || element.center?.lat;
@@ -281,39 +362,86 @@ const MapScreen = () => {
             lon
           );
 
+          // Better name extraction
+          let name = element.tags?.name || 
+                    element.tags?.brand || 
+                    element.tags?.operator || 
+                    element.tags?.['name:en'] ||
+                    categoryConfig.displayName.slice(0, -1); // Remove 's' from end
+
+          // Add type information to name if available
+          if (element.tags?.amenity && !name.toLowerCase().includes(element.tags.amenity)) {
+            name += ` (${element.tags.amenity})`;
+          }
+
+          // Enhanced address extraction
+          let address = 'Address not available';
+          if (element.tags) {
+            const addressParts = [];
+            if (element.tags['addr:housenumber']) addressParts.push(element.tags['addr:housenumber']);
+            if (element.tags['addr:street']) addressParts.push(element.tags['addr:street']);
+            if (element.tags['addr:city']) addressParts.push(element.tags['addr:city']);
+            
+            if (addressParts.length > 0) {
+              address = addressParts.join(' ');
+            } else if (element.tags['addr:full']) {
+              address = element.tags['addr:full'];
+            }
+          }
+
           return {
             id: `${element.id}_${index}`,
-            name: element.tags?.name || element.tags?.brand || `${categoryConfig.displayName}`,
+            name: name,
             coordinate: { latitude: lat, longitude: lon },
             category: category,
             distance: distance.toFixed(1),
-            address: element.tags?.['addr:street']
-              ? `${element.tags['addr:housenumber'] || ''} ${element.tags['addr:street']}`.trim()
-              : 'Address not available',
-            phone: element.tags?.phone || 'Phone not available',
-            website: element.tags?.website,
-            openingHours: element.tags?.opening_hours || 'Hours not available',
+            address: address,
+            phone: element.tags?.phone || element.tags?.['contact:phone'] || 'Phone not available',
+            website: element.tags?.website || element.tags?.['contact:website'],
+            openingHours: element.tags?.opening_hours || element.tags?.['service_times'] || 'Hours not available',
+            osmType: element.type,
+            osmId: element.id,
+            matchedTag: categoryConfig.osmTags.find(tag => {
+              const [key, value] = tag.split('=');
+              return element.tags?.[key] === value;
+            }) || 'unknown'
           };
         })
         .sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance))
-        .slice(0, 20);
+        .slice(0, 25); // Increase limit to 25
 
-      console.log('Processed places:', places.length);
+      console.log('Enhanced processed places:', places.length);
+      console.log('Sample place data:', places[0]);
+      
       setNearbyPlaces(places);
       setSelectedCategory(category);
 
       if (places.length === 0) {
         Alert.alert('No Results', `No ${categoryConfig.displayName.toLowerCase()} found within ${searchRadius / 1000}km radius.`);
       } else {
-        Alert.alert('Success', `Found ${places.length} ${categoryConfig.displayName.toLowerCase()}`);
+        // Show success with more details
+        Alert.alert(
+          'Found Results!', 
+          `Found ${places.length} ${categoryConfig.displayName.toLowerCase()} within ${searchRadius / 1000}km.\n\n` +
+          `Closest: ${places[0].name} (${places[0].distance}km away)`
+        );
       }
 
     } catch (error) {
-      console.error('Error fetching nearby places:', error);
+      console.error('Enhanced error fetching nearby places:', error);
       if (error.name === 'AbortError') {
-        Alert.alert('Timeout', 'Search timed out. Please try again.');
+        Alert.alert('Timeout', 'Search timed out. The server might be busy. Please try again.');
       } else {
-        Alert.alert('Error', 'Failed to fetch nearby places. Please check your internet connection and try again.');
+        Alert.alert(
+          'Search Error', 
+          `Failed to fetch nearby places.\n\n` +
+          `Error: ${error.message}\n\n` +
+          `This might be due to:\n` +
+          `• Network connectivity issues\n` +
+          `• Overpass API server being busy\n` +
+          `• Location data not available\n\n` +
+          `Please check your internet connection and try again.`
+        );
       }
     } finally {
       setIsLoadingPlaces(false);
@@ -353,11 +481,13 @@ const MapScreen = () => {
         { text: '2 km', onPress: () => setSearchRadius(2000) },
         { text: '5 km', onPress: () => setSearchRadius(5000) },
         { text: '10 km', onPress: () => setSearchRadius(10000) },
+        { text: '20 km', onPress: () => setSearchRadius(20000) },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
 
+  // Enhanced marker rendering with better info
   const renderCustomMarker = (place) => {
     const categoryConfig = LANDMARK_CATEGORIES[place.category];
     const IconComponent = MaterialIcons;
@@ -382,14 +512,20 @@ const MapScreen = () => {
             <Text style={styles.calloutTitle}>{place.name}</Text>
             <Text style={styles.calloutSubtitle}>{place.address}</Text>
             <View style={styles.calloutDetails}>
-              <Text style={styles.calloutDistance}>📍 {place.distance} km</Text>
+              <Text style={styles.calloutDistance}>📍 {place.distance} km away</Text>
               {place.phone !== 'Phone not available' && (
                 <Text style={styles.calloutPhone}>📞 {place.phone}</Text>
+              )}
+              {place.website && (
+                <Text style={styles.calloutWebsite}>🌐 Website available</Text>
               )}
             </View>
             {place.openingHours !== 'Hours not available' && (
               <Text style={styles.calloutHours}>🕒 {place.openingHours}</Text>
             )}
+            <Text style={styles.calloutDebug}>
+              OSM: {place.osmType} #{place.osmId} | Tag: {place.matchedTag}
+            </Text>
           </View>
         </Callout>
       </Marker>
@@ -401,7 +537,7 @@ const MapScreen = () => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#FF4500" />
-        <Text style={styles.loadingText}>Loading map...</Text>
+        <Text style={styles.loadingText}>Loading enhanced map...</Text>
         <Text style={styles.debugText}>
           Coordinates: {lat && lon ? `${lat}, ${lon}` : 'Getting location...'}
         </Text>
@@ -434,7 +570,7 @@ const MapScreen = () => {
     <>
       <Stack.Screen
         options={{
-          title: 'Emergency Map',
+          title: 'Enhanced Emergency Map',
           headerShown: true,
           headerStyle: { backgroundColor: '#fff' },
           headerTintColor: '#000',
@@ -498,14 +634,20 @@ const MapScreen = () => {
           </MapView>
         )}
 
-        {/* Debug info */}
+        {/* Enhanced debug info */}
         <View style={styles.debugContainer}>
           <Text style={styles.debugText}>
-            Ready: {mapReady ? '✓' : '✗'} | 
+            Enhanced Mode | Ready: {mapReady ? '✓' : '✗'} | 
             Location: {currentLocation ? '✓' : '✗'} | 
             Places: {nearbyPlaces.length} |
+            Radius: {searchRadius/1000}km |
             Region: {displayRegion ? '✓' : '✗'}
           </Text>
+          {selectedCategory && (
+            <Text style={styles.debugText}>
+              Searching: {LANDMARK_CATEGORIES[selectedCategory]?.osmTags.length} tag variations
+            </Text>
+          )}
         </View>
 
         {/* Floating controls */}
@@ -538,11 +680,11 @@ const MapScreen = () => {
           )}
         </View>
 
-        {/* Category buttons */}
+        {/* Enhanced category buttons */}
         <View style={styles.categoryContainer}>
           <View style={styles.categoryHeader}>
             <Text style={styles.categoryTitle}>Find Nearby Emergency Services:</Text>
-            <Text style={styles.categorySubtitle}>Powered by OpenStreetMap (Free)</Text>
+            <Text style={styles.categorySubtitle}>Enhanced OpenStreetMap Detection</Text>
           </View>
           <View style={styles.categoryGrid}>
             {Object.entries(LANDMARK_CATEGORIES).map(([key, config]) => {
@@ -571,36 +713,41 @@ const MapScreen = () => {
           </View>
         </View>
 
-        {/* Loading overlay for places */}
+        {/* Enhanced loading overlay */}
         {isLoadingPlaces && (
           <View style={styles.loadingOverlay}>
             <View style={styles.loadingCard}>
               <ActivityIndicator size="small" color="#FF4500" />
               <Text style={styles.loadingPlacesText}>
-                Searching {selectedCategory ? LANDMARK_CATEGORIES[selectedCategory].displayName.toLowerCase() : 'places'}...
+                Enhanced search: {selectedCategory ? LANDMARK_CATEGORIES[selectedCategory].displayName.toLowerCase() : 'places'}...
+                {'\n'}Using multiple data sources
               </Text>
             </View>
           </View>
         )}
 
-        {/* Places count badge */}
+        {/* Enhanced places count badge */}
         {nearbyPlaces.length > 0 && (
           <View style={styles.placesCountBadge}>
             <Text style={styles.placesCountText}>
               {nearbyPlaces.length} {LANDMARK_CATEGORIES[selectedCategory]?.displayName.toLowerCase()} found
             </Text>
+            <Text style={styles.placesCountSubtext}>
+              Closest: {nearbyPlaces[0]?.distance}km away
+            </Text>
           </View>
         )}
 
-        {/* Free API notice */}
+        {/* Enhanced API notice */}
         <View style={styles.freeApiNotice}>
-          <Text style={styles.freeApiText}>🆓 Using free OpenStreetMap data</Text>
+          <Text style={styles.freeApiText}>🔍 Enhanced Detection Mode</Text>
         </View>
       </View>
     </>
   );
 };
 
+// Enhanced styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -627,7 +774,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   debugText: {
-    fontSize: 11,
+    fontSize: 10,
     color: 'white',
     textAlign: 'center',
   },
@@ -636,7 +783,7 @@ const styles = StyleSheet.create({
     top: 80,
     left: 10,
     right: 10,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     padding: 8,
     borderRadius: 5,
   },
@@ -654,7 +801,7 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     position: 'absolute',
-    top: 120,
+    top: 140,
     right: 15,
     flexDirection: 'column',
   },
@@ -707,6 +854,7 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
   },
+ 
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

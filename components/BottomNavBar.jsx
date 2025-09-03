@@ -51,9 +51,9 @@ const BottomNavBar = () =>
             <IconComponent
               name={item.icon}
               size={28}
-              color={isActive ? '#FF4500' : '#A9A9A9'}
+              color={isActive ? '#3186c3' : '#A9A9A9'}
             />
-            <Text style={[styles.navText, { color: isActive ? '#FF4500' : '#A9A9A9' }]}>
+            <Text style={[styles.navText, { color: isActive ? '#3186c3' : '#A9A9A9' }]}>
               {item.name}
             </Text>
           </TouchableOpacity>
