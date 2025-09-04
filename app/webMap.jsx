@@ -1,18 +1,18 @@
 ﻿import React, { useState, useEffect } from 'react';
 import
-    {
-        View,
-        StyleSheet,
-        ActivityIndicator,
-        Text,
-        TouchableOpacity,
-        Alert,
-        Dimensions,
-        StatusBar,
-    } from 'react-native';
+{
+    View,
+    StyleSheet,
+    ActivityIndicator,
+    Text,
+    TouchableOpacity,
+    Alert,
+    Dimensions,
+    StatusBar,
+} from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+
 import * as Location from 'expo-location';
 
 const { width, height } = Dimensions.get('window');
@@ -113,6 +113,33 @@ const WebMapScreen = () =>
         <style>
             body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             #map { height: 100vh; width: 100vw; }
+            .search-container {
+                position: absolute;
+                top: 10px;
+                left: 55%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                display: flex;
+                width: 85%;
+                max-width: 400px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            }
+            #searchQuery {
+                flex-grow: 1;
+                border: none;
+                padding: 12px 15px;
+                font-size: 14px;
+                border-radius: 25px 0 0 25px;
+            }
+            #searchButton {
+                border: none;
+                background-color: #FF4500;
+                color: white;
+                padding: 0 20px;
+                cursor: pointer;
+                font-weight: bold;
+                border-radius: 0 25px 25px 0;
+            }
             .category-buttons {
                 position: absolute;
                 bottom: 20px;
@@ -143,12 +170,8 @@ const WebMapScreen = () =>
                 font-weight: bold;
                 transition: transform 0.2s;
             }
-            .category-btn:hover {
-                transform: scale(1.05);
-            }
-            .category-btn:active {
-                transform: scale(0.95);
-            }
+            .category-btn:hover { transform: scale(1.05); }
+            .category-btn:active { transform: scale(0.95); }
             .category-title {
                 text-align: center;
                 margin-bottom: 10px;
@@ -164,69 +187,59 @@ const WebMapScreen = () =>
                 font-style: italic;
             }
             .loading {
-                position: absolute;
-                top: 50%;
-                left: 50%;
+                position: absolute; top: 50%; left: 50%;
                 transform: translate(-50%, -50%);
-                z-index: 2000;
-                background: white;
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                z-index: 2000; background: white; padding: 20px;
+                border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
                 text-align: center;
             }
             .loading-spinner {
-                width: 30px;
-                height: 30px;
-                border: 3px solid #f3f3f3;
-                border-top: 3px solid #FF4500;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 10px;
+                width: 30px; height: 30px; border: 3px solid #f3f3f3;
+                border-top: 3px solid #FF4500; border-radius: 50%;
+                animation: spin 1s linear infinite; margin: 0 auto 10px;
             }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
             .controls {
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                z-index: 1000;
-                background: white;
-                border-radius: 10px;
-                padding: 10px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                position: absolute; top: 80px;
+                right: 20px; z-index: 1000; background: white;
+                border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             }
             .control-btn {
-                display: block;
-                margin: 5px 0;
-                padding: 8px;
-                border: none;
-                background: #f0f0f0;
-                border-radius: 5px;
-                cursor: pointer;
-                font-size: 12px;
+                display: block; margin: 5px 0; padding: 8px;
+                border: none; background: #f0f0f0; border-radius: 5px;
+                cursor: pointer; font-size: 12px;
             }
             .results-info {
-                position: absolute;
-                top: 20px;
-                left: 20px;
-                z-index: 1000;
-                background: rgba(255, 69, 0, 0.9);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 8px;
-                font-size: 12px;
-                font-weight: bold;
-                display: none;
+                position: absolute; top: 80px;
+                left: 20px; z-index: 1000; background: rgba(255, 69, 0, 0.9);
+                color: white; padding: 8px 12px; border-radius: 8px;
+                font-size: 12px; font-weight: bold; display: none;
+            }
+            .status-message {
+                position: absolute; top: 120px; left: 20px; right: 20px;
+                z-index: 1000; background: #4CAF50; color: white;
+                padding: 10px 15px; border-radius: 8px; text-align: center;
+                font-size: 12px; font-weight: bold; display: none;
+            }
+            .status-message.error { background: #f44336; }
+            .debug-info {
+                position: absolute; bottom: 0; right: 0;
+                z-index: 2000; background: rgba(0,0,0,0.5);
+                color: white; padding: 2px 5px;
+                font-size: 8px; border-radius: 3px 0 0 0;
             }
         </style>
     </head>
     <body>
         <div id="map"></div>
         
+        <div class="search-container">
+            <input type="text" id="searchQuery" placeholder="Search for a place or address...">
+            <button id="searchButton" onclick="searchByQuery()">Search</button>
+        </div>
+
         <div class="results-info" id="resultsInfo"></div>
+        <div class="status-message" id="statusMessage"></div>
         
         <div class="controls">
             <button class="control-btn" onclick="changeRadius()">Radius: <span id="radiusText">2km</span></button>
@@ -249,22 +262,24 @@ const WebMapScreen = () =>
             </div>
         </div>
 
+        <div class="debug-info" id="debugInfo"></div>
+
         <script>
             // Initialize map
             const map = L.map('map').setView([${latitude}, ${longitude}], 15);
 
-            // Add OpenStreetMap tiles
+            // Set debug info
+            document.getElementById('debugInfo').innerText = 'Coords: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}';
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Add user location marker
             const userMarker = L.marker([${latitude}, ${longitude}])
                 .addTo(map)
                 .bindPopup('📍 Your Current Location')
                 .openPopup();
-
-            // Style the user marker
+            
             const userIcon = L.divIcon({
                 className: 'user-location-marker',
                 html: '<div style="width: 20px; height: 20px; background: #FF4500; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
@@ -273,61 +288,307 @@ const WebMapScreen = () =>
             });
             userMarker.setIcon(userIcon);
 
-            let markersGroup = L.layerGroup().addTo(map);
+            let categoryMarkersGroup = L.layerGroup().addTo(map);
+            let searchMarkersGroup = L.layerGroup().addTo(map); 
             let searchCircle = null;
             let currentRadius = 2000;
 
-            // Enhanced category configuration with multiple OSM tags
             const categoryConfig = {
                 hospital: { 
-                    tags: ['amenity=hospital', 'amenity=clinic', 'healthcare=hospital', 'healthcare=clinic', 'building=hospital'],
+                    tags: ['amenity=hospital', 'amenity=clinic', 'healthcare=hospital'], 
+                    nominatimQuery: 'hospital',
                     color: '#FF6B6B', 
-                    name: 'Hospitals & Clinics',
-                    icon: '🏥'
+                    name: 'Hospitals & Clinics', 
+                    icon: '🏥' 
                 },
                 police: { 
-                    tags: ['amenity=police', 'office=police', 'building=police_station'],
+                    tags: ['amenity=police'], 
+                    nominatimQuery: 'police',
                     color: '#4A90E2', 
-                    name: 'Police Stations',
-                    icon: '👮'
+                    name: 'Police Stations', 
+                    icon: '👮' 
                 },
                 fire_station: { 
-                    tags: ['amenity=fire_station', 'emergency=fire_station', 'building=fire_station', 'office=fire_department'],
+                    tags: ['amenity=fire_station'], 
+                    nominatimQuery: 'fire station',
                     color: '#FF8C00', 
-                    name: 'Fire Stations',
-                    icon: '🚒'
+                    name: 'Fire Stations', 
+                    icon: '🚒' 
                 },
                 fuel: { 
-                    tags: ['amenity=fuel', 'shop=gas_station', 'shop=fuel'],
+                    tags: ['amenity=fuel'], 
+                    nominatimQuery: 'gas station',
                     color: '#32CD32', 
-                    name: 'Gas Stations',
-                    icon: '⛽'
+                    name: 'Gas Stations', 
+                    icon: '⛽' 
                 },
                 pharmacy: { 
-                    tags: ['amenity=pharmacy', 'shop=pharmacy', 'healthcare=pharmacy'],
+                    tags: ['amenity=pharmacy'], 
+                    nominatimQuery: 'pharmacy',
                     color: '#9370DB', 
-                    name: 'Pharmacies',
-                    icon: '💊'
+                    name: 'Pharmacies', 
+                    icon: '💊' 
                 },
                 atm: { 
-                    tags: ['amenity=atm', 'amenity=bank', 'shop=bank'],
+                    tags: ['amenity=atm', 'amenity=bank'], 
+                    nominatimQuery: 'atm',
                     color: '#20B2AA', 
-                    name: 'ATMs & Banks',
-                    icon: '🏧'
+                    name: 'ATMs & Banks', 
+                    icon: '🏧' 
                 },
                 restaurant: { 
-                    tags: ['amenity=restaurant', 'amenity=fast_food', 'amenity=cafe', 'shop=food'],
+                    tags: ['amenity=restaurant', 'amenity=fast_food'], 
+                    nominatimQuery: 'restaurant',
                     color: '#FFD700', 
-                    name: 'Restaurants & Food',
-                    icon: '🍴'
+                    name: 'Restaurants & Food', 
+                    icon: '🍴' 
                 },
                 school: { 
-                    tags: ['amenity=school', 'amenity=university', 'amenity=college', 'building=school'],
+                    tags: ['amenity=school'], 
+                    nominatimQuery: 'school',
                     color: '#8A2BE2', 
-                    name: 'Schools & Education',
-                    icon: '🏫'
+                    name: 'Schools & Education', 
+                    icon: '🏫' 
                 }
             };
+
+            // Improved fetch with timeout and retry
+            async function fetchWithTimeout(url, options, timeout = 15000, retries = 2) {
+                for (let i = 0; i <= retries; i++) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), timeout);
+                        
+                        const response = await fetch(url, {
+                            ...options,
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (response.ok) {
+                            return response;
+                        }
+                        throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+                        
+                    } catch (error) {
+                        if (i === retries) {
+                            throw error;
+                        }
+                        // Wait before retry
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    }
+                }
+            }
+
+            // Fallback search using Nominatim
+            async function nominatimSearch(category, lat, lon, radius) {
+                try {
+                    const config = categoryConfig[category];
+                    const radiusKm = radius / 1000;
+                    
+                    const url = \`https://nominatim.openstreetmap.org/search?q=\${encodeURIComponent(config.nominatimQuery)}&format=json&lat=\${lat}&lon=\${lon}&limit=20&bounded=1&viewbox=\${lon-0.05},\${lat+0.05},\${lon+0.05},\${lat-0.05}\`;
+                    
+                    const response = await fetchWithTimeout(url, {
+                        headers: { 'User-Agent': 'EmergencyMap/1.0' }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    return data.filter(item => {
+                        const distance = calculateDistance(lat, lon, parseFloat(item.lat), parseFloat(item.lon));
+                        return distance <= radiusKm;
+                    }).map(item => ({
+                        lat: parseFloat(item.lat),
+                        lon: parseFloat(item.lon),
+                        tags: { 
+                            name: item.display_name.split(',')[0],
+                            'addr:full': item.display_name
+                        }
+                    }));
+                } catch (error) {
+                    console.error('Nominatim search failed:', error);
+                    return [];
+                }
+            }
+
+            // Main search function with fallbacks
+            async function searchNearby(category) {
+                try {
+                    showLoading(true, 'Searching for ' + categoryConfig[category].name.toLowerCase() + '...');
+                    clearResults();
+                    
+                    const config = categoryConfig[category];
+
+                    searchCircle = L.circle([${latitude}, ${longitude}], {
+                        color: config.color, fillColor: config.color,
+                        fillOpacity: 0.1, radius: currentRadius
+                    }).addTo(map);
+
+                    let results = [];
+
+                    // Try Overpass API first
+                    try {
+                        showStatusMessage('Trying primary search...', false);
+                        results = await overpassSearch(category);
+                    } catch (error) {
+                        console.log('Overpass failed, trying Nominatim fallback...');
+                        showStatusMessage('Primary search failed, trying backup...', false);
+                        results = await nominatimSearch(category, ${latitude}, ${longitude}, currentRadius);
+                    }
+
+                    // Process and display results
+                    let count = 0;
+                    let closestDistance = Infinity;
+
+                    if (results && results.length > 0) {
+                        results.forEach(element => {
+                            const lat = element.lat;
+                            const lon = element.lon;
+                            
+                            if (lat && lon) {
+                                const distance = calculateDistance(${latitude}, ${longitude}, lat, lon);
+                                if (distance < closestDistance) closestDistance = distance;
+                                
+                                const customIcon = L.divIcon({
+                                    className: 'custom-marker',
+                                    html: '<div style="width: 30px; height: 30px; background: ' + config.color + '; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">' + config.icon + '</div>',
+                                    iconSize: [30, 30], iconAnchor: [15, 15]
+                                });
+
+                                const marker = L.marker([lat, lon], { icon: customIcon });
+                                
+                                let name = element.tags?.name || config.name.slice(0, -1);
+                                let address = element.tags?.['addr:full'] || element.tags?.['addr:street'] || 'Address not available';
+                                
+                                const popupContent = \`
+                                    <div style="min-width: 220px; max-width: 280px;">
+                                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; color: \${config.color};">\${config.icon} \${name}</div>
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 5px;">📍 \${address}</div>
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 8px;">📏 \${distance.toFixed(1)} km away</div>
+                                    </div>
+                                \`;
+                                
+                                marker.bindPopup(popupContent);
+                                categoryMarkersGroup.addLayer(marker);
+                                count++;
+                            }
+                        });
+                    }
+
+                    showLoading(false);
+                    showResults(count, category, closestDistance < Infinity ? closestDistance : null);
+                    
+                    if (count === 0) {
+                        showStatusMessage('No results found. Try increasing search radius.', true);
+                        const radiusKm = currentRadius / 1000;
+                        if (confirm('No ' + config.name.toLowerCase() + ' found within ' + radiusKm + 'km radius.\\n\\nWould you like to try a larger search area?')) {
+                            if (currentRadius < 20000) {
+                                changeRadius();
+                                setTimeout(() => searchNearby(category), 500);
+                            }
+                        }
+                    } else {
+                        showStatusMessage(\`Found \${count} \${config.name.toLowerCase()}\`, false);
+                        if (categoryMarkersGroup.getLayers().length > 0) {
+                            const group = new L.featureGroup([searchCircle, ...categoryMarkersGroup.getLayers()]);
+                            map.fitBounds(group.getBounds().pad(0.1));
+                        }
+                    }
+
+                } catch (error) {
+                    showLoading(false);
+                    showStatusMessage('Search failed: ' + error.message, true);
+                    console.error('Search error:', error);
+                }
+            }
+
+            // Overpass API search with multiple endpoints
+            async function overpassSearch(category) {
+                const config = categoryConfig[category];
+                const apis = [
+                    'https://overpass-api.de/api/interpreter',
+                    'https://overpass.kumi.systems/api/interpreter',
+                    'https://overpass.openstreetmap.org/api/interpreter'
+                ];
+
+                const tagQueries = config.tags.map(tag => \`
+                    node["\${tag}"](around:\${currentRadius},${latitude},${longitude});
+                    way["\${tag}"](around:\${currentRadius},${latitude},${longitude});
+                \`).join('');
+
+                const query = \`
+                    [out:json][timeout:20];
+                    ( \${tagQueries} );
+                    out center 50;
+                \`;
+
+                for (const apiUrl of apis) {
+                    try {
+                        const response = await fetchWithTimeout(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: 'data=' + encodeURIComponent(query)
+                        }, 15000, 1);
+
+                        const data = await response.json();
+                        
+                        if (data.elements && data.elements.length > 0) {
+                            return data.elements.map(element => ({
+                                lat: element.lat || (element.center && element.center.lat),
+                                lon: element.lon || (element.center && element.center.lon),
+                                tags: element.tags || {}
+                            })).filter(el => el.lat && el.lon);
+                        }
+                    } catch (error) {
+                        console.log(\`API \${apiUrl} failed:, error\`);
+                        continue;
+                    }
+                }
+                throw new Error('All Overpass APIs failed');
+            }
+
+            async function searchByQuery() {
+                const query = document.getElementById('searchQuery').value;
+                if (!query || query.trim() === '') {
+                    showStatusMessage('Please enter a place or address to search.', true);
+                    return;
+                }
+
+                showLoading(true, 'Searching for "' + query + '"...');
+                clearResults();
+
+                try {
+                    const url = \`https://nominatim.openstreetmap.org/search?q=\${encodeURIComponent(query)}&format=json&lat=${latitude}&lon=${longitude}&limit=10&addressdetails=1\`;
+                    
+                    const response = await fetchWithTimeout(url, {
+                        headers: { 'User-Agent': 'EmergencyMap/1.0' }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    searchMarkersGroup.clearLayers();
+
+                    if (data && data.length > 0) {
+                        data.forEach(place => {
+                            const marker = L.marker([place.lat, place.lon]);
+                            marker.bindPopup(\`<b>\${place.display_name}</b>\`);
+                            searchMarkersGroup.addLayer(marker);
+                        });
+                        
+                        map.fitBounds(searchMarkersGroup.getBounds().pad(0.1));
+                        showStatusMessage('Found ' + data.length + ' result(s) for "' + query + '"', false);
+                    } else {
+                        showStatusMessage('No results found for "' + query + '"', true);
+                    }
+
+                } catch (error) {
+                    console.error('Search error:', error);
+                    showStatusMessage('Search failed: ' + error.message, true);
+                } finally {
+                    showLoading(false);
+                }
+            }
 
             function showLoading(show, message = 'Searching...') {
                 let loading = document.getElementById('loading');
@@ -341,9 +602,18 @@ const WebMapScreen = () =>
                     }
                     loading.querySelector('div:last-child').textContent = message;
                 } else {
-                    if (loading) {
-                        loading.remove();
-                    }
+                    if (loading) loading.remove();
+                }
+            }
+
+            function showStatusMessage(message, isError = false) {
+                const statusEl = document.getElementById('statusMessage');
+                statusEl.textContent = message;
+                statusEl.className = 'status-message' + (isError ? ' error' : '');
+                statusEl.style.display = 'block';
+                
+                if (!isError) {
+                    setTimeout(() => statusEl.style.display = 'none', 4000);
                 }
             }
 
@@ -351,9 +621,7 @@ const WebMapScreen = () =>
                 const info = document.getElementById('resultsInfo');
                 if (count > 0) {
                     let text = count + ' ' + categoryConfig[category].name.toLowerCase() + ' found';
-                    if (closest) {
-                        text += ' • Closest: ' + closest.toFixed(1) + 'km';
-                    }
+                    if (closest) text += ' • Closest: ' + closest.toFixed(1) + 'km';
                     info.textContent = text;
                     info.style.display = 'block';
                 } else {
@@ -370,246 +638,37 @@ const WebMapScreen = () =>
                 currentRadius = radii[nextIndex];
                 document.getElementById('radiusText').textContent = labels[nextIndex];
                 
-                if (searchCircle) {
-                    searchCircle.setRadius(currentRadius);
-                }
+                if (searchCircle) searchCircle.setRadius(currentRadius);
             }
 
             function clearResults() {
-                markersGroup.clearLayers();
-                if (searchCircle) {
-                    map.removeLayer(searchCircle);
-                }
+                categoryMarkersGroup.clearLayers();
+                searchMarkersGroup.clearLayers();
+                if (searchCircle) map.removeLayer(searchCircle);
                 document.getElementById('resultsInfo').style.display = 'none';
+                document.getElementById('statusMessage').style.display = 'none';
             }
 
             function centerMap() {
                 map.setView([${latitude}, ${longitude}], 15);
             }
 
-            async function searchNearby(category) {
-                try {
-                    showLoading(true, 'Enhanced search for ' + categoryConfig[category].name.toLowerCase() + '...');
-                    
-                    // Clear previous markers and circle
-                    markersGroup.clearLayers();
-                    if (searchCircle) {
-                        map.removeLayer(searchCircle);
-                    }
-
-                    const config = categoryConfig[category];
-
-                    // Add search radius circle
-                    searchCircle = L.circle([${latitude}, ${longitude}], {
-                        color: config.color,
-                        fillColor: config.color,
-                        fillOpacity: 0.1,
-                        radius: currentRadius
-                    }).addTo(map);
-
-                    // Build enhanced Overpass query with multiple tags
-                    const tagQueries = config.tags.map(tag => {
-                        return \`
-                            node["\${tag}"](around:\${currentRadius},${latitude},${longitude});
-                            way["\${tag}"](around:\${currentRadius},${latitude},${longitude});
-                            relation["\${tag}"](around:\${currentRadius},${latitude},${longitude});
-                        \`;
-                    }).join('');
-
-                    const query = \`
-                        [out:json][timeout:45];
-                        (
-                            \${tagQueries}
-                        );
-                        out center meta tags;
-                    \`;
-
-                    console.log('Searching with', config.tags.length, 'tag variations for', category);
-
-                    // Try primary API first, then fallback
-                    let response;
-                    try {
-                        response = await fetch('https://overpass-api.de/api/interpreter', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: 'data=' + encodeURIComponent(query)
-                        });
-                    } catch (error) {
-                        console.log('Primary API failed, trying backup...');
-                        response = await fetch('https://overpass.openstreetmap.org/api/interpreter', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: 'data=' + encodeURIComponent(query)
-                        });
-                    }
-
-                    if (!response.ok) {
-                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                    }
-
-                    const data = await response.json();
-                    console.log('API returned', data.elements?.length || 0, 'elements');
-
-                    let count = 0;
-                    let closestDistance = Infinity;
-                    const processedIds = new Set();
-
-                    data.elements.forEach(element => {
-                        // Avoid duplicate markers from multiple tag matches
-                        const elementId = element.type + element.id;
-                        if (processedIds.has(elementId)) {
-                            return;
-                        }
-                        processedIds.add(elementId);
-
-                        const lat = element.lat || (element.center && element.center.lat);
-                        const lon = element.lon || (element.center && element.center.lon);
-                        
-                        if (lat && lon) {
-                            const distance = calculateDistance(${latitude}, ${longitude}, lat, lon);
-                            
-                            if (distance < closestDistance) {
-                                closestDistance = distance;
-                            }
-                            
-                            // Enhanced marker creation
-                            const customIcon = L.divIcon({
-                                className: 'custom-marker',
-                                html: '<div style="width: 30px; height: 30px; background: ' + config.color + '; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">' + config.icon + '</div>',
-                                iconSize: [30, 30],
-                                iconAnchor: [15, 15]
-                            });
-
-                            const marker = L.marker([lat, lon], { icon: customIcon });
-                            
-                            // Enhanced name extraction
-                            let name = element.tags?.name || 
-                                      element.tags?.brand || 
-                                      element.tags?.operator || 
-                                      element.tags?.['name:en'] ||
-                                      config.name.slice(0, -1); // Remove 's' from end
-
-                            // Enhanced address extraction
-                            let address = 'Address not available';
-                            if (element.tags) {
-                                const addressParts = [];
-                                if (element.tags['addr:housenumber']) addressParts.push(element.tags['addr:housenumber']);
-                                if (element.tags['addr:street']) addressParts.push(element.tags['addr:street']);
-                                if (element.tags['addr:city']) addressParts.push(element.tags['addr:city']);
-                                
-                                if (addressParts.length > 0) {
-                                    address = addressParts.join(' ');
-                                } else if (element.tags['addr:full']) {
-                                    address = element.tags['addr:full'];
-                                }
-                            }
-
-                            // Find which tag matched
-                            const matchedTag = config.tags.find(tag => {
-                                const [key, value] = tag.split('=');
-                                return element.tags?.[key] === value;
-                            }) || 'unknown';
-                            
-                            const popupContent = \`
-                                <div style="min-width: 220px; max-width: 280px;">
-                                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px; color: \${config.color};">
-                                        \${config.icon} \${name}
-                                    </div>
-                                    <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
-                                        📍 \${address}
-                                    </div>
-                                    <div style="font-size: 11px; color: #666; margin-bottom: 8px;">
-                                        📏 \${distance.toFixed(1)} km away
-                                    </div>
-                                    \${element.tags?.phone ? '<div style="font-size: 11px; color: #4A90E2; margin-bottom: 3px;">📞 ' + element.tags.phone + '</div>' : ''}
-                                    \${element.tags?.website ? '<div style="font-size: 11px; color: #32CD32; margin-bottom: 3px;">🌐 Website available</div>' : ''}
-                                    \${element.tags?.opening_hours ? '<div style="font-size: 10px; color: #666; margin-bottom: 5px;">🕒 ' + element.tags.opening_hours + '</div>' : ''}
-                                    <div style="font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 3px; margin-top: 5px;">
-                                        OSM: \${element.type} #\${element.id} • Tag: \${matchedTag}
-                                    </div>
-                                </div>
-                            \`;
-                            
-                            marker.bindPopup(popupContent);
-                            markersGroup.addLayer(marker);
-                            count++;
-                        }
-                    });
-
-                    showLoading(false);
-                    showResults(count, category, closestDistance < Infinity ? closestDistance : null);
-                    
-                    if (count === 0) {
-                        const radiusKm = currentRadius / 1000;
-                        const message = 'No ' + config.name.toLowerCase() + ' found within ' + radiusKm + 'km radius.\\n\\n' +
-                                      'This could be because:\\n' +
-                                      '• The area may not be fully mapped\\n' +
-                                      '• Try increasing the search radius\\n' +
-                                      '• Facilities might be tagged differently\\n\\n' +
-                                      'Would you like to try a larger search area?';
-                        
-                        if (confirm(message)) {
-                            if (currentRadius < 20000) {
-                                changeRadius();
-                                setTimeout(() => searchNearby(category), 500);
-                            }
-                        }
-                    } else {
-                        const message = 'Found ' + count + ' ' + config.name.toLowerCase() + 
-                                      (closestDistance < Infinity ? '\\nClosest: ' + closestDistance.toFixed(1) + 'km away' : '');
-                        alert(message);
-                        
-                        // Fit map to show results
-                        if (markersGroup.getLayers().length > 0) {
-                            const group = new L.featureGroup([searchCircle, ...markersGroup.getLayers()]);
-                            map.fitBounds(group.getBounds().pad(0.1));
-                        }
-                    }
-
-                } catch (error) {
-                    showLoading(false);
-                    console.error('Enhanced search error:', error);
-                    
-                    const errorMessage = 'Failed to search for places.\\n\\n' +
-                                       'Error: ' + error.message + '\\n\\n' +
-                                       'This might be due to:\\n' +
-                                       '• Network connectivity issues\\n' +
-                                       '• Overpass API server being busy\\n' +
-                                       '• Location data not available\\n\\n' +
-                                       'Please check your connection and try again.';
-                    alert(errorMessage);
-                }
-            }
-
             function calculateDistance(lat1, lon1, lat2, lon2) {
                 const R = 6371; // Earth's radius in km
                 const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
                 const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                 return R * c;
             }
 
-            // Add click handler for map
-            map.on('click', function(e) {
-                console.log('Map clicked at: ' + e.latlng);
+            document.getElementById('searchQuery').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    searchByQuery();
+                }
             });
 
-            // Message React Native when ready
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'mapReady',
-                    location: { lat: ${latitude}, lng: ${longitude} }
-                }));
-            }
-
-            console.log('Enhanced Emergency Map initialized with multiple detection methods');
+            console.log('Enhanced Emergency Map initialized with improved error handling and fallback APIs');
         </script>
     </body>
     </html>
@@ -661,7 +720,7 @@ const WebMapScreen = () =>
         <>
             <Stack.Screen
                 options={{
-                    title: 'Enhanced Emergency Map (Web)',
+                    title: 'Emergency Map',
                     headerShown: true,
                     headerStyle: { backgroundColor: '#fff' },
                     headerTintColor: '#000',
@@ -677,6 +736,13 @@ const WebMapScreen = () =>
                     javaScriptEnabled={true}
                     domStorageEnabled={true}
                     startInLoadingState={true}
+                    // Enhanced WebView configuration
+                    mixedContentMode="compatibility"
+                    allowsInlineMediaPlayback={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsFullscreenVideo={true}
+                    originWhitelist={['*']}
+                    userAgent="Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
                     renderLoading={() => (
                         <View style={styles.webviewLoading}>
                             <ActivityIndicator size="large" color="#FF4500" />

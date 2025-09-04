@@ -212,13 +212,13 @@ class LocationService {
 // --- UI Components ---
 const Header = ({ onProfile }) => (
     <View style={styles.header}>
-        <View  >
-            <Image 
+        <View >
+            <Image
                 source={SentinelIcon}
                 style={{ width: 40, height: 40 }}
             />
         </View>
-        <View style={styles.headerIcons}  >
+        <View style={styles.headerIcons} >
             {/* <TouchableOpacity>
                 <Ionicons name="notifications-outline" size={30} color="#333" />
             </TouchableOpacity> */}
@@ -734,10 +734,10 @@ export default function HomeScreen() {
                 text: 'WhatsApp Only',
                 onPress: () => sendSOSWithOptions({ includeSMS: false, includeWhatsApp: true })
             });
-            // options.push({
-            //     text: 'Both SMS & WhatsApp',
-            //     onPress: () => sendSOSWithOptions({ includeSMS: true, includeWhatsApp: true })
-            // });
+            options.push({
+                text: 'Both SMS & WhatsApp',
+                onPress: () => sendSOSWithOptions({ includeSMS: true, includeWhatsApp: true })
+            });
         }
 
         Alert.alert('SOS Options', 'Choose how to send emergency alerts:', options);
@@ -853,6 +853,83 @@ export default function HomeScreen() {
 
     const locationDisplay = getLocationDisplay();
     const sosButtonState = getSosButtonState();
+
+    /**
+     * Sends emergency messages via the API route.
+     * This function is ready to be used but is not currently attached to any UI element
+     * to avoid modifying the existing UI, as requested.
+     *
+     * To use this, you could:
+     * 1. Create a new button that calls this function.
+     * 2. Add it as an option in the `handleSOSOptions` alert.
+     */
+    const handleApiSendMessage = async () => {
+        // Prevent sending if another process is running.
+        if (isSending) return;
+
+        // Check for contacts
+        if (emergencyContacts.length === 0) {
+            Alert.alert(
+                'No Emergency Contacts',
+                'Please add emergency contacts in "My Circle" before sending.'
+            );
+            return;
+        }
+
+        // Check for location
+        if (!location) {
+            Alert.alert('Location Not Available', 'Cannot send message without a location.');
+            return;
+        }
+
+        setIsSending(true);
+
+        // --- Data for the API call ---
+        // In a real app, senderInfo would come from a user profile or state.
+        const senderInfo = {
+            name: 'Sentinel App User', // Placeholder name
+            phone: 'N/A' // Placeholder phone
+        };
+
+        const messageToSend = `🚨 EMERGENCY SOS! I need immediate help! My current location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
+
+        try {
+            // Call the API route created in Expo Router
+            const response = await fetch('/api/sendMessage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    senderInfo: senderInfo,
+                    contacts: emergencyContacts.map(c => ({ name: c.name, phone: c.phone })), // Ensure contacts have name and phone
+                    message: messageToSend,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // Handle errors from the API (e.g., 400 or 500 status)
+                throw new Error(result.error || 'The server responded with an error.');
+            }
+
+            console.log('API Response:', result);
+            // Create a summary of the results to show the user
+            const successCount = result.results.filter(r => r.success).length;
+            const failureCount = result.results.length - successCount;
+            let alertMessage = `Server processed messages.\n\nSuccess: ${successCount}\nFailed: ${failureCount}`;
+
+            Alert.alert('Message Sent via Server', alertMessage);
+
+        } catch (error) {
+            console.error('Failed to send messages via API:', error);
+            Alert.alert('API Error', `Failed to send messages: ${error.message}`);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
 
     return (
         <SafeAreaView style={styles.container}>

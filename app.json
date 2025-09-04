@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.anonymous.sentinel",
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
@@ -21,7 +22,6 @@
         "foregroundImage": "./assets/images/sentinel-icon.png",
         "backgroundColor": "#ffffff"
       },
- 
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.sentinel",
       "permissions": [
