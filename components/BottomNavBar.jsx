@@ -2,7 +2,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, } from 'react-native';
 import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
-import { useModal } from '@/context/ModalContext';
+import { useModal } from '../context/ModalContext';
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
   { name: 'Home', path: '/', icon: 'home', iconComponent: Ionicons },

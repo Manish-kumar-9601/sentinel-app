@@ -1,16 +1,23 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Button, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Button, SafeAreaView, Platform, Dimensions } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
+import * as Brightness from 'expo-brightness';
 import { useRouter } from 'expo-router';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
+
+const { width, height } = Dimensions.get('window');
+
 const EvidenceRecorderScreen: React.FC = () => {
   const router = useRouter();
 
-  // ✅ New, simpler state for the black screen overlay
+  // Enhanced state for brightness and blackout features
   const [isScreenBlackedOut, setIsScreenBlackedOut] = useState(false);
+  const [originalBrightness, setOriginalBrightness] = useState<number>(1);
+  const [brightnessPermission, setBrightnessPermission] = useState<boolean>(false);
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
@@ -22,7 +29,33 @@ const EvidenceRecorderScreen: React.FC = () => {
 
   const cameraRef = useRef<CameraView>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const brightnessRestoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Initialize brightness permissions and store original brightness
+  useEffect(() => {
+    const initializeBrightness = async () => {
+      try {
+        // Request brightness permissions
+        const { status } = await Brightness.requestPermissionsAsync();
+        setBrightnessPermission(status === 'granted');
+        
+        if (status === 'granted') {
+          // Store original brightness level
+          const currentBrightness = await Brightness.getBrightnessAsync();
+          setOriginalBrightness(currentBrightness);
+          console.log('📱 Original brightness stored:', currentBrightness);
+        } else {
+          console.log('⚠️ Brightness permission denied');
+        }
+      } catch (error) {
+        console.error('❌ Error initializing brightness:', error);
+      }
+    };
+
+    initializeBrightness();
+  }, []);
+
+  // Setup permissions
   useEffect(() => {
     const setupPermissions = async () => {
       if (cameraPermission && !cameraPermission.granted) await requestCameraPermission();
@@ -32,6 +65,7 @@ const EvidenceRecorderScreen: React.FC = () => {
     setupPermissions();
   }, [cameraPermission, microphonePermission, mediaLibraryPermission]);
 
+  // Recording timer
   useEffect(() => {
     if (isRecording) {
       intervalRef.current = setInterval(() => setRecordingDuration(prev => prev + 1), 1000);
@@ -44,43 +78,118 @@ const EvidenceRecorderScreen: React.FC = () => {
     };
   }, [isRecording]);
 
-  // ✅ New, simpler functions to control the overlay
-  // ✅ FIX: Converted to a worklet.
+  // Handle screen focus/unfocus to restore brightness
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        // Cleanup: restore brightness when leaving screen
+        if (isScreenBlackedOut && brightnessPermission) {
+          restoreBrightness();
+        }
+      };
+    }, [isScreenBlackedOut, brightnessPermission, originalBrightness])
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear any pending brightness restore timeout
+      if (brightnessRestoreTimeoutRef.current) {
+        clearTimeout(brightnessRestoreTimeoutRef.current);
+      }
+      // Restore brightness if screen was blacked out
+      if (isScreenBlackedOut && brightnessPermission) {
+        restoreBrightness();
+      }
+    };
+  }, []);
+
+  // Enhanced brightness control functions
+  const setBrightnessToMinimum = async () => {
+    if (!brightnessPermission) return;
+    
+    try {
+      // Set brightness to absolute minimum (0.01 instead of 0 to avoid completely black screen issues)
+      await Brightness.setBrightnessAsync(0.01);
+      console.log('🌑 Brightness set to minimum');
+    } catch (error) {
+      console.error('❌ Error setting brightness to minimum:', error);
+    }
+  };
+
+  const restoreBrightness = async () => {
+    if (!brightnessPermission) return;
+    
+    try {
+      // Restore to original brightness or a reasonable default
+      const brightnessToRestore = originalBrightness > 0.1 ? originalBrightness : 0.5;
+      await Brightness.setBrightnessAsync(brightnessToRestore);
+      console.log('🌞 Brightness restored to:', brightnessToRestore);
+    } catch (error) {
+      console.error('❌ Error restoring brightness:', error);
+    }
+  };
+
+  // Enhanced blackout function with brightness control
   const blackOutScreen = () => {
-    'use worklet'; // <-- Add this directive at the top of the function
-    // ✅ FIX: Wrap the state update in runOnJS.
-    runOnJS(setIsScreenBlackedOut)(true);
-    console.log('Screen blacked out. Recording continues.');
+    'use worklet';
+    
+    runOnJS(() => {
+      setIsScreenBlackedOut(true);
+      // Set brightness to minimum after a short delay to ensure UI updates first
+      setTimeout(() => {
+        setBrightnessToMinimum();
+      }, 100);
+      console.log('🌑 Screen blacked out with minimum brightness');
+    })();
   };
 
-  // ✅ FIX: Converted to a worklet.
+  // Enhanced restore function with brightness control
   const restoreScreen = () => {
-    'use worklet'; // <-- Add this directive at the top of the function
-    // ✅ FIX: Wrap the state update in runOnJS.
-    runOnJS(setIsScreenBlackedOut)(false);
-    console.log('Screen restored.');
+    'use worklet';
+    
+    runOnJS(() => {
+      setIsScreenBlackedOut(false);
+      // Restore brightness after a short delay
+      setTimeout(() => {
+        restoreBrightness();
+      }, 100);
+      console.log('🌞 Screen restored with original brightness');
+    })();
   };
-  // ✅ ADD THIS NEW FUNCTION
-// This function will run on the JS thread and can safely access state.
-const handleRestoreGesture = () => {
-  // Because this runs on the JS thread, it knows the true value of isScreenBlackedOut
-  if (isScreenBlackedOut) {
-    // Since restoreScreen is a worklet, we call it to perform the action.
-    // It will correctly bridge back to the JS thread for the state update.
-    restoreScreen();
-  }
-};
-// ✅ UPDATE the restoreScreenGesture
-const restoreScreenGesture = Gesture.Tap()
-  .numberOfTaps(5)
-  .maxDelay(1500) // Now allows up to 1.5 seconds between taps
-  .onEnd(() => {
-    'use worklet'; // <-- It's good practice to mark gesture callbacks as worklets
-    // The only job of the gesture callback is to trigger the handler on the JS thread.
-    runOnJS(handleRestoreGesture)();
-  });
 
-  // --- Recording Handlers (UNCHANGED) ---
+  // Gesture handler for restore
+  const handleRestoreGesture = () => {
+    if (isScreenBlackedOut) {
+      restoreScreen();
+    }
+  };
+
+  // Enhanced gesture with haptic feedback simulation
+  const restoreScreenGesture = Gesture.Tap()
+    .numberOfTaps(5)
+    .maxDelay(1500)
+    .onEnd(() => {
+      'use worklet';
+      runOnJS(handleRestoreGesture)();
+    });
+
+  // Alternative restore gesture - long press anywhere on screen
+  const longPressRestoreGesture = Gesture.LongPress()
+    .minDuration(2000)
+    .onEnd(() => {
+      'use worklet';
+      runOnJS(() => {
+        if (isScreenBlackedOut) {
+          restoreScreen();
+        }
+      })();
+    });
+
+  // Combine gestures
+  const combinedGesture = Gesture.Race(restoreScreenGesture, longPressRestoreGesture);
+
+  // Recording handlers (unchanged)
   const recordVideo = async (): Promise<void> => {
     if (cameraRef.current) {
       try {
@@ -128,23 +237,37 @@ const restoreScreenGesture = Gesture.Tap()
     return `${mins}:${secs}`;
   };
 
+  // Permission checks
   const permissionsLoading = !cameraPermission || !microphonePermission || !mediaLibraryPermission;
   const permissionsMissing = cameraPermission && microphonePermission && mediaLibraryPermission &&
     (!cameraPermission.granted || !microphonePermission.granted || !mediaLibraryPermission.granted);
 
   if (permissionsLoading) {
-    return <View style={styles.container}><Text style={styles.permissionMessage}>Loading permissions...</Text></View>;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.permissionMessage}>Loading permissions...</Text>
+      </View>
+    );
   }
 
   if (permissionsMissing) {
     return (
       <SafeAreaView style={styles.permissionContainer}>
-        <Text style={styles.permissionMessage}>We need access to your camera, microphone, and media library to record evidence.</Text>
+        <Text style={styles.permissionMessage}>
+          We need access to your camera, microphone, and media library to record evidence.
+          {!brightnessPermission && '\n\nBrightness control is optional but recommended for stealth mode.'}
+        </Text>
         <Button
           onPress={async () => {
             await requestCameraPermission();
             await requestMicrophonePermission();
             await requestMediaLibraryPermission();
+            
+            // Also request brightness permission
+            if (!brightnessPermission) {
+              const { status } = await Brightness.requestPermissionsAsync();
+              setBrightnessPermission(status === 'granted');
+            }
           }}
           title="Grant Permissions"
         />
@@ -154,7 +277,7 @@ const restoreScreenGesture = Gesture.Tap()
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GestureDetector gesture={restoreScreenGesture}>
+      <GestureDetector gesture={combinedGesture}>
         <View style={styles.container}>
           <CameraView
             style={styles.camera}
@@ -166,45 +289,111 @@ const restoreScreenGesture = Gesture.Tap()
 
           <View style={styles.controlsContainer}>
             <View style={styles.topControls}>
-              {isRecording && (
+              {isRecording && !isScreenBlackedOut && (
                 <View style={styles.recordingIndicator}>
                   <View style={styles.recordingDot} />
                   <Text style={styles.timerText}>{formatTime(recordingDuration)}</Text>
                 </View>
               )}
-            </View>
-
-            <View style={styles.bottomControls}>
-              <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-                <Ionicons name="close" size={35} color="white" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.recordButton, isRecording && styles.recordingActive]}
-                onPress={handleRecordButtonPress}
-              >
-                <View style={isRecording ? styles.stopIcon : styles.recordIcon} />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.iconButton} onPress={toggleCameraType} disabled={isRecording}>
-                <Ionicons name="camera-reverse" size={35} color={isRecording ? "gray" : "white"} />
-              </TouchableOpacity>
-
-              {isScreenBlackedOut ? (
-                <TouchableOpacity style={styles.restoreButton} onPress={restoreScreen}>
-                  <Ionicons name="sunny" size={40} color="white" />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.screenOffButton} onPress={blackOutScreen}>
-                  <Ionicons name="moon" size={30} color="white" />
-                </TouchableOpacity>
+              
+              {/* Brightness warning indicator */}
+              {!brightnessPermission && !isScreenBlackedOut && (
+                <View style={styles.brightnessWarning}>
+                  <Ionicons name="warning" size={16} color="#FFA500" />
+                  <Text style={styles.brightnessWarningText}>
+                    Brightness control unavailable
+                  </Text>
+                </View>
               )}
             </View>
+
+            {!isScreenBlackedOut && (
+              <View style={styles.bottomControls}>
+                <TouchableOpacity 
+                  style={styles.iconButton} 
+                  onPress={() => {
+                    // Restore brightness before leaving if it was modified
+                    if (isScreenBlackedOut && brightnessPermission) {
+                      restoreBrightness();
+                    }
+                    router.back();
+                  }}
+                >
+                  <Ionicons name="close" size={35} color="white" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.recordButton, isRecording && styles.recordingActive]}
+                  onPress={handleRecordButtonPress}
+                >
+                  <View style={isRecording ? styles.stopIcon : styles.recordIcon} />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.iconButton} 
+                  onPress={toggleCameraType} 
+                  disabled={isRecording}
+                >
+                  <Ionicons 
+                    name="camera-reverse" 
+                    size={35} 
+                    color={isRecording ? "gray" : "white"} 
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.screenOffButton} 
+                  onPress={blackOutScreen}
+                >
+                  <View style={styles.screenOffContent}>
+                    <Ionicons name="moon" size={24} color="white" />
+                    {brightnessPermission && (
+                      <View style={styles.brightnessIcon}>
+                        <Ionicons name="sunny" size={12} color="#FFA500" />
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
+          {/* Enhanced blackout overlay with realistic mobile screen simulation */}
           {isScreenBlackedOut && (
             <View style={styles.blackoutOverlay}>
-              <Text style={styles.blackoutText}>Tap 5 times to restore screen</Text>
+              {/* Simulate mobile screen bezel/border */}
+              <View style={styles.screenBezel}>
+                {/* Top speaker/camera area */}
+                <View style={styles.topNotch}>
+                  <View style={styles.speaker} />
+                  <View style={styles.frontCamera} />
+                </View>
+                
+                {/* Main black screen area */}
+                <View style={styles.blackScreen}>
+                  {/* Subtle recording indicator - barely visible */}
+                  {isRecording && (
+                    <View style={styles.subtleRecordingIndicator}>
+                      <View style={styles.subtleDot} />
+                    </View>
+                  )}
+                  
+                  {/* Restore instructions - very subtle */}
+                  <View style={styles.restoreInstructions}>
+                    <Text style={styles.subtleText}>
+                      5 taps or long press to restore
+                    </Text>
+                    {brightnessPermission && (
+                      <Text style={styles.subtleText}>
+                        Enhanced stealth mode active
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                
+                {/* Bottom home indicator (for modern phones) */}
+                <View style={styles.homeIndicator} />
+              </View>
             </View>
           )}
         </View>
@@ -243,6 +432,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     fontSize: 16,
     color: 'white',
+    lineHeight: 22,
   },
   topControls: {
     paddingTop: 60,
@@ -255,6 +445,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
+    marginBottom: 10,
   },
   recordingDot: {
     width: 10,
@@ -267,6 +458,21 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  brightnessWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 165, 0, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 165, 0, 0.3)',
+  },
+  brightnessWarningText: {
+    color: '#FFA500',
+    fontSize: 12,
+    marginLeft: 6,
   },
   bottomControls: {
     flexDirection: 'row',
@@ -309,29 +515,101 @@ const styles = StyleSheet.create({
   screenOffButton: {
     padding: 12,
     borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     borderWidth: 2,
     borderColor: 'white',
+    position: 'relative',
   },
-  restoreButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,0,0.3)',
-    borderWidth: 1,
-    borderColor: 'yellow',
+  screenOffContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  // ✅ New styles for the blackout overlay
+  brightnessIcon: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  // Enhanced blackout overlay styles
   blackoutOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'black',
+    backgroundColor: '#000000',
     zIndex: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  blackoutText: {
-    color: '#444',
-    fontSize: 16,
+  screenBezel: {
+    width: width,
+    height: height,
+    backgroundColor: '#0a0a0a',
+    borderRadius: Platform.OS === 'ios' ? 25 : 15,
+    borderWidth: 3,
+    borderColor: '#1a1a1a',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  topNotch: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 44 : 24,
+    paddingBottom: 10,
+    gap: 15,
+  },
+  speaker: {
+    width: 60,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#333',
+  },
+  frontCamera: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#222',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  blackScreen: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  subtleRecordingIndicator: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    opacity: 0.3,
+  },
+  subtleDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff0000',
+    opacity: 0.5,
+  },
+  restoreInstructions: {
+    alignItems: 'center',
+    opacity: 0.15,
+  },
+  subtleText: {
+    color: '#333333',
+    fontSize: 12,
     textAlign: 'center',
+    marginVertical: 2,
+  },
+  homeIndicator: {
+    alignSelf: 'center',
+    width: 140,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#333',
+    marginBottom: Platform.OS === 'ios' ? 8 : 16,
   },
 });
 
