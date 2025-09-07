@@ -11,10 +11,8 @@ import {
     ActivityIndicator,
     Alert,
     AppState,
-    BackHandler,
     Image,
     Linking,
-    Modal,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -26,14 +24,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../assets/images/sentinel-nav-icon.png';
 import BottomNavBar from '../components/BottomNavBar';
 import ContactListModal from '../components/ContactListModal';
-
+import EmergencyGrid from '../components/EmergencyGrid';
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_FALLBACK_TIMEOUT = 10000; // 10 seconds for fallback
-const PERMISSION_CHECK_KEY = 'location_permission_checked';
-const LOCATION_SERVICES_CHECK_KEY = 'location_services_checked';
 
 // --- WhatsApp Service ---
 class WhatsAppService {
@@ -260,121 +256,7 @@ const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPres
     </View>
 );
 
-const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
-    const IconComponent = iconSet === 'MaterialCommunity' ? (iconSet === 'MaterialIcons') ? MaterialIcons : MaterialCommunityIcons : (iconSet === 'MaterialIcons') ? MaterialIcons : FontAwesome5;
-    const IconSize = iconSet === 'MaterialCommunity' ? 36 : (iconSet === 'MaterialIcons') ? 36 : 28;
-    return (
-        <TouchableOpacity style={styles.categoryBox} onPress={onPress}>
-            <View style={[styles.iconContainer, { backgroundColor: color }]}>
-                <IconComponent name={icon} size={IconSize} color="white" />
-            </View>
-            <Text style={styles.categoryText}>{name}</Text>
-        </TouchableOpacity>
-    );
-};
 
-const CATEGORY_CONFIG = [
-    { id: 'medical', icon: 'medical-bag', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
-    { id: 'fire', icon: 'fire', color: '#FFA500', iconSet: 'FontAwesome5' },
-    { id: 'accident', icon: 'car-crash', color: '#9370DB', iconSet: 'FontAwesome5' },
-    { id: 'violence', icon: 'user-ninja', color: '#4682B4', iconSet: 'FontAwesome5' },
-    { id: 'natural_disaster', icon: 'cloud-showers-heavy', color: '#1E90FF', iconSet: 'FontAwesome5' },
-    { id: 'rescue', icon: 'hands-helping', color: '#3CB371', iconSet: 'FontAwesome5' },
-    { id: 'psychiatrist', icon: 'psychology', color: '#d44ec2ff', iconSet: 'MaterialIcons' },
-    { id: 'record', icon: 'video', color: '#5856D6', iconSet: 'MaterialCommunity' },
-    { id: 'sound_recorder', icon: 'multitrack-audio', color: '#7a78f0ff', iconSet: 'MaterialIcons' },
-];
-
-const EmergencyGrid = ({ onCategorySelect }) => {
-    const router = useRouter();
-    const { t } = useTranslation();
-
-    const categories = CATEGORY_CONFIG.map(cat => ({
-        ...cat,
-        name: t(`home.categories.${cat.id}`),
-    }));
-
-    const handlePress = (category) => {
-        if (category.id === 'record') {
-            router.push('/recorder');
-        } else if (category.id === 'sound_recorder') {
-            router.push('/audioRecorder');
-        } else {
-            onCategorySelect(category);
-        }
-    };
-
-    return (
-        <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>{t('home.emergencyGridTitle')}</Text>
-            <View style={styles.categoriesGrid}>
-                {categories.map((cat) => (
-                    <EmergencyCategory
-                        key={cat.id}
-                        icon={cat.icon}
-                        name={cat.name}
-                        color={cat.color}
-                        iconSet={cat.iconSet}
-                        onPress={() => handlePress(cat)}
-                    />
-                ))}
-            </View>
-        </View>
-    );
-};
-
-// --- New Permission Modal Component ---
-const LocationPermissionModal = ({ visible, onRequestPermission, onClose, type = 'permission' }) => {
-    return (
-        <Modal
-            visible={visible}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={onClose}
-        >
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalIcon}>
-                        <Ionicons
-                            name="location"
-                            size={60}
-                            color="#FF6B6B"
-                        />
-                    </View>
-
-                    <Text style={styles.modalTitle}>
-                        {type === 'permission' ? 'Location Permission Required' : 'Turn On Location Services'}
-                    </Text>
-
-                    <Text style={styles.modalDescription}>
-                        {type === 'permission'
-                            ? 'Sentinel needs access to your location to send accurate emergency alerts to your contacts. Your location will only be used during emergencies.'
-                            : 'Location services are disabled. Please enable them in your device settings to use emergency location features.'
-                        }
-                    </Text>
-
-                    <View style={styles.modalButtons}>
-                        <TouchableOpacity
-                            style={styles.modalButtonSecondary}
-                            onPress={onClose}
-                        >
-                            <Text style={styles.modalButtonTextSecondary}>Not Now</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.modalButtonPrimary}
-                            onPress={onRequestPermission}
-                        >
-                            <Text style={styles.modalButtonTextPrimary}>
-                                {type === 'permission' ? 'Allow Location' : 'Open Settings'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        </Modal>
-    );
-};
 
 export default function HomeScreen() {
     const [location, setLocation] = useState(null);
@@ -386,11 +268,6 @@ export default function HomeScreen() {
     const [locationServicesEnabled, setLocationServicesEnabled] = useState(null);
     const [whatsappAvailable, setWhatsappAvailable] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
-
-    // New state for permission modals
-    const [showPermissionModal, setShowPermissionModal] = useState(false);
-    const [showLocationServicesModal, setShowLocationServicesModal] = useState(false);
-    const [hasShownInitialPermissionPrompt, setHasShownInitialPermissionPrompt] = useState(false);
 
     const router = useRouter();
     const { t } = useTranslation();
@@ -428,120 +305,76 @@ export default function HomeScreen() {
         }, [])
     );
 
-    // Enhanced app initialization with proactive permission checking
+    // App initialization with automatic location setup
     useEffect(() => {
         const initializeApp = async () => {
             if (initialLocationRequest.current) return;
             initialLocationRequest.current = true;
 
-            console.log('🚀 Initializing app with proactive location setup...');
-            await proactiveLocationSetup();
+            console.log('🚀 Initializing app with automatic location setup...');
+            await requestLocationPermissionAndSetup();
         };
 
         initializeApp();
     }, []);
 
-    // Proactive location setup - similar to Google Maps behavior
-    const proactiveLocationSetup = async () => {
+    // Direct permission request and location setup
+    const requestLocationPermissionAndSetup = async () => {
         try {
-            console.log('📍 Starting proactive location setup...');
+            console.log('📍 Starting location permission request...');
 
-            // Check if we've already prompted the user in this session
-            const hasPromptedBefore = await AsyncStorage.getItem(PERMISSION_CHECK_KEY);
-
-            // Always check current permission status
+            // Check current permission status
             const currentPermission = await LocationService.checkPermissionStatus();
             setPermissionStatus(currentPermission);
 
-            console.log('Current permission status:', currentPermission);
-            console.log('Has prompted before:', hasPromptedBefore);
+            if (currentPermission === 'undetermined') {
+                // Request permission directly - this shows the native dialog
+                console.log('📱 Requesting location permission (native dialog)...');
+                const newStatus = await LocationService.requestPermission();
+                setPermissionStatus(newStatus);
 
-            if (currentPermission === 'undetermined' || (currentPermission === 'denied' && !hasPromptedBefore)) {
-                // Show our custom modal immediately for better UX
-                console.log('📲 Showing permission modal...');
-                setShowPermissionModal(true);
-                return;
-            }
-
-            if (currentPermission === 'granted') {
-                // Check location services
-                const servicesEnabled = await LocationService.checkLocationServices();
-                setLocationServicesEnabled(servicesEnabled);
-
-                console.log('Location services enabled:', servicesEnabled);
-
-                if (!servicesEnabled) {
-                    // Show location services modal
-                    console.log('⚙️ Showing location services modal...');
-                    setShowLocationServicesModal(true);
+                if (newStatus === 'granted') {
+                    await setupLocationAfterPermission();
                 } else {
-                    // Everything is good, get location
-                    await fetchLocation(true);
+                    console.log('❌ Permission denied');
+                    setLocationError('permission_denied');
                 }
+            } else if (currentPermission === 'granted') {
+                await setupLocationAfterPermission();
             } else {
-                // Permission denied
                 setLocationError('permission_denied');
             }
         } catch (error) {
-            console.error('Error in proactive location setup:', error);
+            console.error('Error in location permission request:', error);
             setLocationError('setup_failed');
         }
     };
 
-    // Handle permission modal request
-    const handlePermissionModalRequest = async () => {
-        setShowPermissionModal(false);
-
+    // Setup location after permission is granted
+    const setupLocationAfterPermission = async () => {
         try {
-            console.log('📱 Requesting location permission...');
-            const status = await LocationService.requestPermission();
-            setPermissionStatus(status);
+            // Check location services
+            const servicesEnabled = await LocationService.checkLocationServices();
+            setLocationServicesEnabled(servicesEnabled);
 
-            // Mark that we've prompted the user
-            await AsyncStorage.setItem(PERMISSION_CHECK_KEY, 'true');
-
-            if (status === 'granted') {
-                console.log('✅ Permission granted! Checking location services...');
-
-                // Now check location services
-                const servicesEnabled = await LocationService.checkLocationServices();
-                setLocationServicesEnabled(servicesEnabled);
-
-                if (!servicesEnabled) {
-                    // Show location services modal
-                    setShowLocationServicesModal(true);
-                } else {
-                    // Everything is ready, get location
-                    await fetchLocation(true);
-                }
+            if (!servicesEnabled) {
+                setLocationError('location_services_disabled');
+                // Show alert asking user to enable location services
+                Alert.alert(
+                    'Location Services Disabled',
+                    'Please enable location services in your device settings to use emergency location features.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                    ]
+                );
             } else {
-                console.log('❌ Permission denied');
-                setLocationError('permission_denied');
+                // Everything is good, get location
+                await fetchLocation(true);
             }
         } catch (error) {
-            console.error('Error requesting permission:', error);
-            setLocationError('permission_request_failed');
-        }
-    };
-
-    // Handle location services modal request
-    const handleLocationServicesModalRequest = async () => {
-        setShowLocationServicesModal(false);
-
-        try {
-            await Linking.openSettings();
-
-            // After user potentially enables location services, recheck when they return
-            setTimeout(async () => {
-                const servicesEnabled = await LocationService.checkLocationServices();
-                setLocationServicesEnabled(servicesEnabled);
-
-                if (servicesEnabled && permissionStatus === 'granted') {
-                    await fetchLocation(true);
-                }
-            }, 1000);
-        } catch (error) {
-            console.error('Error opening settings:', error);
+            console.error('Error in location setup:', error);
+            setLocationError('setup_failed');
         }
     };
 
@@ -566,9 +399,6 @@ export default function HomeScreen() {
                     if (servicesEnabled && (!location || (Date.now() - location.timestamp > LOCATION_CACHE_DURATION))) {
                         await fetchLocation(true);
                     }
-                } else if (currentPermission === 'undetermined' && !hasShownInitialPermissionPrompt) {
-                    // User might have reset permissions, show modal again
-                    setShowPermissionModal(true);
                 }
             }
 
@@ -577,21 +407,7 @@ export default function HomeScreen() {
 
         const subscription = AppState.addEventListener('change', handleAppStateChange);
         return () => subscription?.remove();
-    }, [location, permissionStatus, hasShownInitialPermissionPrompt]);
-
-    // Back handler for modals (Android)
-    useEffect(() => {
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (showPermissionModal || showLocationServicesModal) {
-                setShowPermissionModal(false);
-                setShowLocationServicesModal(false);
-                return true;
-            }
-            return false;
-        });
-
-        return () => backHandler.remove();
-    }, [showPermissionModal, showLocationServicesModal]);
+    }, [location, permissionStatus]);
 
     // Enhanced refresh function
     const refreshAppState = async () => {
@@ -623,8 +439,8 @@ export default function HomeScreen() {
                 console.error('Pull-to-refresh: Failed to check WhatsApp', error);
             }
 
-            // Re-run proactive location setup
-            await proactiveLocationSetup();
+            // Re-run location setup
+            await requestLocationPermissionAndSetup();
 
         } catch (error) {
             console.error('Pull-to-refresh: Error during refresh:', error);
@@ -760,12 +576,35 @@ export default function HomeScreen() {
         }
 
         if (!location) {
-            // Try to get location first, or show appropriate modal
+            // Try to get location first
             if (permissionStatus !== 'granted') {
-                setShowPermissionModal(true);
+                Alert.alert(
+                    'Location Permission Needed',
+                    'Location permission is required for emergency alerts.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Grant Permission', 
+                            onPress: async () => {
+                                const status = await LocationService.requestPermission();
+                                setPermissionStatus(status);
+                                if (status === 'granted') {
+                                    await setupLocationAfterPermission();
+                                }
+                            }
+                        }
+                    ]
+                );
                 return;
             } else if (!locationServicesEnabled) {
-                setShowLocationServicesModal(true);
+                Alert.alert(
+                    'Location Services Disabled',
+                    'Please enable location services in device settings.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                    ]
+                );
                 return;
             } else {
                 Alert.alert(
@@ -813,11 +652,34 @@ export default function HomeScreen() {
                 },
             });
         } else {
-            // Try to resolve location issues with modals
+            // Try to resolve location issues
             if (permissionStatus !== 'granted') {
-                setShowPermissionModal(true);
+                Alert.alert(
+                    'Location Permission Needed',
+                    'Would you like to grant location permission?',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Grant Permission', 
+                            onPress: async () => {
+                                const status = await LocationService.requestPermission();
+                                setPermissionStatus(status);
+                                if (status === 'granted') {
+                                    await setupLocationAfterPermission();
+                                }
+                            }
+                        }
+                    ]
+                );
             } else if (!locationServicesEnabled) {
-                setShowLocationServicesModal(true);
+                Alert.alert(
+                    'Location Services Disabled',
+                    'Please enable location services in device settings.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                    ]
+                );
             } else {
                 Alert.alert("Getting Location", "Trying to get your current location...");
                 await fetchLocation(true);
@@ -891,9 +753,7 @@ export default function HomeScreen() {
     const locationDisplay = getLocationDisplay();
     const sosButtonState = getSosButtonState();
 
-
-
- const handleSOSOptions = () => {
+    const handleSOSOptions = () => {
         if (!location || emergencyContacts.length === 0) return;
 
         const options = [
@@ -929,7 +789,7 @@ export default function HomeScreen() {
         } finally {
             setIsSending(false);
         }
-    }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -966,21 +826,6 @@ export default function HomeScreen() {
             <ContactListModal
                 visible={isContactModalVisible}
                 onClose={closeContactModal}
-            />
-
-            {/* Enhanced Location Permission Modals */}
-            <LocationPermissionModal
-                visible={showPermissionModal}
-                onRequestPermission={handlePermissionModalRequest}
-                onClose={() => setShowPermissionModal(false)}
-                type="permission"
-            />
-
-            <LocationPermissionModal
-                visible={showLocationServicesModal}
-                onRequestPermission={handleLocationServicesModalRequest}
-                onClose={() => setShowLocationServicesModal(false)}
-                type="services"
             />
         </SafeAreaView>
     );
@@ -1141,82 +986,4 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 2,
     },
-    // New styles for permission modals
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 24,
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 350,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 25,
-        elevation: 25,
-    },
-    modalIcon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#FFF5F5',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    modalTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#1E1E1E',
-        textAlign: 'center',
-        marginBottom: 12,
-    },
-    modalDescription: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 24,
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        gap: 12,
-        width: '100%',
-    },
-    modalButtonPrimary: {
-        flex: 1,
-        backgroundColor: '#FF6B6B',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    modalButtonSecondary: {
-        flex: 1,
-        backgroundColor: '#F5F5F5',
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    modalButtonTextPrimary: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    modalButtonTextSecondary: {
-        color: '#666',
-        fontSize: 16,
-        fontWeight: '600',
-    },
 });
-
-
-

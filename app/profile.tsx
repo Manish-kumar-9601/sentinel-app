@@ -18,7 +18,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import userProfileImg from '../assets/images/user-profile-img.png';
 
-const { width } = Dimensions.get('window');
 
 // --- Enhanced User Data with Emergency Info ---
 const user = {
@@ -36,35 +35,35 @@ const user = {
 
 // --- Enhanced Menu Structure ---
 const menuSections = [
-  {
-    title: 'Emergency Settings',
-    items: [
-      // { 
-      //   icon: 'users', 
-      //   iconSet: 'Feather',
-      //   label: 'Emergency Contacts', 
-      //   href: '/contacts',
-      //   subtitle: 'Manage your emergency circle',
-      //   color: '#FF6B6B'
-      // },
-      { 
-        icon: 'medical-bag', 
-        iconSet: 'MaterialCommunity',
-        label: 'Medical Information', 
-        href: '/medical-info',
-        subtitle: 'Medical conditions & allergies',
-        color: '#4ECDC4'
-      },
-      { 
-        icon: 'location', 
-        iconSet: 'Ionicons',
-        label: 'Location Preferences', 
-        href: '/location-settings',
-        subtitle: 'Precision & sharing settings',
-        color: '#45B7D1'
-      },
-    ]
-  },
+  // {
+  //   title: 'Emergency Settings',
+  //   items: [
+  //     // { 
+  //     //   icon: 'users', 
+  //     //   iconSet: 'Feather',
+  //     //   label: 'Emergency Contacts', 
+  //     //   href: '/contacts',
+  //     //   subtitle: 'Manage your emergency circle',
+  //     //   color: '#FF6B6B'
+  //     // },
+  //     { 
+  //       icon: 'medical-bag', 
+  //       iconSet: 'MaterialCommunity',
+  //       label: 'Medical Information', 
+  //       href: '/medical-info',
+  //       subtitle: 'Medical conditions & allergies',
+  //       color: '#4ECDC4'
+  //     },
+  //     { 
+  //       icon: 'location', 
+  //       iconSet: 'Ionicons',
+  //       label: 'Location Preferences', 
+  //       href: '/location-settings',
+  //       subtitle: 'Precision & sharing settings',
+  //       color: '#45B7D1'
+  //     },
+  //   ]
+  // },
   {
     title: 'App Settings',
     items: [
@@ -391,6 +390,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Emergency Toggles */}
+{/*         
         <View style={styles.toggleSection}>
           <Text style={styles.sectionTitle}>Emergency Option</Text>
           <View style={styles.toggleContainer}>
@@ -430,7 +430,7 @@ const ProfileScreen = () => {
               />
             </View>
           </View>
-        </View>
+        </View> */}
 
         {/* Menu Sections */}
         {menuSections.map((section, sectionIndex) => (
