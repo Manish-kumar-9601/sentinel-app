@@ -13,6 +13,7 @@ import {
     AppState,
     Image,
     Linking,
+    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -116,7 +117,7 @@ class SOSService {
             try {
                 const isWhatsAppAvailable = await WhatsAppService.isWhatsAppInstalled();
                 if (isWhatsAppAvailable) {
-                    const whatsappResults = await WhatsAppService.sendToMultipleContacts(contacts, message);
+                    // const whatsappResults = await WhatsAppService.sendToMultipleContacts(contacts, message);
                     const successCount = whatsappResults.filter(r => r.success).length;
                     results.whatsapp = {
                         success: successCount > 0,
@@ -380,6 +381,22 @@ export default function HomeScreen() {
 
     // Enhanced app state change handler
     useEffect(() => {
+        const loadLocation = async () => {
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status === 'granted') {
+                    await Location.getCurrentPositionAsync({});
+
+                } else {
+                    Alert.alert("Permission Denied", "Location access is needed for check-in messages.");
+                }
+            } catch (error) {
+                console.error("Failed to get location", error);
+            }
+        };
+        loadLocation()
+
+
         const handleAppStateChange = async (nextAppState) => {
             console.log('App state changed from', appStateRef.current, 'to', nextAppState);
 
@@ -563,6 +580,14 @@ export default function HomeScreen() {
         );
     };
 
+    const openLocationSettings = () => {
+        if (Platform.OS === 'android') {
+            Linking.openURL('android.settings.LOCATION_SOURCE_SETTINGS');
+        } else {
+            Linking.openSettings(); // iOS fallback
+        }
+    };
+
     const handleSOSPress = async () => {
         if (isSending) return;
 
@@ -576,15 +601,14 @@ export default function HomeScreen() {
         }
 
         if (!location) {
-            // Try to get location first
             if (permissionStatus !== 'granted') {
                 Alert.alert(
                     'Location Permission Needed',
                     'Location permission is required for emergency alerts.',
                     [
                         { text: 'Cancel', style: 'cancel' },
-                        { 
-                            text: 'Grant Permission', 
+                        {
+                            text: 'Grant Permission',
                             onPress: async () => {
                                 const status = await LocationService.requestPermission();
                                 setPermissionStatus(status);
@@ -602,7 +626,7 @@ export default function HomeScreen() {
                     'Please enable location services in device settings.',
                     [
                         { text: 'Cancel', style: 'cancel' },
-                        { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                        { text: 'Open Settings', onPress: openLocationSettings }
                     ]
                 );
                 return;
@@ -659,8 +683,8 @@ export default function HomeScreen() {
                     'Would you like to grant location permission?',
                     [
                         { text: 'Cancel', style: 'cancel' },
-                        { 
-                            text: 'Grant Permission', 
+                        {
+                            text: 'Grant Permission',
                             onPress: async () => {
                                 const status = await LocationService.requestPermission();
                                 setPermissionStatus(status);
