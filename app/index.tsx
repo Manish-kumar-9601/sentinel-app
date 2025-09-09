@@ -366,7 +366,7 @@ export default function HomeScreen() {
                     'Please enable location services in your device settings to use emergency location features.',
                     [
                         { text: 'Cancel', style: 'cancel' },
-                        { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                        { text: 'Open Settings', onPress:openLocationSettings }
                     ]
                 );
             } else {
@@ -381,20 +381,6 @@ export default function HomeScreen() {
 
     // Enhanced app state change handler
     useEffect(() => {
-        const loadLocation = async () => {
-            try {
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status === 'granted') {
-                    await Location.getCurrentPositionAsync({});
-
-                } else {
-                    Alert.alert("Permission Denied", "Location access is needed for check-in messages.");
-                }
-            } catch (error) {
-                console.error("Failed to get location", error);
-            }
-        };
-        loadLocation()
 
 
         const handleAppStateChange = async (nextAppState) => {
@@ -425,9 +411,24 @@ export default function HomeScreen() {
         const subscription = AppState.addEventListener('change', handleAppStateChange);
         return () => subscription?.remove();
     }, [location, permissionStatus]);
+    const loadLocation = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+                await Location.getCurrentPositionAsync({});
+
+            } else {
+                Alert.alert("Permission Denied", "Location access is needed for check-in messages.");
+            }
+        } catch (error) {
+            console.error("Failed to get location", error);
+        }
+    };
+
 
     // Enhanced refresh function
     const refreshAppState = async () => {
+        loadLocation()
         setRefreshing(true);
         try {
             console.log('🔄 Pull-to-refresh: Starting refresh...');
