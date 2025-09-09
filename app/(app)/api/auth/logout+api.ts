@@ -1,18 +1,20 @@
 ﻿import { COOKIE_NAME } from '../../../../utils/constants';
-import { cookies } from 'next/headers';
 
 export async function POST() {
     try {
-        cookies().set(COOKIE_NAME, '', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV !== 'development',
-            maxAge: -1, // Expire the cookie immediately
-            path: '/',
-        });
+        // To log out, we send back a response that tells the browser to expire the cookie.
+        // We do this by setting its Max-Age to 0.
+        const cookie = `${COOKIE_NAME}=; HttpOnly; Path=/; Max-Age=0`;
 
-        return new Response(JSON.stringify({ message: 'Logged out successfully' }), { status: 200 });
+        return new Response(JSON.stringify({ message: 'Logged out successfully' }), {
+            status: 200,
+            headers: {
+                'Set-Cookie': cookie,
+            },
+        });
     } catch (error) {
         console.error('Logout error:', error);
         return new Response(JSON.stringify({ error: 'An internal server error occurred.' }), { status: 500 });
     }
 }
+

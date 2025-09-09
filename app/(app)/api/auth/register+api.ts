@@ -2,9 +2,8 @@
 import { users } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import * as jose from 'jose';
+import jwt from 'jsonwebtoken'; // Replaced jose with jsonwebtoken
 import { COOKIE_NAME, JWT_SECRET } from '../../../../utils/constants';
-import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
@@ -33,25 +32,18 @@ export async function POST(request: Request) {
 
     const newUser = newUserArr[0];
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const alg = 'HS256';
+    // --- Create JWT with jsonwebtoken ---
+    const payload = { id: newUser.id, email: newUser.email, name: newUser.name };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 
-    const token = await new jose.SignJWT({ id: newUser.id, email: newUser.email, name: newUser.name })
-      .setProtectedHeader({ alg })
-      .setExpirationTime('24h')
-      .setIssuedAt()
-      .sign(secret);
-      
-    cookies().set(COOKIE_NAME, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        maxAge: 60 * 60 * 24, // 24 hours
-        path: '/',
-    });
+    const cookie = `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24}; SameSite=Lax; ${process.env.NODE_ENV !== 'development' ? 'Secure;' : ''}`;
 
     const { hashedPassword: _, ...userWithoutPassword } = newUser;
 
-    return new Response(JSON.stringify({ user: userWithoutPassword }), { status: 201 });
+    return new Response(JSON.stringify({ user: userWithoutPassword }), {
+      status: 201,
+      headers: { 'Set-Cookie': cookie },
+    });
 
   } catch (error) {
     console.error('Registration error:', error);

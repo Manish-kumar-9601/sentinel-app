@@ -1,16 +1,13 @@
-﻿import { withAuth } from '../../../../utils/middleware';
+﻿import jwt from 'jsonwebtoken'; // Replaced jose with jsonwebtoken
+import { COOKIE_NAME, JWT_SECRET } from '../../../../utils/constants';
+import { withAuth } from '../../../../utils/middleware';
+import type { AuthUser } from '../../../../utils/middleware';
 
-// The withAuth middleware handles JWT verification from the cookie
-// and passes the user payload to the handler.
-export const GET = withAuth(async (req, user) => {
-    if (user) {
-        return new Response(JSON.stringify({ user }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
-    }
-    return new Response(JSON.stringify({ error: 'Not authenticated' }), {
-        status: 401,
+export const GET = withAuth(async (_req: Request, user: AuthUser) => {
+    // If the middleware succeeds, the user is authenticated.
+    // We can return the user data from the token payload.
+    return new Response(JSON.stringify({ user }), {
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
     });
 });

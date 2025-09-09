@@ -88,6 +88,31 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
     },
+      locationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginTop: 10,
+        padding: 15,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.1,
+        shadowRadius: 15,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        marginBottom: 10
+    },
+    locationBox: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: 2,
+    },
+    locationText: {
+        fontSize: 14,
+        color: '#555',
+        flexShrink: 1,
+    },
 });
 
 

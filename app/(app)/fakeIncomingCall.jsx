@@ -49,7 +49,7 @@ const FakeIncomingCallScreen = () => {
         if (isMounted && storedNumber) setCallerNumber(storedNumber);
         
         // Load ringtone
-        let ringtoneUri = require('../assets/ringtone.mp3');
+        let ringtoneUri = require('../../assets/ringtone.mp3');
         const customRingtoneUri = await AsyncStorage.getItem(FAKE_CALL_RINGTONE_KEY);
         
         if (customRingtoneUri) {

@@ -1,36 +1,61 @@
-﻿import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    SafeAreaView,
-    StyleSheet,
+    View,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    StyleSheet,
+    SafeAreaView,
+    Alert,
+    ActivityIndicator,
+    Image,
+    Keyboard,
 } from 'react-native';
-import SentinelIcon from '../../assets/images/sentinel-icon.png';
+import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import SentinelIcon from '../../assets/images/sentinel-icon.png';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { login } = useAuth();
+    const { setUser } = useAuth();
 
     const handleLogin = async () => {
         if (!email || !password) {
-            return Alert.alert('Error', 'Please fill in all fields.');
+            return Alert.alert('Error', 'Please enter both email and password.');
         }
+        Keyboard.dismiss();
         setIsLoading(true);
-        const result = await login(email, password);
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setUser(data.user);
+                // Since this is a modal, a successful login should dismiss it.
+                // We use router.back() to close the modal and return to the previous screen.
+                if (router.canGoBack()) {
+                    router.back();
+                }
+            } else {
+                Alert.alert('Login Failed', data.error || 'Invalid credentials.');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'An unexpected error occurred.');
+        }
         setIsLoading(false);
-        if (!result.success) {
-            Alert.alert('Login Failed', result.error);
+    };
+
+    const handleContinueAsGuest = () => {
+        // To continue as a guest, we simply dismiss the login modal.
+        if (router.canGoBack()) {
+            router.back();
         }
     };
 
@@ -39,7 +64,7 @@ const LoginScreen = () => {
             <View style={styles.content}>
                 <Image source={SentinelIcon} style={styles.logo} />
                 <Text style={styles.title}>Welcome Back</Text>
-                <Text style={styles.subtitle}>Sign in to save your data</Text>
+                <Text style={styles.subtitle}>Sign in to your account</Text>
 
                 <View style={styles.inputContainer}>
                     <Feather name="mail" size={20} color="#999" style={styles.inputIcon} />
@@ -75,13 +100,17 @@ const LoginScreen = () => {
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => router.replace('/(app)')}>
-                    <Text style={styles.guestText}>Continue as Guest</Text>
+                <TouchableOpacity
+                    style={[styles.button, styles.guestButton]}
+                    onPress={handleContinueAsGuest}
+                    disabled={isLoading}>
+                    <Text style={[styles.buttonText, styles.guestButtonText]}>Continue as Guest</Text>
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Don't have an account?</Text>
-                    <TouchableOpacity onPress={() => router.push('/register')}>
+                    {/* Use router.push to navigate to the sibling register screen within the same modal stack */}
+                    <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
                         <Text style={styles.linkText}> Sign Up</Text>
                     </TouchableOpacity>
                 </View>
@@ -90,7 +119,6 @@ const LoginScreen = () => {
     );
 };
 
-// Add styles
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -146,11 +174,12 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    guestText: {
-        textAlign: 'center',
-        color: '#007AFF',
-        fontSize: 16,
-        marginTop: 20,
+    guestButton: {
+        backgroundColor: '#E5E5EA',
+        marginTop: 15,
+    },
+    guestButtonText: {
+        color: '#000',
     },
     footer: {
         flexDirection: 'row',
@@ -169,3 +198,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+

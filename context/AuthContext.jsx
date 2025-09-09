@@ -1,22 +1,25 @@
-﻿import   { createContext, useState, useEffect, useContext } from 'react';
-import { useRouter } from 'expo-router';
+﻿import React, { createContext, useState, useContext, useEffect } from 'react';
+import { Alert } from 'react-native';
 
-const AuthContext = createContext(null);
 
-export function useAuth ()
-{
-    return useContext(AuthContext);
-}
+
+const AuthContext = createContext({
+    user: null,
+    isLoading: true,
+    setUser: () => { },
+    logout: () => { },
+});
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) =>
 {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const router = useRouter();
 
     useEffect(() =>
     {
-        const checkSession = async () =>
+        const checkUserSession = async () =>
         {
             try
             {
@@ -31,65 +34,49 @@ export const AuthProvider = ({ children }) =>
                 }
             } catch (error)
             {
-                console.error('Failed to fetch session:', error);
+                console.error('Session check failed:', error);
                 setUser(null);
             } finally
             {
                 setIsLoading(false);
             }
         };
-        checkSession();
-    }, []);
 
-    const login = async (email, password) =>
-    {
-        try
-        {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            if (res.ok)
-            {
-                const data = await res.json();
-                setUser(data.user);
-                router.replace('/'); // Go to home screen after login
-                return { success: true };
-            }
-            const errorData = await res.json();
-            return { success: false, error: errorData.error || 'Login failed' };
-        } catch (error)
-        {
-            return { success: false, error: 'An unexpected error occurred.' };
-        }
-    };
+        checkUserSession();
+    }, []);
 
     const logout = async () =>
     {
         try
         {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            const res = await fetch('/api/auth/logout', {
+                method: 'POST',
+            });
+            // Whether the API call succeeds or fails, we log the user out on the client
+            setUser(null);
+            if (!res.ok)
+            {
+                const data = await res.json();
+                Alert.alert('Logout Issue', data.error || 'Could not clear session from server.');
+            }
         } catch (error)
         {
-            console.error("Logout failed:", error);
-        } finally
-        {
+            console.error('Logout error:', error);
+            // Still log the user out on the client even if the server call fails
             setUser(null);
-            router.replace('/login'); // Go to login screen after logout
+            Alert.alert('Error', 'An unexpected error occurred during logout.');
         }
     };
 
-    const authContextValue = {
+    const value = {
         user,
-        isLoading,
-        login,
+        setUser,
         logout,
-        setUser
+        isLoading,
     };
 
     return (
-        <AuthContext.Provider value={authContextValue}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
