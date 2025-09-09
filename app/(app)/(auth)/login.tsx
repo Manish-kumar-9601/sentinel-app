@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
-import SentinelIcon from '../../assets/images/sentinel-icon.png';
+import { useAuth } from '../../../context/AuthContext';
+import SentinelIcon from '../../../assets/images/sentinel-icon.png';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');

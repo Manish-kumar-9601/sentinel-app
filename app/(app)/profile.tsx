@@ -12,8 +12,8 @@ import {
 import { Ionicons, Feather, MaterialCommunityIcons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import userProfileImg from '../assets/images/user-profile-img.png';
-import { useAuth } from '../context/AuthContext';
+import userProfileImg from '../../assets/images/user-profile-img.png';
+import { useAuth } from '../../context/AuthContext';
 
 // ... (Menu Structure, Quick Actions, etc. remain the same)
 // --- Enhanced Menu Structure ---

@@ -7,9 +7,9 @@ import { Link, Stack, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import i18n from '../../lib/i18n';
+import i18n from '../../../lib/i18n';
 import { useTranslation } from 'react-i18next';
-import { API_Storing } from '../../components/APIStore';
+import { API_Storing } from '../../../components/APIStore';
 // --- Configuration ---
 const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
 const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';

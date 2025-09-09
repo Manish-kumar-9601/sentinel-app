@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import i18n from '../../lib/i18n';
+import i18n from '../../../lib/i18n';
 
 // --- Reusable UI Component for a feature card ---
 const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => {
