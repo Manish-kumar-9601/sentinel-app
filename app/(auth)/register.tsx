@@ -1,19 +1,19 @@
-﻿import React, { useState } from 'react';
+﻿import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
-    View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    SafeAreaView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    SafeAreaView,
-    Alert,
-    ActivityIndicator,
-    Image,
+    View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../../context/AuthContext';
-import SentinelIcon from '../../../assets/images/sentinel-icon.png';
+import SentinelIcon from '../../assets/images/sentinel-icon.png';
+import { useAuth } from '../../context/AuthContext';
 
 const RegisterScreen = () => {
     const [name, setName] = useState('');
@@ -36,8 +36,10 @@ const RegisterScreen = () => {
             });
             const data = await res.json();
             if (res.ok) {
+                // Set the user state. The AuthContext and root layouts will handle the redirect.
                 setUser(data.user);
-                router.replace('/');
+                // DO NOT navigate manually here. This was causing the infinite loop.
+                // router.replace('/'); 
             } else {
                 Alert.alert('Registration Failed', data.error || 'Could not create account.');
             }
@@ -181,3 +183,4 @@ const styles = StyleSheet.create({
 });
 
 export default RegisterScreen;
+

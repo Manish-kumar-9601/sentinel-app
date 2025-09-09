@@ -18,7 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import i18n from '../lib/i18n';
+import i18n from '../../lib/i18n';
 // --- Reusable Chat Bubble Component ---
 const ChatBubble = ({ message, isUser }) => (
   <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>

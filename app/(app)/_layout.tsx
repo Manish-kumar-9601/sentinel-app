@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 
-export default function AppLayout() {
+export default function RootLayout() {
     const { user, isLoading } = useAuth();
     const segments = useSegments();
     const router = useRouter();

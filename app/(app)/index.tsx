@@ -1,4 +1,4 @@
-﻿import { useModal } from '../context/ModalContext';
+﻿import { useModal } from '../../context/ModalContext';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,11 +22,11 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SentinelIcon from '../assets/images/sentinel-nav-icon.png';
-import BottomNavBar from '../components/BottomNavBar';
-import ContactListModal from '../components/ContactListModal';
-import {EmergencyGrid} from '../components/EmergencyGrid';
-import {SOSCard} from '../components/SOSCard'
+import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
+import BottomNavBar from '../../components/BottomNavBar';
+import ContactListModal from '../../components/ContactListModal';
+import {EmergencyGrid} from '../../components/EmergencyGrid';
+import {SOSCard} from '../../components/SOSCard'
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes

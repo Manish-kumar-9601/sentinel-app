@@ -16,7 +16,7 @@ import
   } from 'react-native';
 
 import { Ionicons, Feather } from '@expo/vector-icons';
-import sentinel_detect_icon from '../../assets/images/heroIcon.png'
+import sentinel_detect_icon from '../../..//assets/images/heroIcon.png'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_KEY_STORAGE_KEY = '@api_key';
 const DataLeakScreen = () =>

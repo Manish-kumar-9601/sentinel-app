@@ -22,7 +22,7 @@ const StartPage = () => {
             if (user) {
                 // If a user object exists, they are authenticated.
                 // Redirect them to the main application stack.
-                router.replace('/');
+                router.replace('/(app)');
             } else {
                 // If there is no user, they are not authenticated.
                 // Redirect them to the login screen within the auth stack.

@@ -1,13 +1,12 @@
+import { SplashScreen, Stack } from "expo-router";
+import React, { useCallback, useEffect, useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { I18nextProvider } from 'react-i18next';
+import i18next, { loadSavedLanguage } from '../lib/i18n';
 import { AuthProvider } from '../context/AuthContext';
 import { ModalProvider } from '../context/ModalContext';
-import { Stack } from "expo-router";
-import React, { useEffect, useState, useCallback } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import i18next, { loadSavedLanguage } from '../lib/i18n';
-import { I18nextProvider } from 'react-i18next';
-import * as SplashScreen from 'expo-splash-screen';
-import { setAudioModeAsync } from 'expo-audio';
 
+// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -16,17 +15,12 @@ export default function RootLayout() {
     useEffect(() => {
         const prepareApp = async () => {
             try {
-                // Set up audio mode for the entire app
-                await setAudioModeAsync({
-                    allowsRecording: true,
-                    interruptionMode: 'doNotMix',
-                    interruptionModeAndroid: 'doNotMix',
-                });
-                // Load saved language for internationalization
+                // Load the user's saved language preference
                 await loadSavedLanguage();
             } catch (e) {
-                console.warn(e);
+                console.warn("Error preparing app:", e);
             } finally {
+                // Tell the application to render
                 setAppReady(true);
             }
         };
@@ -35,6 +29,7 @@ export default function RootLayout() {
 
     const onLayoutRootView = useCallback(async () => {
         if (isAppReady) {
+            // This hides the splash screen once the app is ready
             await SplashScreen.hideAsync();
         }
     }, [isAppReady]);
@@ -48,6 +43,11 @@ export default function RootLayout() {
             <AuthProvider>
                 <I18nextProvider i18n={i18next}>
                     <ModalProvider>
+                        {/* This Stack navigator defines the two main areas of your app:
+                          - The (app) group for authenticated users.
+                          - The (auth) group for login/registration.
+                          The root index.tsx file will handle redirecting between them.
+                        */}
                         <Stack>
                             <Stack.Screen name="(app)" options={{ headerShown: false }} />
                             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

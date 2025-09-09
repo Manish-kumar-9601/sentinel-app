@@ -1,19 +1,19 @@
-﻿import React, { useState } from 'react';
+﻿import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
-    View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    SafeAreaView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    SafeAreaView,
-    Alert,
-    ActivityIndicator,
-    Image,
+    View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../../context/AuthContext';
-import SentinelIcon from '../../../assets/images/sentinel-icon.png';
+import SentinelIcon from '../../assets/images/sentinel-icon.png';
+import { useAuth } from '../../context/AuthContext';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -75,7 +75,7 @@ const LoginScreen = () => {
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => router.replace('/')}>
+                <TouchableOpacity onPress={() => router.replace('/(app)')}>
                     <Text style={styles.guestText}>Continue as Guest</Text>
                 </TouchableOpacity>
 
