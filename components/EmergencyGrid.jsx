@@ -3,7 +3,8 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) => {
+  const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) =>
+{
     const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : (iconSet === 'MaterialIcons') ? MaterialIcons : FontAwesome5;
     const IconSize = iconSet === 'MaterialCommunity' || iconSet === 'MaterialIcons' ? 36 : 28;
     return (
@@ -28,7 +29,8 @@ const CATEGORY_CONFIG = [
     { id: 'sound_recorder', icon: 'multitrack-audio', color: '#7a78f0ff', iconSet: 'MaterialIcons' },
 ];
 
- const EmergencyGrid = ({ onCategorySelect }) => {
+export const EmergencyGrid = ({ onCategorySelect }) =>
+{
     const router = useRouter();
     const { t } = useTranslation();
 
@@ -37,12 +39,16 @@ const CATEGORY_CONFIG = [
         name: t(`home.categories.${cat.id}`),
     }));
 
-    const handlePress = (category) => {
-        if (category.id === 'record') {
+    const handlePress = (category) =>
+    {
+        if (category.id === 'record')
+        {
             router.push('/recorder');
-        } else if (category.id === 'sound_recorder') {
+        } else if (category.id === 'sound_recorder')
+        {
             router.push('/audioRecorder');
-        } else {
+        } else
+        {
             onCategorySelect(category);
         }
     };
@@ -99,7 +105,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#333',
     },
- 
+
 });
 
-export default EmergencyGrid;

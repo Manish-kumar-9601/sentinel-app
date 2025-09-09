@@ -24,6 +24,13 @@ export default function RootLayout() {
           title: 'My Circle'
         }}
       />
+      <Stack.Screen
+        name="userInfo"
+        options={{
+          headerShown: false,
+          title: 'User Information'
+        }}
+      />
     </Stack>
   );
 }

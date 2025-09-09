@@ -69,7 +69,7 @@ const DataLeakScreen = () =>
     } catch (error)
     {
       console.error('Data leak check failed:', error);
-      // Display the specific error message to the user for better debugging
+      
       Alert.alert('Scan Failed', error.message);
     } finally
     {
@@ -78,7 +78,7 @@ const DataLeakScreen = () =>
   };
   const renderResultItem = ({ item }) =>
   {
-    console.log(item)
+    console.log('renderResult',item)
     return (
       <View style={styles.resultItem}>
         <View style={styles.resultIconContainer}>
@@ -87,7 +87,9 @@ const DataLeakScreen = () =>
         <View style={styles.resultTextContainer}>
           <Text style={styles.resultTitle}>Source:{item.source}</Text>
           <Text style={styles.resultDescription}>Email:{item.email}</Text>
+          {item.details && 
           <Text style={styles.resultDescription}>Leaked Password: {item.details}</Text>
+          }
         </View>
       </View>
     );
@@ -165,8 +167,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   scrollContainer: { padding: 5 },
   heroIconImage: {
-    width: 150,
-    height: 150,
+    width: 80,
+    height: 80,
     borderRadius: 100,
     marginBottom: 0,
     alignSelf: 'center',
