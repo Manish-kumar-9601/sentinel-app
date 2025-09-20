@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
     },
-      locationContainer: {
+    locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,

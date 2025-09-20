@@ -21,7 +21,7 @@ const RegisterScreen = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { setUser } = useAuth();
+    const { setUser,user } = useAuth();
 
     const handleRegister = async () => {
         if (!name || !email || !password) {
@@ -38,8 +38,11 @@ const RegisterScreen = () => {
             if (res.ok) {
                 // Set the user state. The AuthContext and root layouts will handle the redirect.
                 setUser(data.user);
+                console.log('res',res)
                 // DO NOT navigate manually here. This was causing the infinite loop.
-                // router.replace('/'); 
+                if(user){
+                    router.replace('/(app)'); 
+                }
             } else {
                 Alert.alert('Registration Failed', data.error || 'Could not create account.');
             }

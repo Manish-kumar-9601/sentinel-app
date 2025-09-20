@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Dimensions,
   Platform,
   StatusBar,
 } from 'react-native';
@@ -16,8 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
-
-const { width, height } = Dimensions.get('window');
 
 // Map styles for different themes
 const mapStyles = {

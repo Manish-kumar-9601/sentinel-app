@@ -40,8 +40,8 @@ const LoginScreen = () => {
                 setUser(data.user);
                 // Since this is a modal, a successful login should dismiss it.
                 // We use router.back() to close the modal and return to the previous screen.
-                if (router.canGoBack()) {
-                    router.back();
+                if (data.user) {
+                    router.replace('/(app)');
                 }
             } else {
                 Alert.alert('Login Failed', data.error || 'Invalid credentials.');
@@ -53,10 +53,7 @@ const LoginScreen = () => {
     };
 
     const handleContinueAsGuest = () => {
-        // To continue as a guest, we simply dismiss the login modal.
-        if (router.canGoBack()) {
-            router.back();
-        }
+        router.replace('/(app)');
     };
 
     return (

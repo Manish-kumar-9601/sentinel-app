@@ -17,16 +17,17 @@ const StartPage = () => {
     const router = useRouter();
 
     useEffect(() => {
+        console.log('user:', user, 'isLoading:', isLoading);
         // This effect runs when the authentication state is determined (isLoading becomes false).
         if (!isLoading) {
-            if (!user) {
+            if (user) {
                 // If a user object exists, they are authenticated.
                 // Redirect them to the main application stack.
                 router.replace('/(app)');
             } else {
                 // If there is no user, they are not authenticated.
                 // Redirect them to the login screen within the auth stack.
-                router.replace('/(auth)/register');
+                router.replace('/(auth)/login');
             }
         }
     }, [isLoading, user, router]);

@@ -1,4 +1,6 @@
-﻿import { useModal } from '../../context/ModalContext';
+﻿// manish-kumar-9601/sentinel-app/sentinel-app-ab64364fa64367c32df71cc4649ed32fdbcc7eca/app/(app)/index.tsx
+
+import { useModal } from '../../context/ModalContext';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,8 +27,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
 import BottomNavBar from '../../components/BottomNavBar';
 import ContactListModal from '../../components/ContactListModal';
-import {EmergencyGrid} from '../../components/EmergencyGrid';
-import {SOSCard} from '../../components/SOSCard'
+import { EmergencyGrid } from '../../components/EmergencyGrid';
+import { SOSCard } from '../../components/SOSCard'
+import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
+import Geolocation from 'react-native-geolocation-service';
+
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -310,6 +315,31 @@ export default function HomeScreen() {
             setLocationError('setup_failed');
         }
     };
+    const openLocationSettings = async () => {
+        if (Platform.OS === 'android') {
+            try {
+                const result = await promptForEnableLocationIfNeeded();
+                console.log('promptForEnableLocationIfNeeded result', result);
+                if (result === 'enabled' || result === 'already-enabled') {
+                    // Location is enabled
+                }
+            } catch (error) {
+                console.error(error.message);
+                if (error.code === 'ERR_ANDROID_LOCATION_SERVICES_DISABLED') {
+                    Alert.alert(
+                        'Location services are disabled.',
+                        'Please enable them in the device settings.',
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                        ]
+                    );
+                }
+            }
+        } else {
+            Linking.openSettings(); // iOS fallback
+        }
+    };
 
     // Setup location after permission is granted
     const setupLocationAfterPermission = async () => {
@@ -321,14 +351,7 @@ export default function HomeScreen() {
             if (!servicesEnabled) {
                 setLocationError('location_services_disabled');
                 // Show alert asking user to enable location services
-                Alert.alert(
-                    'Location Services Disabled',
-                    'Please enable location services in your device settings to use emergency location features.',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Open Settings', onPress: openLocationSettings }
-                    ]
-                );
+                openLocationSettings();
             } else {
                 // Everything is good, get location
                 await fetchLocation(true);
@@ -541,13 +564,7 @@ export default function HomeScreen() {
         );
     };
 
-    const openLocationSettings = async () => {
-        if (Platform.OS === 'android') {
-            await Linking.openURL('android.settings.LOCATION_SOURCE_SETTINGS');
-        } else {
-            Linking.openSettings(); // iOS fallback
-        }
-    };
+
 
     const handleSOSPress = async () => {
         if (isSending) return;
@@ -582,14 +599,7 @@ export default function HomeScreen() {
                 );
                 return;
             } else if (!locationServicesEnabled) {
-                Alert.alert(
-                    'Location Services Disabled',
-                    'Please enable location services in device settings.',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Open Settings', onPress: openLocationSettings }
-                    ]
-                );
+                openLocationSettings();
                 return;
             } else {
                 Alert.alert(
@@ -657,14 +667,7 @@ export default function HomeScreen() {
                     ]
                 );
             } else if (!locationServicesEnabled) {
-                Alert.alert(
-                    'Location Services Disabled',
-                    'Please enable location services in device settings.',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Open Settings', onPress: () => Linking.openSettings() }
-                    ]
-                );
+                openLocationSettings();
             } else {
                 Alert.alert("Getting Location", "Trying to get your current location...");
                 await fetchLocation(true);
@@ -805,7 +808,8 @@ export default function HomeScreen() {
                     locationText={locationDisplay.text}
                     locationStatus={locationDisplay.status}
                 />
-                <EmergencyGrid onCategorySelect={handleCategorySelect} />
+                <EmergencyGrid onCategorySelect={handleCategorySelect}
+                />
             </ScrollView>
             <BottomNavBar />
             <ContactListModal
@@ -834,7 +838,7 @@ const styles = StyleSheet.create({
         paddingBottom: 0,
         borderBottomColor: '#000000ff',
     },
-  
+
     headerIcons: {
         flexDirection: 'row',
         gap: 2,
