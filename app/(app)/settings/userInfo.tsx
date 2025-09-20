@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserInfo {
     name: string;
@@ -29,10 +30,29 @@ interface MedicalInfo {
     emergencyContactPhone: string;
 }
 
+interface EmergencyContact {
+    id: string;
+    name: string;
+    phone: string;
+    relationship?: string;
+    isPrimary?: boolean;
+    createdAt?: string;
+}
+
 interface ApiResponse {
     userInfo: UserInfo;
     medicalInfo: MedicalInfo;
+    emergencyContacts: EmergencyContact[];
+    lastUpdated: string;
 }
+
+interface CachedData extends ApiResponse {
+    cacheTimestamp: string;
+}
+
+const CACHE_KEY = 'user_info_cache';
+const CONTACTS_CACHE_KEY = 'emergency_contacts_cache';
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 const UserInfoScreen = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -50,13 +70,72 @@ const UserInfoScreen = () => {
         emergencyContactName: '',
         emergencyContactPhone: '',
     });
+    const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<string>('');
 
-    // Load saved info from the database via API
-    const loadInfo = useCallback(async (showLoader = true) => {
+    // Check if cached data is still valid
+    const isCacheValid = (cacheTimestamp: string): boolean => {
+        const now = new Date().getTime();
+        const cacheTime = new Date(cacheTimestamp).getTime();
+        return (now - cacheTime) < CACHE_EXPIRY;
+    };
+
+    // Load data from cache
+    const loadFromCache = async (): Promise<CachedData | null> => {
+        try {
+            const cachedData = await AsyncStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                const parsed: CachedData = JSON.parse(cachedData);
+                console.log('Loaded data from cache:', parsed.cacheTimestamp);
+                return parsed;
+            }
+        } catch (error) {
+            console.error('Failed to load cache:', error);
+        }
+        return null;
+    };
+
+    // Save data to cache
+    const saveToCache = async (data: ApiResponse): Promise<void> => {
+        try {
+            const cacheData: CachedData = {
+                ...data,
+                cacheTimestamp: new Date().toISOString()
+            };
+            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+            
+            // Also sync contacts with the old contacts storage for backward compatibility
+            await AsyncStorage.setItem('emergency_contacts', JSON.stringify(data.emergencyContacts));
+            console.log('Data saved to cache');
+        } catch (error) {
+            console.error('Failed to save to cache:', error);
+        }
+    };
+
+    // Load saved info from API or cache
+    const loadInfo = useCallback(async (forceRefresh = false, showLoader = true) => {
         try {
             if (showLoader) setIsLoading(true);
             
+            // Try to load from cache first if not forcing refresh
+            if (!forceRefresh) {
+                const cachedData = await loadFromCache();
+                if (cachedData && isCacheValid(cachedData.cacheTimestamp)) {
+                    console.log('Using cached data');
+                    setUserInfo(cachedData.userInfo);
+                    setMedicalInfo(cachedData.medicalInfo);
+                    setEmergencyContacts(cachedData.emergencyContacts || []);
+                    setLastUpdated(cachedData.lastUpdated);
+                    setHasUnsavedChanges(false);
+                    if (showLoader) setIsLoading(false);
+                    setIsRefreshing(false);
+                    return;
+                }
+            }
+
+            // Fetch from API if cache is invalid or force refresh
+            console.log('Fetching fresh data from API');
             const response = await fetch('/api/user-info', {
                 method: 'GET',
                 headers: {
@@ -69,7 +148,6 @@ const UserInfoScreen = () => {
                     Alert.alert('Authentication Error', 'Please log in again.');
                     return;
                 } else if (response.status === 404) {
-                    // User might not have any data yet - this is fine
                     console.log('No existing user data found - using defaults');
                     return;
                 }
@@ -78,14 +156,13 @@ const UserInfoScreen = () => {
 
             const data: ApiResponse = await response.json();
             
-            // Safely set user info with fallbacks
+            // Set state with API data
             setUserInfo({
                 name: data.userInfo?.name || '',
                 email: data.userInfo?.email || '',
                 phone: data.userInfo?.phone || '',
             });
             
-            // Safely set medical info with fallbacks
             setMedicalInfo({
                 bloodGroup: data.medicalInfo?.bloodGroup || '',
                 allergies: data.medicalInfo?.allergies || '',
@@ -94,18 +171,39 @@ const UserInfoScreen = () => {
                 emergencyContactPhone: data.medicalInfo?.emergencyContactPhone || '',
             });
 
+            setEmergencyContacts(data.emergencyContacts || []);
+            setLastUpdated(data.lastUpdated);
             setHasUnsavedChanges(false);
+
+            // Save fresh data to cache
+            await saveToCache(data);
 
         } catch (error) {
             console.error('Failed to load user info:', error);
-            Alert.alert(
-                'Error', 
-                'Could not load your information. Please check your internet connection and try again.',
-                [
-                    { text: 'Retry', onPress: () => loadInfo(showLoader) },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
+            
+            // Try to use cached data as fallback
+            const cachedData = await loadFromCache();
+            if (cachedData) {
+                console.log('Using stale cached data as fallback');
+                setUserInfo(cachedData.userInfo);
+                setMedicalInfo(cachedData.medicalInfo);
+                setEmergencyContacts(cachedData.emergencyContacts || []);
+                setLastUpdated(cachedData.lastUpdated);
+                Alert.alert(
+                    'Using Offline Data', 
+                    'Could not connect to server. Using your last saved information.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Error', 
+                    'Could not load your information. Please check your internet connection and try again.',
+                    [
+                        { text: 'Retry', onPress: () => loadInfo(forceRefresh, showLoader) },
+                        { text: 'Cancel', style: 'cancel' }
+                    ]
+                );
+            }
         } finally {
             if (showLoader) setIsLoading(false);
             setIsRefreshing(false);
@@ -118,7 +216,7 @@ const UserInfoScreen = () => {
 
     const onRefresh = useCallback(() => {
         setIsRefreshing(true);
-        loadInfo(false);
+        loadInfo(true, false); // Force refresh, don't show main loader
     }, [loadInfo]);
 
     const handleUserInfoChange = (field: keyof UserInfo, value: string) => {
@@ -188,7 +286,6 @@ const UserInfoScreen = () => {
             const payload = {
                 userInfo: {
                     name: userInfo.name.trim(),
-                    // Only include email if it's changed (since it might be readonly in some cases)
                     phone: userInfo.phone.trim() || null,
                 }, 
                 medicalInfo: {
@@ -197,7 +294,15 @@ const UserInfoScreen = () => {
                     medications: medicalInfo.medications.trim() || null,
                     emergencyContactName: medicalInfo.emergencyContactName.trim() || null,
                     emergencyContactPhone: medicalInfo.emergencyContactPhone.trim() || null,
-                }
+                },
+                emergencyContacts: emergencyContacts.map(contact => ({
+                    id: contact.id,
+                    name: contact.name,
+                    phone: contact.phone,
+                    relationship: contact.relationship,
+                    isPrimary: contact.isPrimary,
+                    createdAt: contact.createdAt
+                }))
             };
 
             const response = await fetch('/api/user-info', {
@@ -219,6 +324,17 @@ const UserInfoScreen = () => {
 
             const result = await response.json();
             setHasUnsavedChanges(false);
+            setLastUpdated(result.lastUpdated);
+            
+            // Update cache after successful save
+            const updatedData: ApiResponse = {
+                userInfo,
+                medicalInfo,
+                emergencyContacts,
+                lastUpdated: result.lastUpdated
+            };
+            await saveToCache(updatedData);
+            
             Alert.alert('Success!', 'Your information has been saved successfully.');
             
         } catch (error) {
@@ -316,6 +432,18 @@ const UserInfoScreen = () => {
         );
     };
 
+    // Clear cache function for debugging
+    const clearCache = async () => {
+        try {
+            await AsyncStorage.removeItem(CACHE_KEY);
+            await AsyncStorage.removeItem('emergency_contacts');
+            Alert.alert('Cache Cleared', 'Local cache has been cleared.');
+            loadInfo(true);
+        } catch (error) {
+            console.error('Failed to clear cache:', error);
+        }
+    };
+
     if (isLoading) {
         return (
             <SafeAreaView style={styles.container}>
@@ -347,6 +475,19 @@ const UserInfoScreen = () => {
                     <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
                 }
             >
+                {lastUpdated && (
+                    <View style={styles.syncStatus}>
+                        <Ionicons name="sync" size={12} color="#666" />
+                        <Text style={styles.syncText}>
+                            Last synced: {new Date(lastUpdated).toLocaleString()}
+                        </Text>
+                        {/* Debug button - remove in production */}
+                        <TouchableOpacity onPress={clearCache} style={styles.debugButton}>
+                            <Text style={styles.debugButtonText}>Clear Cache</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Personal Information</Text>
                     <View style={styles.card}>
@@ -437,6 +578,33 @@ const UserInfoScreen = () => {
                     </View>
                 </View>
 
+                {emergencyContacts.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Saved Emergency Contacts ({emergencyContacts.length})</Text>
+                        <View style={styles.card}>
+                            {emergencyContacts.map((contact, index) => (
+                                <View key={contact.id} style={styles.contactItem}>
+                                    <View style={styles.contactAvatar}>
+                                        <Text style={styles.contactAvatarText}>{contact.name.charAt(0)}</Text>
+                                    </View>
+                                    <View style={styles.contactInfo}>
+                                        <Text style={styles.contactName}>{contact.name}</Text>
+                                        <Text style={styles.contactPhone}>{contact.phone}</Text>
+                                        {contact.relationship && (
+                                            <Text style={styles.contactRelationship}>{contact.relationship}</Text>
+                                        )}
+                                    </View>
+                                    {contact.isPrimary && (
+                                        <View style={styles.primaryBadge}>
+                                            <Text style={styles.primaryBadgeText}>Primary</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
                 <TouchableOpacity 
                     style={[
                         styles.saveButton, 
@@ -486,6 +654,35 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#6D6D72',
         textAlign: 'center',
+    },
+    syncStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        backgroundColor: '#F8F8F8',
+        borderRadius: 8,
+        marginHorizontal: 16,
+        marginTop: 10,
+        marginBottom: 5,
+    },
+    syncText: {
+        fontSize: 12,
+        color: '#666',
+        marginLeft: 4,
+        flex: 1,
+    },
+    debugButton: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        backgroundColor: '#FF3B30',
+        borderRadius: 4,
+    },
+    debugButtonText: {
+        fontSize: 10,
+        color: 'white',
+        fontWeight: 'bold',
     },
     section: {
         marginBottom: 24,
@@ -537,6 +734,58 @@ const styles = StyleSheet.create({
         marginTop: -8,
         marginBottom: 12,
         paddingLeft: 15,
+    },
+    contactItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F2F2F7',
+        marginBottom: 8,
+    },
+    contactAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#007AFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    contactAvatarText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    contactInfo: {
+        flex: 1,
+    },
+    contactName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    contactPhone: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 2,
+    },
+    contactRelationship: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 2,
+        fontStyle: 'italic',
+    },
+    primaryBadge: {
+        backgroundColor: '#34C759',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    primaryBadgeText: {
+        fontSize: 10,
+        color: 'white',
+        fontWeight: 'bold',
     },
     saveButton: {
         backgroundColor: '#007AFF',

@@ -1,5 +1,5 @@
 ﻿import { db } from '../../../db/client';
-import { users, medicalInfo } from '../../../db/schema';
+import { users, medicalInfo, emergencyContacts } from '../../../db/schema';
 import { withAuth, AuthUser } from '../../../utils/middleware';
 import { eq } from 'drizzle-orm';
 
@@ -31,6 +31,20 @@ const getHandler = async (request: Request, user: AuthUser) => {
             .from(medicalInfo)
             .where(eq(medicalInfo.userId, userId))
             .limit(1);
+
+        // Fetch emergency contacts from emergencyContacts table
+        const contactsData = await db
+            .select({
+                id: emergencyContacts.id,
+                name: emergencyContacts.name,
+                phone: emergencyContacts.phone,
+                relationship: emergencyContacts.relationship,
+                 
+                createdAt: emergencyContacts.createdAt
+            })
+            .from(emergencyContacts)
+            .where(eq(emergencyContacts.userId, userId))
+            .orderBy(emergencyContacts.createdAt);
 
         // Provide default values if no data exists
         const defaultUserInfo = {
@@ -64,7 +78,16 @@ const getHandler = async (request: Request, user: AuthUser) => {
                     medications: medicalInfoResult.medications || '',
                     emergencyContactName: medicalInfoResult.emergencyContactName || '',
                     emergencyContactPhone: medicalInfoResult.emergencyContactPhone || '',
-                }
+                },
+                emergencyContacts: contactsData.map(contact => ({
+                    id: contact.id,
+                    name: contact.name || '',
+                    phone: contact.phone || '',
+                    relationship: contact.relationship || '',
+                   
+                    createdAt: contact.createdAt
+                })),
+                lastUpdated: new Date().toISOString()
             }),
             { 
                 status: 200, 
@@ -88,22 +111,26 @@ const getHandler = async (request: Request, user: AuthUser) => {
 const postHandler = async (request: Request, user: AuthUser) => {
     try {
         const body = await request.json();
-        const { userInfo: userInfoData, medicalInfo: medicalInfoData } = body;
+        const { 
+            userInfo: userInfoData, 
+            medicalInfo: medicalInfoData,
+            emergencyContacts: emergencyContactsData 
+        } = body;
         const userId = user.id;
 
         // Validate that we have some data to save
-        if (!userInfoData && !medicalInfoData) {
+        if (!userInfoData && !medicalInfoData && !emergencyContactsData) {
             return new Response(
                 JSON.stringify({ error: 'No data provided to save' }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // Use transaction to ensure both operations succeed or fail together
+        // Use transaction to ensure all operations succeed or fail together
         await db.transaction(async (tx) => {
-            // Update user info in users table (user should already exist since they're authenticated)
+            // Update user info in users table
             if (userInfoData) {
-                const updateData = {};
+                const updateData: any = {};
                 
                 if (userInfoData.name !== undefined) {
                     updateData.name = userInfoData.name?.trim() || null;
@@ -135,7 +162,6 @@ const postHandler = async (request: Request, user: AuthUser) => {
                     updatedAt: new Date(),
                 };
 
-                // Use upsert (insert or update on conflict)
                 await tx
                     .insert(medicalInfo)
                     .values(medicalDataToSave)
@@ -151,12 +177,70 @@ const postHandler = async (request: Request, user: AuthUser) => {
                         }
                     });
             }
+
+            // Handle emergency contacts sync
+            if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
+                // Get existing contacts
+                const existingContacts = await tx
+                    .select({ id: emergencyContacts.id })
+                    .from(emergencyContacts)
+                    .where(eq(emergencyContacts.userId, userId));
+
+                const existingContactIds = existingContacts.map(c => c.id);
+                const incomingContactIds = emergencyContactsData
+                    .filter(c => c.id && !c.id.startsWith('temp_'))
+                    .map(c => c.id);
+
+                // Delete contacts that are no longer in the incoming data
+                const contactsToDelete = existingContactIds.filter(id => !incomingContactIds.includes(id));
+                for (const contactId of contactsToDelete) {
+                    await tx
+                        .delete(emergencyContacts)
+                        .where(eq(emergencyContacts.id, contactId));
+                }
+
+                // Upsert contacts
+                for (const contact of emergencyContactsData) {
+                    if (!contact.name?.trim() || !contact.phone?.trim()) continue;
+
+                    const contactData = {
+                        id: contact.id && !contact.id.startsWith('temp_') ? contact.id : crypto.randomUUID(),
+                        userId: userId,
+                        name: contact.name.trim(),
+                        phone: contact.phone.trim(),
+                        relationship: contact.relationship?.trim() || null,
+                        
+                        createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
+                        updatedAt: new Date(),
+                    };
+
+                    if (contact.id && !contact.id.startsWith('temp_')) {
+                        // Update existing contact
+                        await tx
+                            .update(emergencyContacts)
+                            .set({
+                                name: contactData.name,
+                                phone: contactData.phone,
+                                relationship: contactData.relationship,
+                                
+                                updatedAt: contactData.updatedAt,
+                            })
+                            .where(eq(emergencyContacts.id, contact.id));
+                    } else {
+                        // Insert new contact
+                        await tx
+                            .insert(emergencyContacts)
+                            .values(contactData);
+                    }
+                }
+            }
         });
 
         return new Response(
             JSON.stringify({ 
                 success: true,
-                message: 'User information saved successfully' 
+                message: 'User information saved successfully',
+                lastUpdated: new Date().toISOString()
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
