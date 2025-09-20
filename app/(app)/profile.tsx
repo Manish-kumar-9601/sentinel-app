@@ -126,6 +126,7 @@ const ProfileScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
 
+  console.log('at info scree',user )
   const handleSignOut = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -147,8 +148,8 @@ const ProfileScreen = () => {
               <Image source={userProfileImg} style={styles.avatar} />
               <View style={styles.onlineIndicator} />
             </View>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={styles.userName}>{user?.name}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
           </LinearGradient>
         ) : (
           <View style={styles.guestContainer}>

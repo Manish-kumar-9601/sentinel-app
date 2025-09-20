@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         const userArr = await db.select().from(users).where(eq(users.email, email.toLowerCase().trim())).limit(1);
 
         if (userArr.length === 0) {
+            console.log(userArr)
             // User not found, return a generic error to prevent email enumeration
             console.log('Login attempt for non-existent email:', email);
             
