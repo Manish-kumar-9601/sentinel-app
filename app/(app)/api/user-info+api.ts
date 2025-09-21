@@ -4,7 +4,7 @@ import { withAuth, AuthUser } from '../../../utils/middleware';
 import { eq } from 'drizzle-orm';
 
 // GET handler to fetch user data
-const getHandler = async (request: Request, user: AuthUser) => {
+const getHandler = async (request: Request, user:any) => {
     try {
         const userId = user.id;
 
@@ -108,7 +108,7 @@ const getHandler = async (request: Request, user: AuthUser) => {
 };
 
 // POST handler to save user data
-const postHandler = async (request: Request, user: AuthUser) => {
+const postHandler = async (request: Request, user:any) => {
     try {
         const body = await request.json();
         const { 

@@ -20,7 +20,7 @@ const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const BATCH_SAVE_DELAY = 1000; // 1 second delay for batch saving
 
-const ContactListModal = ({ visible, onClose }) => {
+const ContactListModal = ({ visible, onClose,refreshAppState }) => {
   const [contacts, setContacts] = useState([]);
   const [location, setLocation] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -263,6 +263,7 @@ const ContactListModal = ({ visible, onClose }) => {
 
   // FIXED: Improved save to storage with validation
   const saveContactsToStorage = async (contactsToSave) => {
+    refreshAppState()
     if (!Array.isArray(contactsToSave)) {
       console.error('Invalid contacts data for saving:', contactsToSave);
       return false;

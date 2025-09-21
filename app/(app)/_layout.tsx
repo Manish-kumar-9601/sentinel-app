@@ -11,7 +11,7 @@ export default function AppLayout() {
             <Stack.Screen name="explores" options={{ title: "Explore Tools" }} />
             <Stack.Screen name="recorder" options={{ presentation: 'fullScreenModal', headerShown: false }} />
             <Stack.Screen name="audioRecorder" options={{ presentation: 'fullScreenModal', headerShown: false }} />
-            <Stack.Screen name="map" options={{ headerShown: false }} />
+            
             <Stack.Screen name="webMap" options={{ title: 'Map' }} />
             <Stack.Screen name="guide" options={{ title: 'Emergency Guide' }} />
             <Stack.Screen name="fakeCall" options={{ presentation: 'fullScreenModal', headerShown: false }} />

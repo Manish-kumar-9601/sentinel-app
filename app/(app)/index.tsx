@@ -257,6 +257,7 @@ export default function HomeScreen() {
             const loadContacts = async () => {
                 try {
                     const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
+                    console.log('Stored contacts:', storedContacts);
                     if (storedContacts !== null) {
                         setEmergencyContacts(JSON.parse(storedContacts));
                     } else {
@@ -548,20 +549,16 @@ export default function HomeScreen() {
             }
         }
 
-        if (results.whatsapp) {
-            if (results.whatsapp.success) {
-                message += `✅ WhatsApp messages initiated for ${results.whatsapp.count}/${results.whatsapp.total} contact(s)\n`;
-                hasSuccess = true;
-            } else {
-                message += `❌ WhatsApp failed: ${results.whatsapp.error}\n`;
-            }
-        }
+        // if (results.whatsapp) {
+        //     if (results.whatsapp.success) {
+        //         message += `✅ WhatsApp messages initiated for ${results.whatsapp.count}/${results.whatsapp.total} contact(s)\n`;
+        //         hasSuccess = true;
+        //     } else {
+        //         message += `❌ WhatsApp failed: ${results.whatsapp.error}\n`;
+        //     }
+        // }
 
-        Alert.alert(
-            hasSuccess ? 'Emergency Alert Sent' : 'Emergency Alert Failed',
-            message.trim(),
-            [{ text: 'OK' }]
-        );
+ 
     };
 
 
@@ -813,6 +810,7 @@ export default function HomeScreen() {
             </ScrollView>
             <BottomNavBar />
             <ContactListModal
+                refreshAppState={refreshAppState}
                 visible={isContactModalVisible}
                 onClose={closeContactModal}
             />
