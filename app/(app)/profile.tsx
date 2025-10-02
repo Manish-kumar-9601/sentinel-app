@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  SafeAreaView,
+  
   ScrollView,
   Alert,
 } from 'react-native';
@@ -14,6 +14,7 @@ import { Link, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import userProfileImg from '../../assets/images/user-profile-img.png';
 import { useAuth } from '../../context/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ... (Menu Structure, Quick Actions, etc. remain the same)
 // --- Enhanced Menu Structure ---

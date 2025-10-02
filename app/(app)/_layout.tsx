@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
 import React from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function AppLayout() {
     return (
+        <SafeAreaProvider>
+
         <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="profile" options={{ title: 'Profile' }} />
@@ -17,6 +20,8 @@ export default function AppLayout() {
             <Stack.Screen name="fakeCall" options={{ presentation: 'fullScreenModal', headerShown: false }} />
             <Stack.Screen name="fakeIncomingCall" options={{ presentation: 'fullScreenModal', headerShown: false }} />
         </Stack>
+        </SafeAreaProvider>
+
     );
 }
 

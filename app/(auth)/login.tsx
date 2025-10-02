@@ -5,7 +5,7 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    SafeAreaView,
+ 
     Alert,
     ActivityIndicator,
     Image,
@@ -16,6 +16,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 const GUEST_kEY='guest_user';
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -31,7 +33,8 @@ const LoginScreen = () => {
         Keyboard.dismiss();
         setIsLoading(true);
         try {
-            const res = await fetch('/api/auth/login', {
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
+            const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),

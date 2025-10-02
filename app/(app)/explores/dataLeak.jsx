@@ -1,23 +1,24 @@
 ﻿import { useEffect, useState } from 'react';
 import
-  {
-    SafeAreaView,
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    Alert,
-    ActivityIndicator,
-    FlatList,
-    Keyboard,
-    ScrollView,
-    Image,
-  } from 'react-native';
+{
+   
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  FlatList,
+  Keyboard,
+  ScrollView,
+  Image,
+} from 'react-native';
 
 import { Ionicons, Feather } from '@expo/vector-icons';
 import sentinel_detect_icon from '../../..//assets/images/heroIcon.png'
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const API_KEY_STORAGE_KEY = '@api_key';
 const DataLeakScreen = () =>
 {
@@ -57,7 +58,8 @@ const DataLeakScreen = () =>
     console.log(encodeURIComponent(email.trim()))
     try
     {
-      const response = await fetch(`/api/dataLeak?email=${encodeURIComponent(email.trim())}&apiKey=${encodeURIComponent(apiKey)}`);
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/dataLeak?email=${encodeURIComponent(email.trim())}&apiKey=${encodeURIComponent(apiKey)}`);
       const data = await response.json();
 
       if (!response.ok)
@@ -69,7 +71,7 @@ const DataLeakScreen = () =>
     } catch (error)
     {
       console.error('Data leak check failed:', error);
-      
+
       Alert.alert('Scan Failed', error.message);
     } finally
     {
@@ -78,7 +80,7 @@ const DataLeakScreen = () =>
   };
   const renderResultItem = ({ item }) =>
   {
-    console.log('renderResult',item)
+    console.log('renderResult', item)
     return (
       <View style={styles.resultItem}>
         <View style={styles.resultIconContainer}>
@@ -87,8 +89,8 @@ const DataLeakScreen = () =>
         <View style={styles.resultTextContainer}>
           <Text style={styles.resultTitle}>Source:{item.source}</Text>
           <Text style={styles.resultDescription}>Email:{item.email}</Text>
-          {item.details && 
-          <Text style={styles.resultDescription}>Leaked Password: {item.details}</Text>
+          {item.details &&
+            <Text style={styles.resultDescription}>Leaked Password: {item.details}</Text>
           }
         </View>
       </View>

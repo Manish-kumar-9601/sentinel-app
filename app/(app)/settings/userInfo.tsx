@@ -7,7 +7,6 @@ import {
     TextInput,
     TouchableOpacity,
     Alert,
-    
     Keyboard,
     ActivityIndicator,
     RefreshControl,

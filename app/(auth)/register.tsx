@@ -5,7 +5,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    SafeAreaView,
+    
     StyleSheet,
     Text,
     TextInput,
@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
+ 
 const RegisterScreen = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -29,7 +30,8 @@ const RegisterScreen = () => {
         }
         setIsLoading(true);
         try {
-            const res = await fetch('/api/auth/register', {
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
+            const res = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password }),

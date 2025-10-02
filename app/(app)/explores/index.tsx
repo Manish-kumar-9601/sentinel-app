@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import {
-  SafeAreaView,
+  
   View,
   Text,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import i18n from '../../../lib/i18n';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- Reusable UI Component for a feature card ---
 const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => {
