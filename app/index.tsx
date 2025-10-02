@@ -1,10 +1,11 @@
-import React, {useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, View, StyleSheet, Image, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 
 // Import the app logo
 import sentinelIcon from '../assets/images/sentinel-icon.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * This is the initial splash screen for the application.
@@ -12,6 +13,7 @@ import sentinelIcon from '../assets/images/sentinel-icon.png';
  * and redirecting them to the appropriate part of the app.
  * While checking, it displays the app logo and a loading indicator.
  */
+const GUEST_kEY = 'guest_user';
 const StartPage = () => {
     const { user, isLoading } = useAuth();
     const router = useRouter();
@@ -25,9 +27,13 @@ const StartPage = () => {
                 // Redirect them to the main application stack.
                 router.replace('/(app)');
             } else {
-                // If there is no user, they are not authenticated.
-                // Redirect them to the login screen within the auth stack.
-                router.replace('/(auth)/login');
+                AsyncStorage.getItem(GUEST_kEY).then(value => {
+                    if (value === 'true') {
+                        router.replace('/(app)');
+                    } else {
+                        router.replace('/(auth)/login');
+                    }
+                });
             }
         }
     }, [isLoading, user, router]);

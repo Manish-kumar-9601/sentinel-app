@@ -15,7 +15,8 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const GUEST_kEY='guest_user';
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -53,6 +54,7 @@ const LoginScreen = () => {
     };
 
     const handleContinueAsGuest = () => {
+        AsyncStorage.setItem(GUEST_kEY, 'true');
         router.replace('/(app)');
     };
 

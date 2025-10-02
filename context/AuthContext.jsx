@@ -1,4 +1,5 @@
-﻿import React, { createContext, useState, useContext, useEffect } from 'react';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Alert } from 'react-native';
 
 
@@ -8,15 +9,16 @@ const AuthContext = createContext({
     isLoading: true,
     setUser: () => { },
     logout: () => { },
+    setGuest:() => {},
+    
 });
 
 export const useAuth = () => useContext(AuthContext);
-
 export const AuthProvider = ({ children }) =>
 {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-
+    
     useEffect(() =>
     {
         const checkUserSession = async () =>
@@ -73,6 +75,7 @@ export const AuthProvider = ({ children }) =>
         setUser,
         logout,
         isLoading,
+
     };
 
     return (

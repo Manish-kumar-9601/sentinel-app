@@ -316,6 +316,59 @@
       ]
     },
     {
+      "category": "Psychiatrist",
+      "title": "Seeking Mental Health Support",
+      "summary": "General guidance on when and how to seek help from a psychiatrist for mental health concerns. This is not a substitute for professional medical advice. If you are in immediate crisis, please contact an emergency helpline.",
+      "instructions": [
+        {
+          "step": 1,
+          "title": "Recognize the Need for Help",
+          "details": [
+            "Pay attention to persistent feelings of sadness, anxiety, hopelessness, or irritability.",
+            "Notice significant changes in sleep patterns, appetite, energy levels, or concentration.",
+            "Be aware of withdrawal from social activities or loss of interest in hobbies you once enjoyed.",
+            "If you are having thoughts of harming yourself or others, seek immediate emergency assistance."
+          ]
+        },
+        {
+          "step": 2,
+          "title": "Find a Qualified Professional",
+          "details": [
+            "Ask your primary care doctor or general physician for a referral.",
+            "Check with your insurance provider for a list of covered mental health professionals.",
+            "Use reputable online directories from psychiatric associations or health organizations."
+          ]
+        },
+        {
+          "step": 3,
+          "title": "Prepare for Your First Appointment",
+          "details": [
+            "Write down your key symptoms, concerns, and when they started.",
+            "Make a list of any current medications, past mental health treatments, and your family's medical history.",
+            "Think about what you want to achieve through treatment."
+          ]
+        },
+        {
+          "step": 4,
+          "title": "Engage in the Consultation",
+          "details": [
+            "Be open and honest about your thoughts, feelings, and experiences.",
+            "Ask questions about potential diagnoses, treatment options (therapy, medication), and what to expect.",
+            "Work with the psychiatrist to create a treatment plan that feels right for you."
+          ]
+        },
+        {
+          "step": 5,
+          "title": "Follow Up on Your Treatment Plan",
+          "details": [
+            "Attend follow-up appointments as scheduled.",
+            "Take any prescribed medication consistently and exactly as directed.",
+            "Communicate any side effects or concerns to your doctor immediately. Do not stop medication without consulting them."
+          ]
+        }
+      ]
+    },
+    {
       "category": "Natural Disaster",
       "title": "Natural Disaster Safety",
       "summary": "Instructions will vary depending on the disaster (e.g., earthquake, flood, cyclone). Follow official news and alerts from authorities.",

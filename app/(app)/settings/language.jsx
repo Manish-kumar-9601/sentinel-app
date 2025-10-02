@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  SafeAreaView,
+ 
   View,
   Text,
   StyleSheet,
@@ -13,7 +13,7 @@ import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Updates from 'expo-updates';
 import { useTranslation } from 'react-i18next';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'हिंदी (Hindi)' },

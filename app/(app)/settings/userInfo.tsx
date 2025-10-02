@@ -7,7 +7,7 @@ import {
     TextInput,
     TouchableOpacity,
     Alert,
-    SafeAreaView,
+    
     Keyboard,
     ActivityIndicator,
     RefreshControl,
@@ -15,7 +15,7 @@ import {
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 interface UserInfo {
     name: string;
     email: string;

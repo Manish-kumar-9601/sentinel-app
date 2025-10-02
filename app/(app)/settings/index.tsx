@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Keyboard, SafeAreaView
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Keyboard,  
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Link, Stack, useRouter } from 'expo-router';
@@ -8,8 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import i18n from '../../../lib/i18n';
+
 import { useTranslation } from 'react-i18next';
 import { API_Storing } from '../../../components/APIStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // --- Configuration ---
 const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
 const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';

@@ -10,7 +10,7 @@ import {
   Linking,
   Modal,
   Platform,
-  SafeAreaView,
+ 
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +19,8 @@ import {
   View,
 } from 'react-native';
 import i18n from '../../lib/i18n';
+import { SafeAreaView } from 'react-native-safe-area-context';
+SafeAreaView
 // --- Reusable Chat Bubble Component ---
 const ChatBubble = ({ message, isUser }) => (
   <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
@@ -245,14 +247,9 @@ const EmergencyGuideScreen = () => {
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
-        {/* <Stack.Screen   options={{title:`${categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}`,headerShown:true}} /> */}
-
+      <SafeAreaView    style={styles.container}>
         <Stack.Screen options={{
           headerShown: true, headerTitle: () => (
-
-
-
             <View style={{
               flexDirection: "row",
               justifyContent: "space-between",
@@ -361,9 +358,9 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   footer: {
-    padding: 20,
+    padding: 15,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#ffffffff',
     backgroundColor: 'white'
   },
   secondaryButton: {
