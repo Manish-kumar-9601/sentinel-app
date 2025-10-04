@@ -16,16 +16,13 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://manish-9601-sentinel--syjqm16g4o.expo.app"
-      }
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://manish-9601-sentinel--syjqm16g4o.expo.app"
+      "android": {
+        "buildType": "apk"
       }
     }
   },

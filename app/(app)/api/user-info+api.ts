@@ -4,7 +4,7 @@ import { withAuth, AuthUser } from '../../../utils/middleware';
 import { eq } from 'drizzle-orm';
 
 // GET handler to fetch user data
-const getHandler = async (request: Request, user:any) => {
+const getHandler = async (request: Request, user: any) => {
     try {
         const userId = user.id;
 
@@ -39,7 +39,7 @@ const getHandler = async (request: Request, user:any) => {
                 name: emergencyContacts.name,
                 phone: emergencyContacts.phone,
                 relationship: emergencyContacts.relationship,
-                 
+
                 createdAt: emergencyContacts.createdAt
             })
             .from(emergencyContacts)
@@ -84,21 +84,21 @@ const getHandler = async (request: Request, user:any) => {
                     name: contact.name || '',
                     phone: contact.phone || '',
                     relationship: contact.relationship || '',
-                   
+
                     createdAt: contact.createdAt
                 })),
                 lastUpdated: new Date().toISOString()
             }),
-            { 
-                status: 200, 
-                headers: { 'Content-Type': 'application/json' } 
+            {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
             }
         );
 
     } catch (error) {
         console.error('API Error fetching user info:', error);
         return new Response(
-            JSON.stringify({ 
+            JSON.stringify({
                 error: 'Failed to fetch user information',
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
             }),
@@ -108,13 +108,13 @@ const getHandler = async (request: Request, user:any) => {
 };
 
 // POST handler to save user data
-const postHandler = async (request: Request, user:any) => {
+const postHandler = async (request: Request, user: any) => {
     try {
         const body = await request.json();
-        const { 
-            userInfo: userInfoData, 
+        const {
+            userInfo: userInfoData,
             medicalInfo: medicalInfoData,
-            emergencyContacts: emergencyContactsData 
+            emergencyContacts: emergencyContactsData
         } = body;
         const userId = user.id;
 
@@ -131,18 +131,18 @@ const postHandler = async (request: Request, user:any) => {
             // Update user info in users table
             if (userInfoData) {
                 const updateData: any = {};
-                
+
                 if (userInfoData.name !== undefined) {
                     updateData.name = userInfoData.name?.trim() || null;
                 }
                 if (userInfoData.phone !== undefined) {
                     updateData.phone = userInfoData.phone?.trim() || null;
                 }
-                
+
                 // Only update if there's data to update
                 if (Object.keys(updateData).length > 0) {
                     updateData.updatedAt = new Date();
-                    
+
                     await tx
                         .update(users)
                         .set(updateData)
@@ -209,7 +209,7 @@ const postHandler = async (request: Request, user:any) => {
                         name: contact.name.trim(),
                         phone: contact.phone.trim(),
                         relationship: contact.relationship?.trim() || null,
-                        
+
                         createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
                         updatedAt: new Date(),
                     };
@@ -222,7 +222,7 @@ const postHandler = async (request: Request, user:any) => {
                                 name: contactData.name,
                                 phone: contactData.phone,
                                 relationship: contactData.relationship,
-                                
+
                                 updatedAt: contactData.updatedAt,
                             })
                             .where(eq(emergencyContacts.id, contact.id));
@@ -237,7 +237,7 @@ const postHandler = async (request: Request, user:any) => {
         });
 
         return new Response(
-            JSON.stringify({ 
+            JSON.stringify({
                 success: true,
                 message: 'User information saved successfully',
                 lastUpdated: new Date().toISOString()
@@ -247,7 +247,7 @@ const postHandler = async (request: Request, user:any) => {
 
     } catch (error) {
         console.error('API Error saving user info:', error);
-        
+
         // Check if it's a specific database error
         let errorMessage = 'Failed to save user information';
         if (error.message?.includes('foreign key')) {
@@ -255,9 +255,9 @@ const postHandler = async (request: Request, user:any) => {
         } else if (error.message?.includes('unique constraint')) {
             errorMessage = 'Data conflict occurred';
         }
-        
+
         return new Response(
-            JSON.stringify({ 
+            JSON.stringify({
                 error: errorMessage,
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
             }),

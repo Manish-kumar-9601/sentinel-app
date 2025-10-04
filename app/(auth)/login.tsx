@@ -33,7 +33,8 @@ const LoginScreen = () => {
         Keyboard.dismiss();
         setIsLoading(true);
         try {
-            const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
+         const apiUrl = process.env.EXPO_PUBLIC_API_URL ; //for preview and production
+      // const apiUrl = ''; //for local development
             const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

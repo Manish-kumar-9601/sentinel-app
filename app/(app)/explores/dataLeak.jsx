@@ -58,7 +58,9 @@ const DataLeakScreen = () =>
     console.log(encodeURIComponent(email.trim()))
     try
     {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL ; //for preview and production
+      // const apiUrl = ''; //for local development
+      console.log('API URL:', apiUrl);
       const response = await fetch(`${apiUrl}/api/dataLeak?email=${encodeURIComponent(email.trim())}&apiKey=${encodeURIComponent(apiKey)}`);
       const data = await response.json();
 

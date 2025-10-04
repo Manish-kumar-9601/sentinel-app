@@ -103,7 +103,7 @@ const UserInfoScreen = () => {
                 cacheTimestamp: new Date().toISOString()
             };
             await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-            
+
             // Also sync contacts with the old contacts storage for backward compatibility
             await AsyncStorage.setItem('emergency_contacts', JSON.stringify(data.emergencyContacts));
             console.log('Data saved to cache');
@@ -116,7 +116,7 @@ const UserInfoScreen = () => {
     const loadInfo = useCallback(async (forceRefresh = false, showLoader = true) => {
         try {
             if (showLoader) setIsLoading(true);
-            
+
             // Try to load from cache first if not forcing refresh
             if (!forceRefresh) {
                 const cachedData = await loadFromCache();
@@ -134,8 +134,10 @@ const UserInfoScreen = () => {
             }
 
             // Fetch from API if cache is invalid or force refresh
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL; //for preview and production
+            // const apiUrl = ''; //for local development
             console.log('Fetching fresh data from API');
-            const response = await fetch('/api/user-info', {
+            const response = await fetch(`${apiUrl}/api/user-info`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,14 +156,14 @@ const UserInfoScreen = () => {
             }
 
             const data: ApiResponse = await response.json();
-            
+
             // Set state with API data
             setUserInfo({
                 name: data.userInfo?.name || '',
                 email: data.userInfo?.email || '',
                 phone: data.userInfo?.phone || '',
             });
-            
+
             setMedicalInfo({
                 bloodGroup: data.medicalInfo?.bloodGroup || '',
                 allergies: data.medicalInfo?.allergies || '',
@@ -179,7 +181,7 @@ const UserInfoScreen = () => {
 
         } catch (error) {
             console.error('Failed to load user info:', error);
-            
+
             // Try to use cached data as fallback
             const cachedData = await loadFromCache();
             if (cachedData) {
@@ -189,13 +191,13 @@ const UserInfoScreen = () => {
                 setEmergencyContacts(cachedData.emergencyContacts || []);
                 setLastUpdated(cachedData.lastUpdated);
                 Alert.alert(
-                    'Using Offline Data', 
+                    'Using Offline Data',
                     'Could not connect to server. Using your last saved information.',
                     [{ text: 'OK' }]
                 );
             } else {
                 Alert.alert(
-                    'Error', 
+                    'Error',
                     'Could not load your information. Please check your internet connection and try again.',
                     [
                         { text: 'Retry', onPress: () => loadInfo(forceRefresh, showLoader) },
@@ -251,7 +253,7 @@ const UserInfoScreen = () => {
         // Check if emergency contact info is complete or both empty
         const hasEmergencyName = medicalInfo.emergencyContactName.trim();
         const hasEmergencyPhone = medicalInfo.emergencyContactPhone.trim();
-        
+
         if ((hasEmergencyName && !hasEmergencyPhone) || (!hasEmergencyName && hasEmergencyPhone)) {
             errors.push('Please provide both emergency contact name and phone number, or leave both empty');
         }
@@ -271,7 +273,7 @@ const UserInfoScreen = () => {
 
     const handleSave = async () => {
         Keyboard.dismiss();
-        
+
         // Validate data before saving
         const validationErrors = validateData();
         if (validationErrors.length > 0) {
@@ -281,12 +283,12 @@ const UserInfoScreen = () => {
 
         try {
             setIsSaving(true);
-            
+
             const payload = {
                 userInfo: {
                     name: userInfo.name.trim(),
                     phone: userInfo.phone.trim() || null,
-                }, 
+                },
                 medicalInfo: {
                     bloodGroup: medicalInfo.bloodGroup.trim() || null,
                     allergies: medicalInfo.allergies.trim() || null,
@@ -303,11 +305,12 @@ const UserInfoScreen = () => {
                     createdAt: contact.createdAt
                 }))
             };
-
-            const response = await fetch('/api/user-info', {
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL; //for preview and production
+            // const apiUrl = ''; //for local development
+            const response = await fetch(`${apiUrl}/api/user-info`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json' 
+                headers: {
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload),
             });
@@ -324,7 +327,7 @@ const UserInfoScreen = () => {
             const result = await response.json();
             setHasUnsavedChanges(false);
             setLastUpdated(result.lastUpdated);
-            
+
             // Update cache after successful save
             const updatedData: ApiResponse = {
                 userInfo,
@@ -333,13 +336,13 @@ const UserInfoScreen = () => {
                 lastUpdated: result.lastUpdated
             };
             await saveToCache(updatedData);
-            
+
             Alert.alert('Success!', 'Your information has been saved successfully.');
-            
+
         } catch (error) {
             console.error('Failed to save user info:', error);
             Alert.alert(
-                'Error', 
+                'Error',
                 `Could not save your information: ${error.message || 'Unknown error'}`,
                 [
                     { text: 'Retry', onPress: handleSave },
@@ -358,9 +361,11 @@ const UserInfoScreen = () => {
                 'Missing Information',
                 'Please add emergency contact information before sharing.',
                 [
-                    { text: 'Add Contact Info', onPress: () => {
-                        // Could scroll to emergency contact section
-                    }},
+                    {
+                        text: 'Add Contact Info', onPress: () => {
+                            // Could scroll to emergency contact section
+                        }
+                    },
                     { text: 'Cancel', style: 'cancel' }
                 ]
             );
@@ -369,18 +374,20 @@ const UserInfoScreen = () => {
 
         // Check if there's meaningful data to share
         const hasUserInfo = userInfo.name.trim();
-        const hasMedicalInfo = medicalInfo.bloodGroup.trim() || 
-                              medicalInfo.allergies.trim() || 
-                              medicalInfo.medications.trim();
+        const hasMedicalInfo = medicalInfo.bloodGroup.trim() ||
+            medicalInfo.allergies.trim() ||
+            medicalInfo.medications.trim();
 
         if (!hasUserInfo && !hasMedicalInfo) {
             Alert.alert(
                 'No Information to Share',
                 'Please fill in your information before sharing.',
                 [
-                    { text: 'Fill Info', onPress: () => {
-                        // Could focus on first empty field
-                    }},
+                    {
+                        text: 'Fill Info', onPress: () => {
+                            // Could focus on first empty field
+                        }
+                    },
                     { text: 'Cancel', style: 'cancel' }
                 ]
             );
@@ -394,12 +401,14 @@ const UserInfoScreen = () => {
                 'You have unsaved changes. Do you want to save them before sharing?',
                 [
                     { text: 'Share Without Saving', onPress: proceedWithShare },
-                    { text: 'Save First', onPress: async () => {
-                        await handleSave();
-                        if (!hasUnsavedChanges) { // If save was successful
-                            proceedWithShare();
+                    {
+                        text: 'Save First', onPress: async () => {
+                            await handleSave();
+                            if (!hasUnsavedChanges) { // If save was successful
+                                proceedWithShare();
+                            }
                         }
-                    }},
+                    },
                     { text: 'Cancel', style: 'cancel' }
                 ]
             );
@@ -414,8 +423,8 @@ const UserInfoScreen = () => {
             `This will send your medical and emergency information to ${medicalInfo.emergencyContactName}.`,
             [
                 { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Share', 
+                {
+                    text: 'Share',
                     onPress: async () => {
                         try {
                             // Here you would implement the actual sharing logic
@@ -468,7 +477,7 @@ const UserInfoScreen = () => {
                     headerShown: true,
                 }}
             />
-            <ScrollView 
+            <ScrollView
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
@@ -604,11 +613,11 @@ const UserInfoScreen = () => {
                     </View>
                 )}
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[
-                        styles.saveButton, 
+                        styles.saveButton,
                         (isSaving || !hasUnsavedChanges) && styles.disabledButton
-                    ]} 
+                    ]}
                     onPress={handleSave}
                     disabled={isSaving || !hasUnsavedChanges}
                 >
@@ -624,8 +633,8 @@ const UserInfoScreen = () => {
                     )}
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={[styles.shareButton, isSaving && styles.disabledButton]} 
+                <TouchableOpacity
+                    style={[styles.shareButton, isSaving && styles.disabledButton]}
                     onPress={handleShare}
                     disabled={isSaving}
                 >
@@ -638,9 +647,9 @@ const UserInfoScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: '#F2F2F7' 
+    container: {
+        flex: 1,
+        backgroundColor: '#F2F2F7'
     },
     loadingContainer: {
         flex: 1,
