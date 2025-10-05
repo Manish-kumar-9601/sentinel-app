@@ -5,7 +5,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    
+
     StyleSheet,
     Text,
     TextInput,
@@ -15,7 +15,7 @@ import {
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
- 
+import Constants from 'expo-constants';
 const RegisterScreen = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -30,9 +30,11 @@ const RegisterScreen = () => {
         }
         setIsLoading(true);
         try {
-        
-             const apiUrl = process.env.EXPO_PUBLIC_API_URL ; //for preview and production
-      // const apiUrl = ''; //for local development
+
+            const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
+
+            console.log('🔍 Using API URL:', apiUrl);
+            // const apiUrl = ''; //for local development
             const res = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

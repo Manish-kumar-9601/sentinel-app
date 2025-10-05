@@ -5,7 +5,6 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
- 
     Alert,
     ActivityIndicator,
     Image,
@@ -17,8 +16,8 @@ import { useAuth } from '../../context/AuthContext';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const GUEST_kEY='guest_user';
+import Constants from 'expo-constants';
+const GUEST_kEY = 'guest_user';
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -33,8 +32,7 @@ const LoginScreen = () => {
         Keyboard.dismiss();
         setIsLoading(true);
         try {
-         const apiUrl = process.env.EXPO_PUBLIC_API_URL ; //for preview and production
-      // const apiUrl = ''; //for local development
+            const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
             const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

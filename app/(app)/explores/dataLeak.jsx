@@ -19,6 +19,7 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import sentinel_detect_icon from '../../..//assets/images/heroIcon.png'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 const API_KEY_STORAGE_KEY = '@api_key';
 const DataLeakScreen = () =>
 {
@@ -58,9 +59,7 @@ const DataLeakScreen = () =>
     console.log(encodeURIComponent(email.trim()))
     try
     {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL ; //for preview and production
-      // const apiUrl = ''; //for local development
-      console.log('API URL:', apiUrl);
+          const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
       const response = await fetch(`${apiUrl}/api/dataLeak?email=${encodeURIComponent(email.trim())}&apiKey=${encodeURIComponent(apiKey)}`);
       const data = await response.json();
 

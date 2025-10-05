@@ -15,6 +15,7 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 interface UserInfo {
     name: string;
     email: string;
@@ -134,8 +135,7 @@ const UserInfoScreen = () => {
             }
 
             // Fetch from API if cache is invalid or force refresh
-            const apiUrl = process.env.EXPO_PUBLIC_API_URL; //for preview and production
-            // const apiUrl = ''; //for local development
+                  const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
             console.log('Fetching fresh data from API');
             const response = await fetch(`${apiUrl}/api/user-info`, {
                 method: 'GET',
@@ -305,8 +305,7 @@ const UserInfoScreen = () => {
                     createdAt: contact.createdAt
                 }))
             };
-            const apiUrl = process.env.EXPO_PUBLIC_API_URL; //for preview and production
-            // const apiUrl = ''; //for local development
+            const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
             const response = await fetch(`${apiUrl}/api/user-info`, {
                 method: 'POST',
                 headers: {
