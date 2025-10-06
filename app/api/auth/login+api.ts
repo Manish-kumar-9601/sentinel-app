@@ -1,9 +1,9 @@
-﻿import { db } from '../../../../db/client';
-import { users } from '../../../../db/schema';
+﻿import { db } from '../../../db/client';
+import { users } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { COOKIE_NAME, JWT_SECRET } from '../../../../utils/constants';
+import { COOKIE_NAME, JWT_SECRET } from '../../../utils/constants';
 
 export async function POST(request: Request) {
     try {

@@ -1,6 +1,6 @@
-﻿import { db } from '../../../db/client';
-import { users, medicalInfo, emergencyContacts } from '../../../db/schema';
-import { withAuth, AuthUser } from '../../../utils/middleware';
+﻿import { db } from '../../db/client';
+import { users, medicalInfo, emergencyContacts } from '../../db/schema';
+import { withAuth, AuthUser } from '../../utils/middleware';
 import { eq } from 'drizzle-orm';
 
 // GET handler to fetch user data

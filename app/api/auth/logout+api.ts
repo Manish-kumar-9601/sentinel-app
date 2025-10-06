@@ -1,4 +1,4 @@
-﻿import { COOKIE_NAME } from '../../../../utils/constants';
+﻿import { COOKIE_NAME } from '../../../utils/constants';
 
 export async function POST() {
     try {
