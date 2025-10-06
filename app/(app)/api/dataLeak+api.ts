@@ -1,6 +1,4 @@
-﻿// This is a server-side file. It runs in a Node.js environment.
-
-export async function GET (request)
+﻿export async function GET (request)
 {
 
   try
