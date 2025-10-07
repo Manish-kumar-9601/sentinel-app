@@ -98,6 +98,7 @@
       "typedRoutes": true
     },
     "extra": {
+      
       "eas": {
         "projectId": "149ae237-40de-4c01-8535-aeb659ca4222"
       },

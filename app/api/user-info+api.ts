@@ -1,14 +1,19 @@
-﻿import { db } from '../../db/client';
+﻿import { db } from '@/db/client';
 import { users, medicalInfo, emergencyContacts } from '../../db/schema';
-import { withAuth, AuthUser } from '../../utils/middleware';
+import addCorsHeaders, { withAuth, AuthUser } from '../../utils/middleware';
 import { eq } from 'drizzle-orm';
 
-// GET handler to fetch user data
-const getHandler = async (request: Request, user: any) => {
+export async function OPTIONS() {
+    return addCorsHeaders(new Response(null, { status: 204 }));
+}
+
+// GET handler
+const getHandler = async (request: Request, user: AuthUser) => {
     try {
         const userId = user.id;
+        console.log('📋 Fetching user info for:', userId);
 
-        // Fetch user info from users table
+        // Fetch user info
         const userData = await db
             .select({
                 name: users.name,
@@ -19,7 +24,7 @@ const getHandler = async (request: Request, user: any) => {
             .where(eq(users.id, userId))
             .limit(1);
 
-        // Fetch medical info from medicalInfo table
+        // Fetch medical info
         const medicalData = await db
             .select({
                 bloodGroup: medicalInfo.bloodGroup,
@@ -32,21 +37,19 @@ const getHandler = async (request: Request, user: any) => {
             .where(eq(medicalInfo.userId, userId))
             .limit(1);
 
-        // Fetch emergency contacts from emergencyContacts table
+        // Fetch emergency contacts
         const contactsData = await db
             .select({
                 id: emergencyContacts.id,
                 name: emergencyContacts.name,
                 phone: emergencyContacts.phone,
                 relationship: emergencyContacts.relationship,
-
                 createdAt: emergencyContacts.createdAt
             })
             .from(emergencyContacts)
             .where(eq(emergencyContacts.userId, userId))
             .orderBy(emergencyContacts.createdAt);
 
-        // Provide default values if no data exists
         const defaultUserInfo = {
             name: '',
             email: '',
@@ -61,11 +64,12 @@ const getHandler = async (request: Request, user: any) => {
             emergencyContactPhone: '',
         };
 
-        // Extract first result or use defaults
         const userInfoResult = userData.length > 0 ? userData[0] : defaultUserInfo;
         const medicalInfoResult = medicalData.length > 0 ? medicalData[0] : defaultMedicalInfo;
 
-        return new Response(
+        console.log('✅ User info fetched successfully');
+
+        return addCorsHeaders(new Response(
             JSON.stringify({
                 userInfo: {
                     name: userInfoResult.name || '',
@@ -84,7 +88,6 @@ const getHandler = async (request: Request, user: any) => {
                     name: contact.name || '',
                     phone: contact.phone || '',
                     relationship: contact.relationship || '',
-
                     createdAt: contact.createdAt
                 })),
                 lastUpdated: new Date().toISOString()
@@ -93,22 +96,22 @@ const getHandler = async (request: Request, user: any) => {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' }
             }
-        );
+        ));
 
-    } catch (error) {
-        console.error('API Error fetching user info:', error);
-        return new Response(
+    } catch (error: any) {
+        console.error('💥 Error fetching user info:', error);
+        return addCorsHeaders(new Response(
             JSON.stringify({
                 error: 'Failed to fetch user information',
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
             }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        ));
     }
 };
 
-// POST handler to save user data
-const postHandler = async (request: Request, user: any) => {
+// POST handler
+const postHandler = async (request: Request, user: AuthUser) => {
     try {
         const body = await request.json();
         const {
@@ -118,17 +121,17 @@ const postHandler = async (request: Request, user: any) => {
         } = body;
         const userId = user.id;
 
-        // Validate that we have some data to save
+        console.log('💾 Saving user info for:', userId);
+
         if (!userInfoData && !medicalInfoData && !emergencyContactsData) {
-            return new Response(
+            return addCorsHeaders(new Response(
                 JSON.stringify({ error: 'No data provided to save' }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }
-            );
+            ));
         }
 
-        // Use transaction to ensure all operations succeed or fail together
         await db.transaction(async (tx) => {
-            // Update user info in users table
+            // Update user info
             if (userInfoData) {
                 const updateData: any = {};
 
@@ -139,7 +142,6 @@ const postHandler = async (request: Request, user: any) => {
                     updateData.phone = userInfoData.phone?.trim() || null;
                 }
 
-                // Only update if there's data to update
                 if (Object.keys(updateData).length > 0) {
                     updateData.updatedAt = new Date();
 
@@ -150,7 +152,7 @@ const postHandler = async (request: Request, user: any) => {
                 }
             }
 
-            // Handle medical info (upsert since userId is primary key)
+            // Upsert medical info
             if (medicalInfoData) {
                 const medicalDataToSave = {
                     userId: userId,
@@ -178,9 +180,8 @@ const postHandler = async (request: Request, user: any) => {
                     });
             }
 
-            // Handle emergency contacts sync
+            // Sync emergency contacts
             if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
-                // Get existing contacts
                 const existingContacts = await tx
                     .select({ id: emergencyContacts.id })
                     .from(emergencyContacts)
@@ -191,7 +192,7 @@ const postHandler = async (request: Request, user: any) => {
                     .filter(c => c.id && !c.id.startsWith('temp_'))
                     .map(c => c.id);
 
-                // Delete contacts that are no longer in the incoming data
+                // Delete removed contacts
                 const contactsToDelete = existingContactIds.filter(id => !incomingContactIds.includes(id));
                 for (const contactId of contactsToDelete) {
                     await tx
@@ -209,25 +210,21 @@ const postHandler = async (request: Request, user: any) => {
                         name: contact.name.trim(),
                         phone: contact.phone.trim(),
                         relationship: contact.relationship?.trim() || null,
-
                         createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
                         updatedAt: new Date(),
                     };
 
                     if (contact.id && !contact.id.startsWith('temp_')) {
-                        // Update existing contact
                         await tx
                             .update(emergencyContacts)
                             .set({
                                 name: contactData.name,
                                 phone: contactData.phone,
                                 relationship: contactData.relationship,
-
                                 updatedAt: contactData.updatedAt,
                             })
                             .where(eq(emergencyContacts.id, contact.id));
                     } else {
-                        // Insert new contact
                         await tx
                             .insert(emergencyContacts)
                             .values(contactData);
@@ -236,19 +233,20 @@ const postHandler = async (request: Request, user: any) => {
             }
         });
 
-        return new Response(
+        console.log('✅ User info saved successfully');
+
+        return addCorsHeaders(new Response(
             JSON.stringify({
                 success: true,
                 message: 'User information saved successfully',
                 lastUpdated: new Date().toISOString()
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
+        ));
 
-    } catch (error) {
-        console.error('API Error saving user info:', error);
+    } catch (error: any) {
+        console.error('💥 Error saving user info:', error);
 
-        // Check if it's a specific database error
         let errorMessage = 'Failed to save user information';
         if (error.message?.includes('foreign key')) {
             errorMessage = 'User account not found';
@@ -256,16 +254,15 @@ const postHandler = async (request: Request, user: any) => {
             errorMessage = 'Data conflict occurred';
         }
 
-        return new Response(
+        return addCorsHeaders(new Response(
             JSON.stringify({
                 error: errorMessage,
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
             }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        ));
     }
 };
 
-// Export both GET and POST handlers wrapped with authentication
 export const GET = withAuth(getHandler);
 export const POST = withAuth(postHandler);
