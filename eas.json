@@ -9,6 +9,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "NODE_ENV": "development"
       }
     },
     "preview": {
@@ -16,13 +19,19 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "NODE_ENV": "staging"
+      }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "NODE_ENV": "production"
       }
     }
   },

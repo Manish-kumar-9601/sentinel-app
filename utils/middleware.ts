@@ -74,3 +74,31 @@ export function withAuth(
   };
 }
 
+
+export function addSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  
+  // Security headers
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('X-XSS-Protection', '1; mode=block');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
+  // CORS (adjust for your needs)
+  if (process.env.NODE_ENV === 'production') {
+    headers.set('Access-Control-Allow-Origin', 'https://yourdomain.com');
+  } else {
+    headers.set('Access-Control-Allow-Origin', '*');
+  }
+  
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+

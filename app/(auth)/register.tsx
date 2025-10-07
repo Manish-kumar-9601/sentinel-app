@@ -31,9 +31,13 @@ const RegisterScreen = () => {
         setIsLoading(true);
         try {
 
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
+            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
 
-            console.log('🔍 Using API URL:', apiUrl);
+            if (!apiUrl) {
+                console.error('API URL not configured');
+                Alert.alert('Configuration Error', 'App is not properly configured. Please contact support.');
+                return;
+            }
             // const apiUrl = ''; //for local development
             const res = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',

@@ -32,7 +32,13 @@ const LoginScreen = () => {
         Keyboard.dismiss();
         setIsLoading(true);
         try {
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
+            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+
+            if (!apiUrl) {
+                console.error('API URL not configured');
+                Alert.alert('Configuration Error', 'App is not properly configured. Please contact support.');
+                return;
+            }
             const res = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
