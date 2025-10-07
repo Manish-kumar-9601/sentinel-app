@@ -4,8 +4,9 @@
             status: 'API is working!',
             timestamp: new Date().toISOString(),
             env: {
-                hasJWT: !!process.env.JWT_SECRET,
-                hasDB: !!process.env.DATABASE_URL,
+                hasJWT: !!process.env.JWT_SECRET,  // ✅ Returns boolean, not the actual secret
+                hasDB: !!process.env.DATABASE_URL,  // ✅ Returns boolean, not the actual URL
+                nodeEnv: process.env.NODE_ENV,
             }
         }),
         {
