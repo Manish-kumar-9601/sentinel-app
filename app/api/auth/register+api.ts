@@ -1,4 +1,5 @@
-﻿import { db } from '../../../db/client';
+﻿/// <reference lib="dom" />
+import { db } from '../../../db/client';
 import { users } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
@@ -17,8 +18,10 @@ export async function POST(request: Request) {
   logger.info('📝 Registration attempt started');
 
   try {
-    const body = await request.json();
-    const { name, email, password } = body;
+    const formData = await request.formData();
+    const name = formData.get('name') as string | null;
+    const email = formData.get('email') as string | null;
+    const password = formData.get('password') as string | null;
 
     logger.info('📦 Received registration data', {
       name,
@@ -58,17 +61,17 @@ export async function POST(request: Request) {
     }
 
     // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return addCorsHeaders(new Response(JSON.stringify({
-        error: 'Invalid email format.'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      }));
-    }
+    // const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // if (!emailRegex.test(email)) {
+    //   return addCorsHeaders(new Response(JSON.stringify({
+    //     error: 'Invalid email format.'
+    //   }), {
+    //     status: 400,
+    //     headers: { 'Content-Type': 'application/json' }
+    //   }));
+    // }
 
-    // Sanitize and normalize email - FIXED
+    // Sanitize and normalize email
     const sanitizedEmail = email.toLowerCase().trim();
 
     // Check JWT_SECRET
@@ -84,35 +87,11 @@ export async function POST(request: Request) {
 
     logger.info('🔍 Checking for existing user...');
 
-    // Check if user exists - FIXED query
-    let existingUserArr;
-    try {
-      existingUserArr = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, sanitizedEmail))
-        .limit(1);
-
-      logger.info('✅ Database query successful', {
-        found: existingUserArr.length > 0
-      });
-    } catch (dbError: any) {
-      logger.error('❌ Database query failed:', dbError);
-      logger.error('Error details:', {
-        message: dbError.message,
-        code: dbError.code,
-        detail: dbError.detail,
-        query: dbError.query
-      });
-
-      return addCorsHeaders(new Response(JSON.stringify({
-        error: 'Database error. Please try again.',
-        details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }));
-    }
+    const existingUserArr = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, sanitizedEmail))
+      .limit(1);
 
     if (existingUserArr.length > 0) {
       logger.warn('❌ User already exists');
@@ -125,61 +104,19 @@ export async function POST(request: Request) {
     }
 
     logger.info('🔐 Hashing password...');
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Verify the hash was created correctly
-    const verifyHash = await bcrypt.compare(password, hashedPassword);
-    if (!verifyHash) {
-      logger.error('❌ Password hashing verification failed');
-      return addCorsHeaders(new Response(JSON.stringify({
-        error: 'Password processing error.'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }));
-    }
     logger.info('💾 Creating user in database...');
     const userId = uuidv4();
-    // FIXED: Properly structured insert with all fields
-    let newUserArr;
-    try {
-      const insertData = {
+    const newUserArr = await db
+      .insert(users)
+      .values({
         id: userId,
         name: name.trim(),
         email: sanitizedEmail,
         hashedPassword: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      logger.info('Inserting user with data:', {
-        id: insertData.id,
-        email: insertData.email,
-      });
-      newUserArr = await db
-        .insert(users)
-        .values(insertData)
-        .returning();
-      logger.info('✅ User created successfully');
-    } catch (insertError: any) {
-      logger.error('❌ Failed to insert user:', insertError);
-      logger.error('Insert error details:', {
-        message: insertError.message,
-        code: insertError.code,
-        detail: insertError.detail,
-        constraint: insertError.constraint
-      });
-
-      return addCorsHeaders(new Response(JSON.stringify({
-        error: 'Failed to create user account.',
-        details: process.env.NODE_ENV === 'development' ? insertError.message : undefined
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }));
-    }
-
+      })
+      .returning();
     const newUser = newUserArr[0];
 
     logger.info('🎫 Generating JWT token...');
@@ -197,7 +134,7 @@ export async function POST(request: Request) {
     const isProduction = process.env.NODE_ENV === 'production';
     const cookie = `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24}; SameSite=Lax${isProduction ? '; Secure' : ''}`;
 
-    const { hashedPassword: _, createdAt, updatedAt, ...userWithoutPassword } = newUser;
+    const { hashedPassword: _, ...userWithoutPassword } = newUser;
 
     logger.info('✅ Registration successful for:', sanitizedEmail);
 
@@ -214,6 +151,13 @@ export async function POST(request: Request) {
     }));
 
   } catch (error: any) {
+    if (error instanceof TypeError && error.message.includes('Failed to parse')) {
+      logger.error('💥 Invalid request body format. Expected form-data.', error);
+      return addCorsHeaders(new Response(JSON.stringify({
+        error: 'Invalid request format.',
+      }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
+    }
+
     logger.error('💥 Registration error:', error);
     logger.error('Error stack:', error.stack);
 

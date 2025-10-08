@@ -1,11 +1,10 @@
-﻿import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+﻿import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // USERS TABLE
 export const users = pgTable('users', {
-    id: text('id').primaryKey(), // Assuming you use an ID from an auth provider
+    id: text('id').primaryKey(), // UUID
     name: text('name'),
     email: text('email').unique().notNull(),
-    phone: text('phone'),
     hashedPassword: text('hashed_password'),  
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),

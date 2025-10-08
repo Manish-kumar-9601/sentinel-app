@@ -1,5 +1,5 @@
 {
-  "id": "bdb5b1e6-9fd7-4b64-a7c4-1d5501268ea6",
+  "id": "cb33f209-9bd4-451a-9ab8-88fc1b8099f0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -166,12 +166,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "hashed_password": {
           "name": "hashed_password",
