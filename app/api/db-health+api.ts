@@ -3,21 +3,17 @@ import { logger } from '@/utils/logger';
 import { db } from '../../db/client';
 import { users } from '../../db/schema';
 import addCorsHeaders from '../../utils/middleware';
-
 export async function OPTIONS() {
     return addCorsHeaders(new Response(null, { status: 204 }));
 }
-
 export async function GET() {
     const checks: any = {
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV,
         checks: {}
     };
-
     // 1. Check if DATABASE_URL exists
     checks.checks.databaseUrlExists = !!process.env.DATABASE_URL;
-    
     if (process.env.DATABASE_URL) {
         // Show sanitized connection string (hide password)
         const dbUrl = process.env.DATABASE_URL;
@@ -31,7 +27,6 @@ export async function GET() {
             checks.checks.urlParseError = 'Invalid DATABASE_URL format';
         }
     }
-
     // 2. Test database connection with raw query
     try {
         logger.info('🔌 Testing database connection...');
@@ -51,19 +46,15 @@ export async function GET() {
             hint: dbError.hint
         };
     }
-
     // 3. Check other required env vars
     checks.checks.jwtSecretExists = !!process.env.JWT_SECRET;
-
     // 4. Runtime information
     checks.runtime = {
         platform: typeof process !== 'undefined' ? 'node' : 'edge',
         hasProcess: typeof process !== 'undefined',
         hasGlobal: typeof global !== 'undefined'
     };
-
     const status = checks.checks.databaseConnection === 'success' ? 200 : 500;
-
     return addCorsHeaders(new Response(
         JSON.stringify(checks, null, 2),
         {
