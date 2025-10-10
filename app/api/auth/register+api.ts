@@ -9,9 +9,42 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../../../utils/logger';
 import addCorsHeaders from '../../../utils/middleware';
 
-// Handle OPTIONS preflight request
 export async function OPTIONS(request: Request) {
   return addCorsHeaders(new Response(null, { status: 204 }));
+}
+
+async function parseRequestBody(request: Request): Promise<{ name: string | null; email: string | null; password: string | null }> {
+  const contentType = request.headers.get('content-type') || '';
+  
+  // Handle JSON
+  if (contentType.includes('application/json')) {
+    try {
+      const body = await request.json();
+      return {
+        name: body.name || null,
+        email: body.email || null,
+        password: body.password || null
+      };
+    } catch (error) {
+      throw new Error('Invalid JSON format');
+    }
+  }
+  
+  // Handle form-data or x-www-form-urlencoded
+  if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+    try {
+      const formData = await request.formData();
+      return {
+        name: formData.get('name') as string | null,
+        email: formData.get('email') as string | null,
+        password: formData.get('password') as string | null
+      };
+    } catch (error) {
+      throw new Error('Invalid form data');
+    }
+  }
+  
+  throw new Error('Unsupported content type. Please use application/json or multipart/form-data');
 }
 
 export async function POST(request: Request) {
@@ -21,7 +54,7 @@ export async function POST(request: Request) {
     // Test database connection first
     logger.info('🔌 Testing database connection...');
     try {
-      const dbTest = await db.select().from(users).limit(1);
+      await db.select().from(users).limit(1);
       logger.info('✅ Database connection successful');
     } catch (dbError: any) {
       logger.error('❌ Database connection failed:', dbError);
@@ -34,34 +67,36 @@ export async function POST(request: Request) {
       }));
     }
 
-    // Parse request body as JSON
+    // Parse request body (supports both JSON and form-data)
     const contentType = request.headers.get('content-type') || '';
     logger.info('📦 Content-Type:', contentType);
 
-    let body: any;
+    let name: string | null;
+    let email: string | null;
+    let password: string | null;
+
     try {
-      body = await request.json();
+      const parsed = await parseRequestBody(request);
+      name = parsed.name;
+      email = parsed.email;
+      password = parsed.password;
+      
       logger.info('📦 Received data:', { 
-        hasName: !!body.name, 
-        hasEmail: !!body.email, 
-        hasPassword: !!body.password,
-        nameValue: body.name,
-        emailValue: body.email,
-        rawBody: JSON.stringify(body)
+        hasName: !!name, 
+        hasEmail: !!email, 
+        hasPassword: !!password,
+        nameValue: name,
+        emailValue: email
       });
     } catch (parseError: any) {
       logger.error('❌ Failed to parse request body:', parseError);
       return addCorsHeaders(new Response(JSON.stringify({
-        error: 'Invalid request body. Expected JSON format.'
+        error: parseError.message || 'Invalid request body format'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       }));
     }
-
-    const name = body.name as string | null;
-    const email = body.email as string | null;
-    const password = body.password as string | null;
 
     // Validation
     if (!name || !email || !password) {
@@ -201,7 +236,6 @@ export async function POST(request: Request) {
     logger.error('Error message:', error.message);
     logger.error('Error stack:', error.stack);
 
-    // Check for specific database errors
     if (error.code) {
       logger.error('Database error code:', error.code);
     }
