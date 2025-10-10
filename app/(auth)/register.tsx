@@ -5,7 +5,6 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-
     StyleSheet,
     Text,
     TextInput,
@@ -15,60 +14,35 @@ import {
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
+
 const RegisterScreen = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { setUser, user } = useAuth();
+    const { register } = useAuth();
 
     const handleRegister = async () => {
         if (!name || !email || !password) {
             return Alert.alert('Error', 'Please fill in all fields.');
         }
+        
         setIsLoading(true);
+        
         try {
-
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-
-            if (!apiUrl) {
-                console.error('API URL not configured');
-                Alert.alert('Configuration Error', 'App is not properly configured. Please contact support.');
-                return;
-            }
-            // const apiUrl = ''; //for local development
-            const res = await fetch(`${apiUrl}/api/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name:name, email:email, password:password }),
-            });
-            const data = await res.json();
-            if (res.ok) {
-
-                // Set the user state. The AuthContext and root layouts will handle the redirect.
-
-                console.log('data', data)
-                console.log('data.user', data.user)
-                console.log('res', res)
-                console.log('res.ok', res.ok)
-                console.log('res.ok ', res.ok, 'user', user)
-                if (data.user === undefined) {
-                    Alert.alert('Registration Failed', 'User data is undefined.');
-                    setIsLoading(false);
-                    return;
-                }
-                setUser(data.user);
+            const result = await register(name, email, password);
+            
+            if (result.success) {
                 router.replace('/(app)');
-
             } else {
-                Alert.alert('Registration Failed', data.error || 'Could not create account.');
+                Alert.alert('Registration Failed', result.error || 'Could not create account.');
             }
         } catch (error) {
             Alert.alert('Error', 'An unexpected error occurred.');
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     return (
@@ -85,6 +59,7 @@ const RegisterScreen = () => {
                         placeholder="Full Name"
                         value={name}
                         onChangeText={setName}
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -97,6 +72,7 @@ const RegisterScreen = () => {
                         onChangeText={setEmail}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -104,10 +80,11 @@ const RegisterScreen = () => {
                     <Feather name="lock" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password"
+                        placeholder="Password (min 8 characters)"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -124,7 +101,7 @@ const RegisterScreen = () => {
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Already have an account?</Text>
-                    <TouchableOpacity onPress={() => router.push('/login')}>
+                    <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
                         <Text style={styles.linkText}> Log In</Text>
                     </TouchableOpacity>
                 </View>
@@ -205,4 +182,3 @@ const styles = StyleSheet.create({
 });
 
 export default RegisterScreen;
-

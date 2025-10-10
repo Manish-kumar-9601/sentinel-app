@@ -16,53 +16,41 @@ import { useAuth } from '../../context/AuthContext';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
-const GUEST_kEY = 'guest_user';
+
+const GUEST_KEY = 'guest_user';
+
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { setUser } = useAuth();
+    const { login } = useAuth();
 
     const handleLogin = async () => {
         if (!email || !password) {
             return Alert.alert('Error', 'Please enter both email and password.');
         }
+        
         Keyboard.dismiss();
         setIsLoading(true);
+        
         try {
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-
-            if (!apiUrl) {
-                console.error('API URL not configured');
-                Alert.alert('Configuration Error', 'App is not properly configured. Please contact support.');
-                return;
-            }
-            const res = await fetch(`${apiUrl}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setUser(data.user);
-                // Since this is a modal, a successful login should dismiss it.
-                // We use router.back() to close the modal and return to the previous screen.
-                if (data.user) {
-                    router.replace('/(app)');
-                }
+            const result = await login(email, password);
+            
+            if (result.success) {
+                router.replace('/(app)');
             } else {
-                Alert.alert('Login Failed', data.error || 'Invalid credentials.');
+                Alert.alert('Login Failed', result.error || 'Invalid credentials.');
             }
         } catch (error) {
             Alert.alert('Error', 'An unexpected error occurred.');
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
-    const handleContinueAsGuest = () => {
-        AsyncStorage.setItem(GUEST_kEY, 'true');
+    const handleContinueAsGuest = async () => {
+        await AsyncStorage.setItem(GUEST_KEY, 'true');
         router.replace('/(app)');
     };
 
@@ -82,6 +70,7 @@ const LoginScreen = () => {
                         onChangeText={setEmail}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -93,6 +82,7 @@ const LoginScreen = () => {
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
+                        editable={!isLoading}
                     />
                 </View>
 
@@ -116,7 +106,6 @@ const LoginScreen = () => {
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Don't have an account?</Text>
-                    {/* Use router.push to navigate to the sibling register screen within the same modal stack */}
                     <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
                         <Text style={styles.linkText}> Sign Up</Text>
                     </TouchableOpacity>
@@ -205,4 +194,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

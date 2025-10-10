@@ -136,7 +136,7 @@ const ProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    // <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {user ? (
           <LinearGradient
@@ -199,15 +199,16 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
         )}
+        
       </ScrollView>
-    </SafeAreaView>
+    // </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#262626ff',
   },
   guestContainer: {
     alignItems: 'center',
@@ -327,6 +328,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   signOutSection: {
+    marginBottom:40,
     padding: 16,
     paddingTop: 25,
   },
