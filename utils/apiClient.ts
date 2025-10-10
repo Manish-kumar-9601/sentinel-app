@@ -37,29 +37,32 @@ export async function authenticatedFetch(
     const url = `${API_URL}${endpoint}`;
 
     // Get auth token if required
-    let headers = {
+    let headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...fetchOptions.headers,
+        ...(fetchOptions.headers as Record<string, string>),
     };
 
     if (requiresAuth) {
         const token = await getAuthToken();
         if (token) {
-            headers = {
-                ...headers,
-                'Authorization': `Bearer ${token}`,
-            };
-        } else if (requiresAuth) {
+            headers['Authorization'] = `Bearer ${token}`;
+            console.log('📤 Request with auth token to:', endpoint);
+        } else {
+            console.warn('⚠️ No auth token found for authenticated request');
             throw new Error('Authentication required but no token found');
         }
     }
 
     for (let i = 0; i <= retries; i++) {
         try {
+            console.log(`🌐 Fetching: ${endpoint} (attempt ${i + 1})`);
+            
             const response = await fetch(url, {
                 ...fetchOptions,
                 headers,
             });
+
+            console.log(`📥 Response status: ${response.status} for ${endpoint}`);
 
             // Don't retry on client errors (4xx)
             if (response.status >= 400 && response.status < 500) {
@@ -68,17 +71,18 @@ export async function authenticatedFetch(
 
             // Retry on server errors (5xx)
             if (response.status >= 500 && i < retries) {
-                console.log(`Retry attempt ${i + 1} for ${endpoint}`);
+                console.log(`⚠️ Server error, retry attempt ${i + 1} for ${endpoint}`);
                 await delay(RETRY_DELAY * (i + 1));
                 continue;
             }
 
             return response;
         } catch (error) {
+            console.error(`❌ Network error (attempt ${i + 1}):`, error);
             if (i === retries) {
                 throw error;
             }
-            console.log(`Network error, retry attempt ${i + 1}`);
+            console.log(`🔄 Retrying after network error...`);
             await delay(RETRY_DELAY * (i + 1));
         }
     }
@@ -88,23 +92,30 @@ export async function authenticatedFetch(
 
 // Convenience methods
 export const api = {
-    get: (endpoint: string, options?: FetchOptions) => 
-        authenticatedFetch(endpoint, { ...options, method: 'GET' }),
+    get: async (endpoint: string, options?: FetchOptions) => {
+        return authenticatedFetch(endpoint, { ...options, method: 'GET' });
+    },
     
-    post: (endpoint: string, data?: any, options?: FetchOptions) => 
-        authenticatedFetch(endpoint, {
+    post: async (endpoint: string, data?: any, options?: FetchOptions) => {
+        return authenticatedFetch(endpoint, {
             ...options,
             method: 'POST',
             body: data ? JSON.stringify(data) : undefined,
-        }),
+        });
+    },
     
-    put: (endpoint: string, data?: any, options?: FetchOptions) => 
-        authenticatedFetch(endpoint, {
+    put: async (endpoint: string, data?: any, options?: FetchOptions) => {
+        return authenticatedFetch(endpoint, {
             ...options,
             method: 'PUT',
             body: data ? JSON.stringify(data) : undefined,
-        }),
+        });
+    },
     
-    delete: (endpoint: string, options?: FetchOptions) => 
-        authenticatedFetch(endpoint, { ...options, method: 'DELETE' }),
+    delete: async (endpoint: string, options?: FetchOptions) => {
+        return authenticatedFetch(endpoint, { ...options, method: 'DELETE' });
+    },
 };
+
+// Export for backward compatibility
+export { authenticatedFetch as fetchWithRetry };

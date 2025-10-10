@@ -1,468 +1,126 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
-    StyleSheet,
-    ScrollView,
     TextInput,
     TouchableOpacity,
-    Alert,
-    Keyboard,
+    StyleSheet,
+    ScrollView,
     ActivityIndicator,
+    Alert,
     RefreshControl,
 } from 'react-native';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
-interface UserInfo {
-    name: string;
-    email: string;
-    phone: string;
-}
+import { useAuth } from '@/context/AuthContext';
+import { useUserInfo } from '@/hooks/useUserInfo';
+import { Feather } from '@expo/vector-icons';
 
-interface MedicalInfo {
-    bloodGroup: string;
-    allergies: string;
-    medications: string;
-    emergencyContactName: string;
-    emergencyContactPhone: string;
-}
+export default function UserInfoScreen() {
+    const { user, logout } = useAuth();
+    const { data, loading, error, lastSync, refresh, save } = useUserInfo();
 
-interface EmergencyContact {
-    id: string;
-    name: string;
-    phone: string;
-    relationship?: string;
-    isPrimary?: boolean;
-    createdAt?: string;
-}
-
-interface ApiResponse {
-    userInfo: UserInfo;
-    medicalInfo: MedicalInfo;
-    emergencyContacts: EmergencyContact[];
-    lastUpdated: string;
-}
-
-interface CachedData extends ApiResponse {
-    cacheTimestamp: string;
-}
-
-const CACHE_KEY = 'user_info_cache';
-const CONTACTS_CACHE_KEY = 'emergency_contacts_cache';
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-const UserInfoScreen = () => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [userInfo, setUserInfo] = useState<UserInfo>({
+    // Local state for form
+    const [formData, setFormData] = useState({
         name: '',
-        email: '',
         phone: '',
-    });
-    const [medicalInfo, setMedicalInfo] = useState<MedicalInfo>({
         bloodGroup: '',
         allergies: '',
         medications: '',
-        emergencyContactName: '',
-        emergencyContactPhone: '',
     });
-    const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [lastUpdated, setLastUpdated] = useState<string>('');
 
-    // Check if cached data is still valid
-    const isCacheValid = (cacheTimestamp: string): boolean => {
-        const now = new Date().getTime();
-        const cacheTime = new Date(cacheTimestamp).getTime();
-        return (now - cacheTime) < CACHE_EXPIRY;
-    };
+    const [isSaving, setIsSaving] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
 
-    // Load data from cache
-    const loadFromCache = async (): Promise<CachedData | null> => {
-        try {
-            const cachedData = await AsyncStorage.getItem(CACHE_KEY);
-            if (cachedData) {
-                const parsed: CachedData = JSON.parse(cachedData);
-                console.log('Loaded data from cache:', parsed.cacheTimestamp);
-                return parsed;
-            }
-        } catch (error) {
-            console.error('Failed to load cache:', error);
-        }
-        return null;
-    };
-
-    // Save data to cache
-    const saveToCache = async (data: ApiResponse): Promise<void> => {
-        try {
-            const cacheData: CachedData = {
-                ...data,
-                cacheTimestamp: new Date().toISOString()
-            };
-            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-
-            // Also sync contacts with the old contacts storage for backward compatibility
-            await AsyncStorage.setItem('emergency_contacts', JSON.stringify(data.emergencyContacts));
-            console.log('Data saved to cache');
-        } catch (error) {
-            console.error('Failed to save to cache:', error);
-        }
-    };
-
-    // Load saved info from API or cache
-    const loadInfo = useCallback(async (forceRefresh = false, showLoader = true) => {
-        try {
-            if (showLoader) setIsLoading(true);
-
-            // Try to load from cache first if not forcing refresh
-            if (!forceRefresh) {
-                const cachedData = await loadFromCache();
-                if (cachedData && isCacheValid(cachedData.cacheTimestamp)) {
-                    console.log('Using cached data');
-                    setUserInfo(cachedData.userInfo);
-                    setMedicalInfo(cachedData.medicalInfo);
-                    setEmergencyContacts(cachedData.emergencyContacts || []);
-                    setLastUpdated(cachedData.lastUpdated);
-                    setHasUnsavedChanges(false);
-                    if (showLoader) setIsLoading(false);
-                    setIsRefreshing(false);
-                    return;
-                }
-            }
-
-            // Fetch from API if cache is invalid or force refresh
-                  const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
-            console.log('Fetching fresh data from API');
-            const response = await fetch(`${apiUrl}/api/user-info`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    Alert.alert('Authentication Error', 'Please log in again.');
-                    return;
-                } else if (response.status === 404) {
-                    console.log('No existing user data found - using defaults');
-                    return;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data: ApiResponse = await response.json();
-
-            // Set state with API data
-            setUserInfo({
-                name: data.userInfo?.name || '',
-                email: data.userInfo?.email || '',
-                phone: data.userInfo?.phone || '',
-            });
-
-            setMedicalInfo({
-                bloodGroup: data.medicalInfo?.bloodGroup || '',
-                allergies: data.medicalInfo?.allergies || '',
-                medications: data.medicalInfo?.medications || '',
-                emergencyContactName: data.medicalInfo?.emergencyContactName || '',
-                emergencyContactPhone: data.medicalInfo?.emergencyContactPhone || '',
-            });
-
-            setEmergencyContacts(data.emergencyContacts || []);
-            setLastUpdated(data.lastUpdated);
-            setHasUnsavedChanges(false);
-
-            // Save fresh data to cache
-            await saveToCache(data);
-
-        } catch (error) {
-            console.error('Failed to load user info:', error);
-
-            // Try to use cached data as fallback
-            const cachedData = await loadFromCache();
-            if (cachedData) {
-                console.log('Using stale cached data as fallback');
-                setUserInfo(cachedData.userInfo);
-                setMedicalInfo(cachedData.medicalInfo);
-                setEmergencyContacts(cachedData.emergencyContacts || []);
-                setLastUpdated(cachedData.lastUpdated);
-                Alert.alert(
-                    'Using Offline Data',
-                    'Could not connect to server. Using your last saved information.',
-                    [{ text: 'OK' }]
-                );
-            } else {
-                Alert.alert(
-                    'Error',
-                    'Could not load your information. Please check your internet connection and try again.',
-                    [
-                        { text: 'Retry', onPress: () => loadInfo(forceRefresh, showLoader) },
-                        { text: 'Cancel', style: 'cancel' }
-                    ]
-                );
-            }
-        } finally {
-            if (showLoader) setIsLoading(false);
-            setIsRefreshing(false);
-        }
-    }, []);
-
+    // Update form when data loads
     useEffect(() => {
-        loadInfo();
-    }, [loadInfo]);
-
-    const onRefresh = useCallback(() => {
-        setIsRefreshing(true);
-        loadInfo(true, false); // Force refresh, don't show main loader
-    }, [loadInfo]);
-
-    const handleUserInfoChange = (field: keyof UserInfo, value: string) => {
-        setUserInfo(prev => ({ ...prev, [field]: value }));
-        setHasUnsavedChanges(true);
-    };
-
-    const handleMedicalInfoChange = (field: keyof MedicalInfo, value: string) => {
-        setMedicalInfo(prev => ({ ...prev, [field]: value }));
-        setHasUnsavedChanges(true);
-    };
-
-    const validateData = () => {
-        const errors: string[] = [];
-
-        // Basic validation
-        if (!userInfo.name.trim()) {
-            errors.push('Full name is required');
+        if (data) {
+            setFormData({
+                name: data.userInfo.name || '',
+                phone: data.userInfo.phone || '',
+                bloodGroup: data.medicalInfo.bloodGroup || '',
+                allergies: data.medicalInfo.allergies || '',
+                medications: data.medicalInfo.medications || '',
+            });
         }
+    }, [data]);
 
-        if (userInfo.email.trim() && !isValidEmail(userInfo.email)) {
-            errors.push('Please enter a valid email address');
-        }
-
-        if (userInfo.phone.trim() && !isValidPhone(userInfo.phone)) {
-            errors.push('Please enter a valid phone number');
-        }
-
-        if (medicalInfo.emergencyContactPhone.trim() && !isValidPhone(medicalInfo.emergencyContactPhone)) {
-            errors.push('Please enter a valid emergency contact phone number');
-        }
-
-        // Check if emergency contact info is complete or both empty
-        const hasEmergencyName = medicalInfo.emergencyContactName.trim();
-        const hasEmergencyPhone = medicalInfo.emergencyContactPhone.trim();
-
-        if ((hasEmergencyName && !hasEmergencyPhone) || (!hasEmergencyName && hasEmergencyPhone)) {
-            errors.push('Please provide both emergency contact name and phone number, or leave both empty');
-        }
-
-        return errors;
-    };
-
-    const isValidEmail = (email: string) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email.trim());
-    };
-
-    const isValidPhone = (phone: string) => {
-        const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
-        return phoneRegex.test(phone.trim());
+    const handleFieldChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        setHasChanges(true);
     };
 
     const handleSave = async () => {
-        Keyboard.dismiss();
+        setIsSaving(true);
+        
+        const result = await save({
+            userInfo: {
+                name: formData.name,
+                email: data?.userInfo.email || '',
+                phone: formData.phone,
+            },
+            medicalInfo: {
+                bloodGroup: formData.bloodGroup,
+                allergies: formData.allergies,
+                medications: formData.medications,
+                emergencyContactName: '',
+                emergencyContactPhone: '',
+            },
+            emergencyContacts: data?.emergencyContacts || [],
+            lastUpdated: new Date().toISOString(),
+        });
 
-        // Validate data before saving
-        const validationErrors = validateData();
-        if (validationErrors.length > 0) {
-            Alert.alert('Validation Error', validationErrors.join('\n\n'));
-            return;
-        }
+        setIsSaving(false);
 
-        try {
-            setIsSaving(true);
-
-            const payload = {
-                userInfo: {
-                    name: userInfo.name.trim(),
-                    phone: userInfo.phone.trim() || null,
-                },
-                medicalInfo: {
-                    bloodGroup: medicalInfo.bloodGroup.trim() || null,
-                    allergies: medicalInfo.allergies.trim() || null,
-                    medications: medicalInfo.medications.trim() || null,
-                    emergencyContactName: medicalInfo.emergencyContactName.trim() || null,
-                    emergencyContactPhone: medicalInfo.emergencyContactPhone.trim() || null,
-                },
-                emergencyContacts: emergencyContacts.map(contact => ({
-                    id: contact.id,
-                    name: contact.name,
-                    phone: contact.phone,
-                    relationship: contact.relationship,
-                    isPrimary: contact.isPrimary,
-                    createdAt: contact.createdAt
-                }))
-            };
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
-            const response = await fetch(`${apiUrl}/api/user-info`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                if (response.status === 401) {
-                    Alert.alert('Authentication Error', 'Please log in again.');
-                    return;
-                }
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            setHasUnsavedChanges(false);
-            setLastUpdated(result.lastUpdated);
-
-            // Update cache after successful save
-            const updatedData: ApiResponse = {
-                userInfo,
-                medicalInfo,
-                emergencyContacts,
-                lastUpdated: result.lastUpdated
-            };
-            await saveToCache(updatedData);
-
-            Alert.alert('Success!', 'Your information has been saved successfully.');
-
-        } catch (error) {
-            console.error('Failed to save user info:', error);
-            Alert.alert(
-                'Error',
-                `Could not save your information: ${error.message || 'Unknown error'}`,
-                [
-                    { text: 'Retry', onPress: handleSave },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleShare = async () => {
-        // Check if emergency contact info is available
-        if (!medicalInfo.emergencyContactName.trim() || !medicalInfo.emergencyContactPhone.trim()) {
-            Alert.alert(
-                'Missing Information',
-                'Please add emergency contact information before sharing.',
-                [
-                    {
-                        text: 'Add Contact Info', onPress: () => {
-                            // Could scroll to emergency contact section
-                        }
-                    },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
-            return;
-        }
-
-        // Check if there's meaningful data to share
-        const hasUserInfo = userInfo.name.trim();
-        const hasMedicalInfo = medicalInfo.bloodGroup.trim() ||
-            medicalInfo.allergies.trim() ||
-            medicalInfo.medications.trim();
-
-        if (!hasUserInfo && !hasMedicalInfo) {
-            Alert.alert(
-                'No Information to Share',
-                'Please fill in your information before sharing.',
-                [
-                    {
-                        text: 'Fill Info', onPress: () => {
-                            // Could focus on first empty field
-                        }
-                    },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
-            return;
-        }
-
-        // Warn about unsaved changes
-        if (hasUnsavedChanges) {
-            Alert.alert(
-                'Unsaved Changes',
-                'You have unsaved changes. Do you want to save them before sharing?',
-                [
-                    { text: 'Share Without Saving', onPress: proceedWithShare },
-                    {
-                        text: 'Save First', onPress: async () => {
-                            await handleSave();
-                            if (!hasUnsavedChanges) { // If save was successful
-                                proceedWithShare();
-                            }
-                        }
-                    },
-                    { text: 'Cancel', style: 'cancel' }
-                ]
-            );
+        if (result.success) {
+            Alert.alert('Success', 'Your information has been saved');
+            setHasChanges(false);
         } else {
-            proceedWithShare();
+            Alert.alert('Error', result.error || 'Failed to save information');
         }
     };
 
-    const proceedWithShare = () => {
+    const handleClearCache = async () => {
         Alert.alert(
-            'Share Information',
-            `This will send your medical and emergency information to ${medicalInfo.emergencyContactName}.`,
+            'Clear Cache',
+            'This will reload your data from the server.',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Share',
-                    onPress: async () => {
-                        try {
-                            // Here you would implement the actual sharing logic
-                            // For example, call an API endpoint to send SMS
-                            console.log('Sharing info to:', medicalInfo.emergencyContactName, medicalInfo.emergencyContactPhone);
-                            Alert.alert('Shared!', 'Your information has been sent to your emergency contact.');
-                        } catch (error) {
-                            Alert.alert('Error', 'Failed to share information. Please try again.');
-                        }
-                    }
+                    text: 'Clear',
+                    onPress: () => refresh(true),
+                    style: 'destructive',
                 },
             ]
         );
     };
 
-    // Clear cache function for debugging
-    const clearCache = async () => {
-        try {
-            await AsyncStorage.removeItem(CACHE_KEY);
-            await AsyncStorage.removeItem('emergency_contacts');
-            Alert.alert('Cache Cleared', 'Local cache has been cleared.');
-            loadInfo(true);
-        } catch (error) {
-            console.error('Failed to clear cache:', error);
-        }
-    };
-
-    if (isLoading) {
+    if (loading && !data) {
         return (
             <SafeAreaView style={styles.container}>
-                <Stack.Screen
-                    options={{
-                        title: 'User & Medical Info',
-                        headerShown: true,
-                    }}
-                />
-                <View style={styles.loadingContainer}>
+                <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#007AFF" />
-                    <Text style={styles.loadingText}>Loading Your Information...</Text>
+                    <Text style={styles.loadingText}>Loading your information...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (error && !data) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.centerContainer}>
+                    <Feather name="alert-circle" size={64} color="#FF3B30" />
+                    <Text style={styles.errorTitle}>Failed to Load</Text>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={() => refresh(true)}>
+                        <Text style={styles.retryButtonText}>Try Again</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.retryButton, styles.logoutButton]} 
+                        onPress={logout}
+                    >
+                        <Text style={styles.logoutButtonText}>Logout</Text>
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
@@ -470,383 +128,275 @@ const UserInfoScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: 'User & Medical Info',
-                    headerShown: true,
-                }}
-            />
             <ScrollView
-                showsVerticalScrollIndicator={false}
+                style={styles.scrollView}
                 refreshControl={
-                    <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={loading} onRefresh={() => refresh(true)} />
                 }
             >
-                {lastUpdated && (
-                    <View style={styles.syncStatus}>
-                        <Ionicons name="sync" size={12} color="#666" />
+                <View style={styles.header}>
+                    <Text style={styles.title}>User & Medical Info</Text>
+                    {lastSync && (
                         <Text style={styles.syncText}>
-                            Last synced: {new Date(lastUpdated).toLocaleString()}
-                        </Text>
-                        {/* Debug button - remove in production */}
-                        <TouchableOpacity onPress={clearCache} style={styles.debugButton}>
-                            <Text style={styles.debugButtonText}>Clear Cache</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Personal Information</Text>
-                    <View style={styles.card}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Full Name *"
-                            value={userInfo.name}
-                            onChangeText={text => handleUserInfoChange('name', text)}
-                            maxLength={100}
-                            editable={!isSaving}
-                        />
-                        <TextInput
-                            style={[styles.input, styles.readonlyInput]}
-                            placeholder="Email Address"
-                            value={userInfo.email}
-                            editable={false}
-                            selectTextOnFocus={false}
-                        />
-                        <Text style={styles.helperText}>Email cannot be changed here</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Phone Number (optional)"
-                            value={userInfo.phone}
-                            onChangeText={text => handleUserInfoChange('phone', text)}
-                            keyboardType="phone-pad"
-                            maxLength={20}
-                            editable={!isSaving}
-                        />
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Medical Information</Text>
-                    <View style={styles.card}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Blood Group (e.g., O+, A-, B+)"
-                            value={medicalInfo.bloodGroup}
-                            onChangeText={text => handleMedicalInfoChange('bloodGroup', text)}
-                            maxLength={10}
-                            editable={!isSaving}
-                        />
-                        <TextInput
-                            style={[styles.input, styles.multilineInput]}
-                            placeholder="Allergies (e.g., peanuts, shellfish, medications)"
-                            value={medicalInfo.allergies}
-                            onChangeText={text => handleMedicalInfoChange('allergies', text)}
-                            multiline
-                            numberOfLines={3}
-                            maxLength={500}
-                            textAlignVertical="top"
-                            editable={!isSaving}
-                        />
-                        <TextInput
-                            style={[styles.input, styles.multilineInput]}
-                            placeholder="Current Medications (include dosages)"
-                            value={medicalInfo.medications}
-                            onChangeText={text => handleMedicalInfoChange('medications', text)}
-                            multiline
-                            numberOfLines={3}
-                            maxLength={500}
-                            textAlignVertical="top"
-                            editable={!isSaving}
-                        />
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Emergency Contact</Text>
-                    <View style={styles.card}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Emergency Contact Name"
-                            value={medicalInfo.emergencyContactName}
-                            onChangeText={text => handleMedicalInfoChange('emergencyContactName', text)}
-                            maxLength={100}
-                            editable={!isSaving}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Emergency Contact Phone"
-                            value={medicalInfo.emergencyContactPhone}
-                            onChangeText={text => handleMedicalInfoChange('emergencyContactPhone', text)}
-                            keyboardType="phone-pad"
-                            maxLength={20}
-                            editable={!isSaving}
-                        />
-                    </View>
-                </View>
-
-                {emergencyContacts.length > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Saved Emergency Contacts ({emergencyContacts.length})</Text>
-                        <View style={styles.card}>
-                            {emergencyContacts.map((contact, index) => (
-                                <View key={contact.id} style={styles.contactItem}>
-                                    <View style={styles.contactAvatar}>
-                                        <Text style={styles.contactAvatarText}>{contact.name.charAt(0)}</Text>
-                                    </View>
-                                    <View style={styles.contactInfo}>
-                                        <Text style={styles.contactName}>{contact.name}</Text>
-                                        <Text style={styles.contactPhone}>{contact.phone}</Text>
-                                        {contact.relationship && (
-                                            <Text style={styles.contactRelationship}>{contact.relationship}</Text>
-                                        )}
-                                    </View>
-                                    {contact.isPrimary && (
-                                        <View style={styles.primaryBadge}>
-                                            <Text style={styles.primaryBadgeText}>Primary</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-                )}
-
-                <TouchableOpacity
-                    style={[
-                        styles.saveButton,
-                        (isSaving || !hasUnsavedChanges) && styles.disabledButton
-                    ]}
-                    onPress={handleSave}
-                    disabled={isSaving || !hasUnsavedChanges}
-                >
-                    {isSaving ? (
-                        <View style={styles.buttonContent}>
-                            <ActivityIndicator size="small" color="white" style={{ marginRight: 10 }} />
-                            <Text style={styles.saveButtonText}>Saving...</Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.saveButtonText}>
-                            {hasUnsavedChanges ? 'Save Information' : 'Information Saved'}
+                            Last synced: {lastSync.toLocaleString()}
                         </Text>
                     )}
-                </TouchableOpacity>
+                </View>
 
-                <TouchableOpacity
-                    style={[styles.shareButton, isSaving && styles.disabledButton]}
-                    onPress={handleShare}
-                    disabled={isSaving}
-                >
-                    <Feather name="share-2" size={20} color="white" />
-                    <Text style={styles.shareButtonText}>Share with Emergency Contact</Text>
-                </TouchableOpacity>
+                {error && (
+                    <View style={styles.errorBanner}>
+                        <Feather name="alert-triangle" size={16} color="#FF3B30" />
+                        <Text style={styles.errorBannerText}>{error}</Text>
+                    </View>
+                )}
+
+                {/* Personal Information */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Personal Information</Text>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.name}
+                            onChangeText={(value) => handleFieldChange('name', value)}
+                            placeholder="Enter your name"
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Email</Text>
+                        <TextInput
+                            style={[styles.input, styles.disabledInput]}
+                            value={data?.userInfo.email}
+                            editable={false}
+                        />
+                        <Text style={styles.helperText}>Email cannot be changed</Text>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Phone Number (optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.phone}
+                            onChangeText={(value) => handleFieldChange('phone', value)}
+                            placeholder="Enter your phone number"
+                            keyboardType="phone-pad"
+                        />
+                    </View>
+                </View>
+
+                {/* Medical Information */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Medical Information</Text>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Blood Group</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.bloodGroup}
+                            onChangeText={(value) => handleFieldChange('bloodGroup', value)}
+                            placeholder="e.g., O+, A-, B+"
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Allergies</Text>
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            value={formData.allergies}
+                            onChangeText={(value) => handleFieldChange('allergies', value)}
+                            placeholder="e.g., peanuts, shellfish, medications"
+                            multiline
+                            numberOfLines={3}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Current Medications</Text>
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            value={formData.medications}
+                            onChangeText={(value) => handleFieldChange('medications', value)}
+                            placeholder="Include dosages"
+                            multiline
+                            numberOfLines={3}
+                        />
+                    </View>
+                </View>
+
+                {/* Actions */}
+                <View style={styles.actions}>
+                    <TouchableOpacity
+                        style={[styles.button, styles.saveButton, !hasChanges && styles.disabledButton]}
+                        onPress={handleSave}
+                        disabled={!hasChanges || isSaving}
+                    >
+                        {isSaving ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <Text style={styles.buttonText}>
+                                {hasChanges ? 'Save Changes' : 'No Changes'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.button, styles.clearButton]}
+                        onPress={handleClearCache}
+                    >
+                        <Text style={[styles.buttonText, styles.clearButtonText]}>
+                            Clear Cache
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F7'
+        backgroundColor: '#F2F2F7',
     },
-    loadingContainer: {
+    centerContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        padding: 20,
     },
-    loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: '#6D6D72',
-        textAlign: 'center',
+    scrollView: {
+        flex: 1,
     },
-    syncStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        backgroundColor: '#F8F8F8',
-        borderRadius: 8,
-        marginHorizontal: 16,
-        marginTop: 10,
+    header: {
+        padding: 20,
+        backgroundColor: 'white',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E5EA',
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
         marginBottom: 5,
     },
     syncText: {
         fontSize: 12,
-        color: '#666',
-        marginLeft: 4,
+        color: '#8E8E93',
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#8E8E93',
+    },
+    errorBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFE5E5',
+        padding: 12,
+        margin: 15,
+        borderRadius: 8,
+        gap: 8,
+    },
+    errorBannerText: {
         flex: 1,
+        color: '#FF3B30',
+        fontSize: 14,
     },
-    debugButton: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        backgroundColor: '#FF3B30',
-        borderRadius: 4,
-    },
-    debugButtonText: {
-        fontSize: 10,
-        color: 'white',
+    errorTitle: {
+        fontSize: 20,
         fontWeight: 'bold',
+        marginTop: 15,
+        marginBottom: 5,
+    },
+    errorText: {
+        fontSize: 14,
+        color: '#8E8E93',
+        textAlign: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 20,
     },
     section: {
-        marginBottom: 24,
-        marginHorizontal: 16,
-        marginTop: 10
+        backgroundColor: 'white',
+        padding: 20,
+        marginTop: 15,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#6D6D72',
-        marginBottom: 8,
-        paddingLeft: 12,
+        marginBottom: 15,
     },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 10,
-        padding: 16,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+    inputGroup: {
+        marginBottom: 15,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginBottom: 5,
+        color: '#000',
     },
     input: {
-        minHeight: 50,
         backgroundColor: '#F2F2F7',
         borderRadius: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 12,
+        padding: 12,
         fontSize: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    readonlyInput: {
-        backgroundColor: '#E5E5EA',
-        color: '#6D6D72',
     },
     multilineInput: {
-        minHeight: 80,
+        height: 80,
         textAlignVertical: 'top',
+    },
+    disabledInput: {
+        opacity: 0.6,
     },
     helperText: {
         fontSize: 12,
         color: '#8E8E93',
-        marginTop: -8,
-        marginBottom: 12,
-        paddingLeft: 15,
+        marginTop: 5,
     },
-    contactItem: {
-        flexDirection: 'row',
+    actions: {
+        padding: 20,
+        gap: 10,
+        paddingBottom: 40,
+    },
+    button: {
+        borderRadius: 10,
+        padding: 15,
         alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
-        marginBottom: 8,
-    },
-    contactAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#007AFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    contactAvatarText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    contactInfo: {
-        flex: 1,
-    },
-    contactName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-    },
-    contactPhone: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 2,
-    },
-    contactRelationship: {
-        fontSize: 12,
-        color: '#999',
-        marginTop: 2,
-        fontStyle: 'italic',
-    },
-    primaryBadge: {
-        backgroundColor: '#34C759',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    primaryBadgeText: {
-        fontSize: 10,
-        color: 'white',
-        fontWeight: 'bold',
     },
     saveButton: {
         backgroundColor: '#007AFF',
-        borderRadius: 10,
-        padding: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginHorizontal: 16,
-        shadowColor: '#007AFF',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
+    },
+    clearButton: {
+        backgroundColor: '#E5E5EA',
+    },
+    logoutButton: {
+        backgroundColor: '#FF3B30',
+        marginTop: 10,
     },
     disabledButton: {
         opacity: 0.5,
     },
-    buttonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    saveButtonText: {
+    buttonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
     },
-    shareButton: {
-        flexDirection: 'row',
-        backgroundColor: '#34C759',
+    clearButtonText: {
+        color: '#000',
+    },
+    logoutButtonText: {
+        color: 'white',
+    },
+    retryButton: {
+        backgroundColor: '#007AFF',
+        paddingHorizontal: 30,
+        paddingVertical: 12,
         borderRadius: 10,
-        padding: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginHorizontal: 16,
-        marginTop: 12,
-        marginBottom: 20,
-        shadowColor: '#34C759',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
+        marginTop: 10,
     },
-    shareButtonText: {
+    retryButtonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
-        marginLeft: 10,
     },
 });
-
-export default UserInfoScreen;

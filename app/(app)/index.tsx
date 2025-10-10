@@ -1,6 +1,4 @@
-﻿// manish-kumar-9601/sentinel-app/sentinel-app-ab64364fa64367c32df71cc4649ed32fdbcc7eca/app/(app)/index.tsx
-
-import { useModal } from '../../context/ModalContext';
+﻿import { useModal } from '../../context/ModalContext';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,7 +28,6 @@ import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard'
 import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
-import Geolocation from 'react-native-geolocation-service';
 
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';

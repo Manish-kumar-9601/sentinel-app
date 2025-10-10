@@ -18,7 +18,6 @@ const getHandler = async (request: Request, user: AuthUser) => {
             .select({
                 name: users.name,
                 email: users.email,
-                phone: users.phone
             })
             .from(users)
             .where(eq(users.id, userId))
@@ -74,7 +73,7 @@ const getHandler = async (request: Request, user: AuthUser) => {
                 userInfo: {
                     name: userInfoResult.name || '',
                     email: userInfoResult.email || '',
-                    phone: userInfoResult.phone || '',
+            
                 },
                 medicalInfo: {
                     bloodGroup: medicalInfoResult.bloodGroup || '',

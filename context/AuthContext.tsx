@@ -198,19 +198,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const contextValue = {
+        user,
+        token,
+        isLoading,
+        setUser,
+        setToken,
+        login,
+        register,
+        logout
+    };
+
+    console.log('AuthContext value:', { hasUser: !!user, hasToken: !!token, isLoading });
+
     return (
-        <AuthContext.Provider 
-            value={{ 
-                user, 
-                token, 
-                isLoading, 
-                setUser, 
-                setToken, 
-                login, 
-                register, 
-                logout 
-            }}
-        >
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );
