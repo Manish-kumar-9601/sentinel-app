@@ -1,20 +1,60 @@
-﻿import { db } from '../../../db/client';
+﻿/// <reference lib="dom" />
+import { db } from '../../../db/client';
 import { users } from '../../../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { COOKIE_NAME, JWT_SECRET } from '../../../utils/constants';
 import addCorsHeaders from '@/utils/middleware';
+import { logger } from '@/utils/logger';
 
 export async function OPTIONS() {
     return addCorsHeaders(new Response(null, { status: 204 }));
 }
 
+async function parseRequestBody(request: Request): Promise<{ name: string | null; email: string | null; password: string | null }> {
+    const contentType = request.headers.get('content-type') || '';
+
+    // Handle JSON
+    if (contentType.includes('application/json')) {
+        try {
+            const body = await request.json();
+            return {
+                name: body.name || null,
+                email: body.email || null,
+                password: body.password || null
+            };
+        } catch (error) {
+            throw new Error('Invalid JSON format');
+        }
+    }
+
+    // Handle form-data or x-www-form-urlencoded
+    if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+        try {
+            const formData = await request.formData();
+            return {
+                name: formData.get('name') as string | null,
+                email: formData.get('email') as string | null,
+                password: formData.get('password') as string | null
+            };
+        } catch (error) {
+            throw new Error('Invalid form data');
+        }
+    }
+
+    throw new Error('Unsupported content type. Please use application/json or multipart/form-data');
+}
+
 export async function POST(request: Request) {
     try {
-        const { email, password } = await request.json();
 
-        console.log('🔐 Login attempt for:', email);
+        // Parse request body (supports both JSON and form-data)
+        const contentType = request.headers.get('content-type') || '';
+        logger.info('📦 Content-Type:', contentType);
+        const { email, password } = await parseRequestBody(request);
+
+        logger.info('🔐 Login attempt for:', email);
 
         // Input validation
         if (!email || !password) {
@@ -65,7 +105,7 @@ export async function POST(request: Request) {
 
         // User not found
         if (userArr.length === 0) {
-            console.log('❌ User not found:', sanitizedEmail);
+            logger.warn('❌ User not found:', sanitizedEmail);
             await new Promise(resolve => setTimeout(resolve, 200)); // Prevent timing attacks
             return addCorsHeaders(new Response(
                 JSON.stringify({ error: 'Invalid credentials.' }),
@@ -77,7 +117,7 @@ export async function POST(request: Request) {
 
         // Check if user has password
         if (!user.hashedPassword) {
-            console.log('❌ User without password:', sanitizedEmail);
+            logger.warn('❌ User without password:', sanitizedEmail);
             return addCorsHeaders(new Response(
                 JSON.stringify({ error: 'Invalid credentials.' }),
                 { status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -89,7 +129,7 @@ export async function POST(request: Request) {
         try {
             isPasswordValid = await bcrypt.compare(password, user.hashedPassword);
         } catch (bcryptError) {
-            console.error('❌ Password comparison error:', bcryptError);
+            logger.error('❌ Password comparison error:', bcryptError);
             return addCorsHeaders(new Response(
                 JSON.stringify({ error: 'Authentication error occurred.' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -97,7 +137,7 @@ export async function POST(request: Request) {
         }
 
         if (!isPasswordValid) {
-            console.log('❌ Invalid password for:', sanitizedEmail);
+            logger.warn('❌ Invalid password for:', sanitizedEmail);
             await new Promise(resolve => setTimeout(resolve, 200));
             return addCorsHeaders(new Response(
                 JSON.stringify({ error: 'Invalid credentials.' }),
@@ -125,7 +165,7 @@ export async function POST(request: Request) {
         // Remove sensitive data
         const { hashedPassword: _, createdAt, updatedAt, ...userResponse } = user;
 
-        console.log('✅ Login successful for:', sanitizedEmail);
+        logger.info('✅ Login successful for:', sanitizedEmail);
 
         return addCorsHeaders(new Response(
             JSON.stringify({
@@ -143,7 +183,7 @@ export async function POST(request: Request) {
         ));
 
     } catch (error: any) {
-        console.error('💥 Login error:', error);
+        logger.error('💥 Login error:', error);
 
         const errorMessage = process.env.NODE_ENV === 'development'
             ? `Internal server error: ${error.message}`

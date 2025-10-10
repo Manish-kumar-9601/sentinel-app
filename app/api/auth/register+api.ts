@@ -139,7 +139,6 @@ export async function POST(request: Request) {
         headers: { 'Content-Type': 'application/json' }
       }));
     }
-
     // Sanitize and normalize email
     const sanitizedEmail = email.toLowerCase().trim();
     logger.info('📧 Sanitized email:', sanitizedEmail);
@@ -154,15 +153,12 @@ export async function POST(request: Request) {
         headers: { 'Content-Type': 'application/json' }
       }));
     }
-
     logger.info('🔍 Checking for existing user...');
-
     const existingUserArr = await db
       .select()
       .from(users)
       .where(eq(users.email, sanitizedEmail))
       .limit(1);
-
     if (existingUserArr.length > 0) {
       logger.warn('❌ User already exists:', sanitizedEmail);
       return addCorsHeaders(new Response(JSON.stringify({
@@ -172,20 +168,16 @@ export async function POST(request: Request) {
         headers: { 'Content-Type': 'application/json' }
       }));
     }
-
     logger.info('🔐 Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 12);
-
     logger.info('💾 Creating user in database...');
     const userId = uuidv4();
-    
     logger.info('👤 User data to insert:', {
       userId,
       name: name.trim(),
       email: sanitizedEmail,
       hasHashedPassword: !!hashedPassword
     });
-
     const newUserArr = await db
       .insert(users)
       .values({
@@ -195,29 +187,22 @@ export async function POST(request: Request) {
         hashedPassword: hashedPassword,
       })
       .returning();
-    
     const newUser = newUserArr[0];
     logger.info('✅ User created successfully:', { id: newUser.id, email: newUser.email });
-
     logger.info('🎫 Generating JWT token...');
     const payload = {
       id: newUser.id,
       email: newUser.email,
       name: newUser.name
     };
-
     const token = jwt.sign(payload, JWT_SECRET, {
       expiresIn: '24h',
       algorithm: 'HS256'
     });
-
     const isProduction = process.env.NODE_ENV === 'production';
     const cookie = `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24}; SameSite=Lax${isProduction ? '; Secure' : ''}`;
-
     const { hashedPassword: _, ...userWithoutPassword } = newUser;
-
     logger.info('✅ Registration successful for:', sanitizedEmail);
-
     return addCorsHeaders(new Response(JSON.stringify({
       user: userWithoutPassword,
       message: 'Registration successful',
@@ -229,17 +214,14 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json'
       },
     }));
-
   } catch (error: any) {
     logger.error('💥 Registration error:', error);
     logger.error('Error name:', error.name);
     logger.error('Error message:', error.message);
     logger.error('Error stack:', error.stack);
-
     if (error.code) {
       logger.error('Database error code:', error.code);
     }
-
     return addCorsHeaders(new Response(JSON.stringify({
       error: 'An internal server error occurred.',
       details: process.env.NODE_ENV === 'development' ? {
