@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  
   View,
   Text,
   StyleSheet,
@@ -8,10 +7,10 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PhoneContactsModal from '../../../components/PhoneContactsModal';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- Configuration ---
@@ -101,25 +100,17 @@ export default function MyCircleScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: 'My Contacts Circle',
-          headerShown: true,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#000',
-          headerTitle: () => (
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+          <Feather name="chevron-left" size={32} color="#007AFF" />
+          <Text style={styles.headerTitle}>My Contacts Circle</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.addButton} onPress={() => setIsPickerVisible(true)}>
+          <Ionicons name="add" size={24} color="white" />
+          <Text style={styles.addButtonText}>Add</Text>
+        </TouchableOpacity>
+      </View>
 
-
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>My Contacts Circle</Text>
-              <TouchableOpacity style={styles.addButton} onPress={() => setIsPickerVisible(true)}>
-                <Ionicons name="add" size={24} color="white" />
-                <Text style={styles.addButtonText}>Add</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        }}
-      />
 
 
       <FlatList
@@ -151,13 +142,26 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: '#F7F8FA'
   },
   header: {
-    flexDirection: 'row',
+    flexDirection: 'row',    
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 0,
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
     backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 10,
   },
-  headerTitle: { fontSize: 22, fontWeight: 'bold' },
+  headerPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
   addButton: {
     flexDirection: 'row',
     backgroundColor: '#FF4500',

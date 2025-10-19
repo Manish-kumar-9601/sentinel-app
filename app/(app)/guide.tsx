@@ -1,6 +1,6 @@
-﻿import { Ionicons } from '@expo/vector-icons';
+﻿import { Feather, Ionicons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,7 +10,7 @@ import {
   Linking,
   Modal,
   Platform,
- 
+
   ScrollView,
   StyleSheet,
   Text,
@@ -164,13 +164,13 @@ Never provide strong prescription drugs or complex treatments. If the user descr
 
 
 const EmergencyGuideScreen = () => {
-  const { categoryId= 'medical' }: { categoryId: string } = useLocalSearchParams(); // Default to 'medical' for demonstration
+  const { categoryId = 'medical' }: { categoryId: string } = useLocalSearchParams(); // Default to 'medical' for demonstration
   const [isAiModalVisible, setAiModalVisible] = useState(false);
 
   const allGuides = i18n.t('emergencies', { returnObjects: true });
   const content = allGuides.find((e) => e.category.toLowerCase() === categoryId.toLowerCase());
 
-  const getEmergencyNumber = (catId:String) => {
+  const getEmergencyNumber = (catId: String) => {
     switch (catId.toLowerCase()) {
       case 'medical':
       case 'accident':
@@ -247,33 +247,33 @@ const EmergencyGuideScreen = () => {
 
   return (
     <>
-      <SafeAreaView    style={styles.container}>
-        <Stack.Screen options={{
-          headerShown: true, headerTitle: () => (
-            <View style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 0
-            }}  >
-              <Text style={{ fontSize: 24, fontWeight: 'bold' }} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
-              <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
-                <Ionicons name="sparkles" size={16} color="white" />
-                <Text style={styles.aiHelpButtonText}>AI Help</Text>
-              </TouchableOpacity>
-            </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
 
+          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+            <Feather name="chevron-left" size={24} color="#007AFF" />
+            <Text style={{ fontSize: 24, fontWeight: 'bold' }} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
 
-          )
-        }} />
+          </TouchableOpacity>
+
+          <View style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 0
+          }}  >
+
+            <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
+              <Ionicons name="sparkles" size={16} color="white" />
+              <Text style={styles.aiHelpButtonText}>AI Help</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <ScrollView>
           <View style={styles.content}>
             <View style={styles.titleRow}>
               <Text style={styles.title}>{content.title}</Text>
-              {/* <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
-              <Ionicons name="sparkles" size={16} color="white" />
-              <Text style={styles.aiHelpButtonText}>AI Help</Text>
-            </TouchableOpacity> */}
+
             </View>
             {content.summary && <Text style={styles.summary}>{content.summary}</Text>}
 
@@ -317,6 +317,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 10,
+  },
+  headerPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 26,

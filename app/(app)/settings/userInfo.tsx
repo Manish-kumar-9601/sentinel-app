@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { useUserInfo } from '@/hooks/useUserInfo';
 import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
+// import { Stack } from 'expo-router';
 
 export default function UserInfoScreen() {
     const { user, logout } = useAuth();
@@ -51,7 +53,7 @@ export default function UserInfoScreen() {
 
     const handleSave = async () => {
         setIsSaving(true);
-        
+
         const result = await save({
             userInfo: {
                 name: formData.name,
@@ -115,8 +117,8 @@ export default function UserInfoScreen() {
                     <TouchableOpacity style={styles.retryButton} onPress={() => refresh(true)}>
                         <Text style={styles.retryButtonText}>Try Again</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[styles.retryButton, styles.logoutButton]} 
+                    <TouchableOpacity
+                        style={[styles.retryButton, styles.logoutButton]}
                         onPress={logout}
                     >
                         <Text style={styles.logoutButtonText}>Logout</Text>
@@ -128,6 +130,7 @@ export default function UserInfoScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* <Stack.Screen options={{headerTitle:'User info'}} /> */}
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
@@ -135,12 +138,13 @@ export default function UserInfoScreen() {
                 }
             >
                 <View style={styles.header}>
-                    <Text style={styles.title}>User & Medical Info</Text>
-                    {lastSync && (
-                        <Text style={styles.syncText}>
-                            Last synced: {lastSync.toLocaleString()}
-                        </Text>
-                    )}
+
+                    <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+                        <Feather name="chevron-left" size={24} color="#007AFF" />
+                        <Text style={styles.headerTitle}>User & Medical Info</Text>
+                    </TouchableOpacity>
+
+
                 </View>
 
                 {error && (
@@ -149,7 +153,11 @@ export default function UserInfoScreen() {
                         <Text style={styles.errorBannerText}>{error}</Text>
                     </View>
                 )}
-
+                {lastSync && (
+                    <Text style={styles.syncText}>
+                        Last synced: {lastSync.toLocaleString()}
+                    </Text>
+                )}
                 {/* Personal Information */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Personal Information</Text>
@@ -264,16 +272,28 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        paddingHorizontal: 20,
     },
     scrollView: {
         flex: 1,
     },
     header: {
-        padding: 20,
+        paddingTop: 8,
+        paddingBottom: 6,
+        paddingHorizontal: 20,
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#E5E5EA',
+        marginBottom: 10,
+    },
+    headerPressable: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
     },
     title: {
         fontSize: 24,
@@ -281,6 +301,8 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     syncText: {
+        paddingHorizontal: 20,
+        marginTop: 10,
         fontSize: 12,
         color: '#8E8E93',
     },

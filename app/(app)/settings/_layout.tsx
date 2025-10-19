@@ -6,35 +6,41 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
 
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{
-          headerShown: false
-        }}
-      />
-      <Stack.Screen
-        name="language"
-        options={{
-          headerShown: true,
-          title: 'Select Language'
-        }}
-      />
-      <Stack.Screen
-        name="myCircle"
-        options={{
-          headerShown: false,
-          title: 'My Circle'
-        }}
-      />
-      <Stack.Screen
-        name="userInfo"
-        options={{
-          headerShown: false,
-          title: 'User Information'
-        }}
-      />
-    </Stack>
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="language"
+          options={{
+            headerShown: false,
+            title: 'Select Language'
+          }}
+        />
+        <Stack.Screen
+          name="myCircle"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="userInfo"
+          options={{
+            headerShown: false,
+
+          }}
+        />
+        <Stack.Screen
+          name="privacy"
+          options={{
+            headerShown: false,
+
+          }}
+        />
+      </Stack>
     </SafeAreaProvider>
 
   );

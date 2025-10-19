@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import {
-  
+
   View,
   Text,
   StyleSheet,
@@ -9,14 +9,14 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import i18n from '../../../lib/i18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- Reusable UI Component for a feature card ---
 const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => {
   const content = (
-   
+
     <TouchableOpacity
       style={[styles.card, comingSoon && styles.comingSoonCard]}
       onPress={comingSoon ? () => Alert.alert("Coming Soon!", "This feature is under development.") : undefined}
@@ -31,35 +31,41 @@ const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => 
       </View>
       <Ionicons name="chevron-forward" size={24} color="#C7C7CC" />
     </TouchableOpacity>
-     
+
 
   );
 
-  return href ?<>
-   <Link style={styles.card} href={`/explores${href}`} asChild > 
-   {content}</Link>
-    </>
-     : content;
+  return href ? <>
+    <Link style={styles.card} href={`/explores${href}`} asChild >
+      {content}</Link>
+  </>
+    : content;
 };
 
-export default  function ExploreScreen () {
+export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        {/* <View style={styles.header}>
-          <Text style={styles.headerTitle}>Explore Tools</Text>
-        </View> */}
+        <View style={styles.header}>
+
+          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+            <Feather name="chevron-left" size={32} color="#007AFF" />
+            <Text style={styles.headerTitle}>Explore</Text>
+          </TouchableOpacity>
+
+
+        </View>
 
         {/* --- Data Leak Check Card --- */}
-        <View style={{marginTop:30}}>
+        <View style={{ marginTop: 30 }}>
 
-        <FeatureCard
-          icon="shield"
-          title="Data Leak Check"
-          description="See if your email has been compromised in a data breach."
-          href="/dataLeak" // Links directly to the settings screen
+          <FeatureCard
+            icon="shield"
+            title="Data Leak Check"
+            description="See if your email has been compromised in a data breach."
+            href="/dataLeak" // Links directly to the settings screen
           />
-          </View>
+        </View>
 
         {/* --- Placeholder for Safe Route Planning --- */}
         {/* <FeatureCard
@@ -68,7 +74,7 @@ export default  function ExploreScreen () {
           description="Find the safest route to your destination based on real-time data."
           comingSoon={true}
         /> */}
-        
+
         {/* --- Placeholder for Community Reporting --- */}
         <FeatureCard
           icon="message-square"
@@ -88,12 +94,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   header: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    // marginBottom: 10,
+  },
+  headerPressable: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   card: {
@@ -138,4 +153,4 @@ const styles = StyleSheet.create({
   },
 });
 
- 
+

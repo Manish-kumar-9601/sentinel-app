@@ -67,7 +67,15 @@ const LanguageScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Select Language', headerShown: true }} />
+       <View style={styles.header}>
+
+                          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+                              <Feather name="chevron-left" size={32} color="#007AFF" />
+                              <Text style={styles.headerTitle}>Language</Text>
+                          </TouchableOpacity>
+      
+                      
+                      </View>
       <FlatList
         data={LANGUAGES}
         renderItem={renderItem}
@@ -81,6 +89,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+  },
+  header: {
+        paddingTop:8,
+        paddingBottom: 6,
+        paddingHorizontal: 20,
+        backgroundColor: 'white',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E5EA',
+        marginBottom: 10,
+    },
+  headerPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   row: {
     flexDirection: 'row',

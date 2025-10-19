@@ -2,9 +2,11 @@
 import { users, medicalInfo, emergencyContacts } from '@/db/schema';
 import addCorsHeaders, { withAuth, AuthUser } from '@/utils/middleware';
 import { eq } from 'drizzle-orm';
+
 export async function OPTIONS() {
     return addCorsHeaders(new Response(null, { status: 204 }));
 }
+
 export const POST = withAuth(
     async (request: Request, user: AuthUser) => {
         try {
@@ -25,108 +27,106 @@ export const POST = withAuth(
                 ));
             }
 
-            await db.transaction(async (tx) => {
-                // Update user info
-                if (userInfoData) {
-                    const updateData: any = {};
+            // Update user info
+            if (userInfoData) {
+                const updateData: any = {};
 
-                    if (userInfoData.name !== undefined) {
-                        updateData.name = userInfoData.name?.trim() || null;
-                    }
-                    if (userInfoData.phone !== undefined) {
-                        updateData.phone = userInfoData.phone?.trim() || null;
-                    }
-
-                    if (Object.keys(updateData).length > 0) {
-                        updateData.updatedAt = new Date();
-
-                        await tx
-                            .update(users)
-                            .set(updateData)
-                            .where(eq(users.id, userId));
-                    }
+                if (userInfoData.name !== undefined) {
+                    updateData.name = userInfoData.name?.trim() || null;
+                }
+                if (userInfoData.phone !== undefined) {
+                    updateData.phone = userInfoData.phone?.trim() || null;
                 }
 
-                // Upsert medical info
-                if (medicalInfoData) {
-                    const medicalDataToSave = {
+                if (Object.keys(updateData).length > 0) {
+                    updateData.updatedAt = new Date();
+
+                    await db
+                        .update(users)
+                        .set(updateData)
+                        .where(eq(users.id, userId));
+                }
+            }
+
+            // Upsert medical info
+            if (medicalInfoData) {
+                const medicalDataToSave = {
+                    userId: userId,
+                    bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
+                    allergies: medicalInfoData.allergies?.trim() || null,
+                    medications: medicalInfoData.medications?.trim() || null,
+                    emergencyContactName: medicalInfoData.emergencyContactName?.trim() || null,
+                    emergencyContactPhone: medicalInfoData.emergencyContactPhone?.trim() || null,
+                    updatedAt: new Date(),
+                };
+
+                await db
+                    .insert(medicalInfo)
+                    .values(medicalDataToSave)
+                    .onConflictDoUpdate({
+                        target: medicalInfo.userId,
+                        set: {
+                            bloodGroup: medicalDataToSave.bloodGroup,
+                            allergies: medicalDataToSave.allergies,
+                            medications: medicalDataToSave.medications,
+                            emergencyContactName: medicalDataToSave.emergencyContactName,
+                            emergencyContactPhone: medicalDataToSave.emergencyContactPhone,
+                            updatedAt: medicalDataToSave.updatedAt,
+                        }
+                    });
+            }
+
+            // Sync emergency contacts
+            if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
+                const existingContacts = await db
+                    .select({ id: emergencyContacts.id })
+                    .from(emergencyContacts)
+                    .where(eq(emergencyContacts.userId, userId));
+
+                const existingContactIds = existingContacts.map(c => c.id);
+                const incomingContactIds = emergencyContactsData
+                    .filter(c => c.id && !c.id.startsWith('temp_'))
+                    .map(c => c.id);
+
+                // Delete removed contacts
+                const contactsToDelete = existingContactIds.filter(id => !incomingContactIds.includes(id));
+                for (const contactId of contactsToDelete) {
+                    await db
+                        .delete(emergencyContacts)
+                        .where(eq(emergencyContacts.id, contactId));
+                }
+
+                // Upsert contacts
+                for (const contact of emergencyContactsData) {
+                    if (!contact.name?.trim() || !contact.phone?.trim()) continue;
+
+                    const contactData = {
+                        id: contact.id && !contact.id.startsWith('temp_') ? contact.id : crypto.randomUUID(),
                         userId: userId,
-                        bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
-                        allergies: medicalInfoData.allergies?.trim() || null,
-                        medications: medicalInfoData.medications?.trim() || null,
-                        emergencyContactName: medicalInfoData.emergencyContactName?.trim() || null,
-                        emergencyContactPhone: medicalInfoData.emergencyContactPhone?.trim() || null,
+                        name: contact.name.trim(),
+                        phone: contact.phone.trim(),
+                        relationship: contact.relationship?.trim() || null,
+                        createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
                         updatedAt: new Date(),
                     };
 
-                    await tx
-                        .insert(medicalInfo)
-                        .values(medicalDataToSave)
-                        .onConflictDoUpdate({
-                            target: medicalInfo.userId,
-                            set: {
-                                bloodGroup: medicalDataToSave.bloodGroup,
-                                allergies: medicalDataToSave.allergies,
-                                medications: medicalDataToSave.medications,
-                                emergencyContactName: medicalDataToSave.emergencyContactName,
-                                emergencyContactPhone: medicalDataToSave.emergencyContactPhone,
-                                updatedAt: medicalDataToSave.updatedAt,
-                            }
-                        });
-                }
-
-                // Sync emergency contacts
-                if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
-                    const existingContacts = await tx
-                        .select({ id: emergencyContacts.id })
-                        .from(emergencyContacts)
-                        .where(eq(emergencyContacts.userId, userId));
-
-                    const existingContactIds = existingContacts.map(c => c.id);
-                    const incomingContactIds = emergencyContactsData
-                        .filter(c => c.id && !c.id.startsWith('temp_'))
-                        .map(c => c.id);
-
-                    // Delete removed contacts
-                    const contactsToDelete = existingContactIds.filter(id => !incomingContactIds.includes(id));
-                    for (const contactId of contactsToDelete) {
-                        await tx
-                            .delete(emergencyContacts)
-                            .where(eq(emergencyContacts.id, contactId));
-                    }
-
-                    // Upsert contacts
-                    for (const contact of emergencyContactsData) {
-                        if (!contact.name?.trim() || !contact.phone?.trim()) continue;
-
-                        const contactData = {
-                            id: contact.id && !contact.id.startsWith('temp_') ? contact.id : crypto.randomUUID(),
-                            userId: userId,
-                            name: contact.name.trim(),
-                            phone: contact.phone.trim(),
-                            relationship: contact.relationship?.trim() || null,
-                            createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
-                            updatedAt: new Date(),
-                        };
-
-                        if (contact.id && !contact.id.startsWith('temp_')) {
-                            await tx
-                                .update(emergencyContacts)
-                                .set({
-                                    name: contactData.name,
-                                    phone: contactData.phone,
-                                    relationship: contactData.relationship,
-                                    updatedAt: contactData.updatedAt,
-                                })
-                                .where(eq(emergencyContacts.id, contact.id));
-                        } else {
-                            await tx
-                                .insert(emergencyContacts)
-                                .values(contactData);
-                        }
+                    if (contact.id && !contact.id.startsWith('temp_')) {
+                        await db
+                            .update(emergencyContacts)
+                            .set({
+                                name: contactData.name,
+                                phone: contactData.phone,
+                                relationship: contactData.relationship,
+                                updatedAt: contactData.updatedAt,
+                            })
+                            .where(eq(emergencyContacts.id, contact.id));
+                    } else {
+                        await db
+                            .insert(emergencyContacts)
+                            .values(contactData);
                     }
                 }
-            });
+            }
 
             console.log('✅ User info saved successfully');
 
@@ -158,4 +158,4 @@ export const POST = withAuth(
             ));
         }
     }
-)
+);

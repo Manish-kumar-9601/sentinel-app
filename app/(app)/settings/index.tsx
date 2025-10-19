@@ -120,14 +120,16 @@ const {t} =useTranslation()
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-       <Stack.Screen 
-        options={{ 
-          title: 'Setting', 
-          headerShown: true,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#000',
-        }} 
-      />
+            <View style={styles.header}>
+
+                          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+                              <Feather name="chevron-left" size={32} color="#007AFF" />
+                              <Text style={styles.headerTitle}>User & Medical Info</Text>
+                          </TouchableOpacity>
+      
+                      
+                      </View>
+      
 
         {/* --- My Circle Section --- */}
         <View style={styles.section}>
@@ -208,8 +210,18 @@ const {t} =useTranslation()
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7',paddingTop:20 },
   header: {
-    paddingVertical: 16,
+        paddingTop:8,
+        paddingBottom: 6,
+        paddingHorizontal: 20,
+        backgroundColor: 'white',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E5EA',
+        marginBottom: 10,
+    },
+  headerPressable: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
     fontSize: 24,

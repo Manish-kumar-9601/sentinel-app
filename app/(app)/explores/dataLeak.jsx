@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import
 {
-   
+
   View,
   Text,
   StyleSheet,
@@ -20,6 +20,7 @@ import sentinel_detect_icon from '../../..//assets/images/heroIcon.png'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 const API_KEY_STORAGE_KEY = '@api_key';
 const DataLeakScreen = () =>
 {
@@ -59,7 +60,7 @@ const DataLeakScreen = () =>
     console.log(encodeURIComponent(email.trim()))
     try
     {
-          const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://sentinel-app-delta.vercel.app';
+      const apiUrl = (process.env.NODE_ENV == 'development') ? process.env.EXPO_PUBLIC_API_URL : Constants.expoConfig?.extra?.apiUrl;
       const response = await fetch(`${apiUrl}/api/dataLeak?email=${encodeURIComponent(email.trim())}&apiKey=${encodeURIComponent(apiKey)}`);
       const data = await response.json();
 
@@ -99,7 +100,14 @@ const DataLeakScreen = () =>
   }
   return (
     <SafeAreaView style={styles.container}>
-      <View>
+      <View style={styles.header}>
+
+        <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+          <Feather name="chevron-left" size={32} color="#007AFF" />
+          <Text style={styles.headerTitle}>Data Check</Text>
+        </TouchableOpacity>
+
+
       </View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
@@ -178,7 +186,24 @@ const styles = StyleSheet.create({
     elevation: 5,
 
   },
-  header: { alignItems: 'center', marginBottom: 20 },
+  header: {
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 10,
+  },
+  headerPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
   title: { fontSize: 28, fontWeight: 'bold', marginTop: 16, textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 8, paddingHorizontal: 20 },
   card: {

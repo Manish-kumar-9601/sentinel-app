@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  
+
   ScrollView,
   Alert,
 } from 'react-native';
@@ -127,7 +127,7 @@ const ProfileScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  console.log('at info scree',user )
+  console.log('at info scree', user)
   const handleSignOut = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -136,79 +136,106 @@ const ProfileScreen = () => {
   };
 
   return (
-    // <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {user ? (
-          <LinearGradient
-            colors={['#667eea', '#764ba2']}
-            style={styles.userInfoSection}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+    <SafeAreaView style={styles.container}>
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+
+        <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+          <Feather name="chevron-left" size={28} color="#007AFF" />
+          <Text style={styles.headerTitle}>Profile</Text>
+        </TouchableOpacity>
+
+
+      </View>
+      {user ? (
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.userInfoSection}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.avatarContainer}>
+            <Image source={userProfileImg} style={styles.avatar} />
+            <View style={styles.onlineIndicator} />
+          </View>
+          <Text style={styles.userName}>{user?.name}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+        </LinearGradient>
+      ) : (
+        <View style={styles.guestContainer}>
+          <Ionicons name="person-circle-outline" size={80} color="#007AFF" />
+          <Text style={styles.guestTitle}>You are a Guest</Text>
+          <Text style={styles.guestSubtitle}>
+            Log in to save your medical info and sync your emergency contacts.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('/login')}
           >
-            <View style={styles.avatarContainer}>
-              <Image source={userProfileImg} style={styles.avatar} />
-              <View style={styles.onlineIndicator} />
-            </View>
-            <Text style={styles.userName}>{user?.name}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
-          </LinearGradient>
-        ) : (
-          <View style={styles.guestContainer}>
-            <Ionicons name="person-circle-outline" size={80} color="#007AFF" />
-            <Text style={styles.guestTitle}>You are a Guest</Text>
-            <Text style={styles.guestSubtitle}>
-              Log in to save your medical info and sync your emergency contacts.
-            </Text>
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => router.push('/login')}
-            >
-              <Text style={styles.loginButtonText}>Log In or Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+            <Text style={styles.loginButtonText}>Log In or Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-        {menuSections(!!user).map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.menuContainer}>
-              {section.items.map((item, index) => (
-                <ProfileRow
-                  key={index}
-                  icon={item.icon}
-                  iconSet={item.iconSet}
-                  label={item.label}
-                  href={item.href}
-                  subtitle={item.subtitle}
-                  color={item.color}
-                  isLast={index === section.items.length - 1}
-                />
-              ))}
-            </View>
+      {menuSections(!!user).map((section, sectionIndex) => (
+        <View key={sectionIndex} style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View style={styles.menuContainer}>
+            {section.items.map((item, index) => (
+              <ProfileRow
+                key={index}
+                icon={item.icon}
+                iconSet={item.iconSet}
+                label={item.label}
+                href={item.href}
+                subtitle={item.subtitle}
+                color={item.color}
+                isLast={index === section.items.length - 1}
+              />
+            ))}
           </View>
-        ))}
+        </View>
+      ))}
 
-        {user && (
-          <View style={styles.signOutSection}>
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={handleSignOut}
-            >
-              <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        
-      </ScrollView>
-    // </SafeAreaView>
+      {user && (
+        <View style={styles.signOutSection}>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+    </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#262626ff',
+    backgroundColor: '#ffffffff',
+  },
+  header: {
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    // marginBottom: 10,
+  },
+  headerPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   guestContainer: {
     alignItems: 'center',
@@ -328,7 +355,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   signOutSection: {
-    marginBottom:40,
+    marginBottom: 40,
     padding: 16,
     paddingTop: 25,
   },
