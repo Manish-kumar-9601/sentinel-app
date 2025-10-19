@@ -56,20 +56,23 @@ export function useUserInfo() {
 
             // Get token from SecureStore
             const authToken = await SecureStore.getItemAsync(TOKEN_KEY);
-            
+
             if (!authToken) {
                 throw new Error('No authentication token found');
             }
 
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+
+            console.log(process.env.NODE_ENV)
+
+            const apiUrl: string = (process.env.NODE_ENV == 'development') ? process.env.EXPO_PUBLIC_API_URL : Constants.expoConfig?.extra?.apiUrl;
             if (!apiUrl) {
                 throw new Error('API URL not configured');
             }
 
-            console.log('📤 Making request to:', `${apiUrl}/api/user-info`);
+            console.log('📤 Making request to:', `${apiUrl}/api/userInfo/get-user-info`);
             console.log('🔑 Using auth token:', authToken.substring(0, 20) + '...');
 
-            const response = await fetch(`${apiUrl}/api/user-info`, {
+            const response = await fetch(`${apiUrl}/api/userInfo/get-user-info`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -82,20 +85,20 @@ export function useUserInfo() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error response:', errorText);
-                
+
                 let errorData;
                 try {
                     errorData = JSON.parse(errorText);
                 } catch {
                     errorData = { error: errorText };
                 }
-                
+
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
 
             const userData = await response.json();
             console.log('✅ User info loaded successfully');
-            
+
             setData(userData);
             setLastSync(new Date());
 
@@ -115,17 +118,17 @@ export function useUserInfo() {
             console.log('💾 Saving user info...');
 
             const authToken = await SecureStore.getItemAsync(TOKEN_KEY);
-            
+
             if (!authToken) {
                 throw new Error('No authentication token found');
             }
+            const apiUrl: string = (process.env.NODE_ENV == 'development') ? process.env.EXPO_PUBLIC_API_URL : Constants.expoConfig?.extra?.apiUrl;
 
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
             if (!apiUrl) {
                 throw new Error('API URL not configured');
             }
 
-            const response = await fetch(`${apiUrl}/api/user-info`, {
+            const response = await fetch(`${apiUrl}/api/userInfo/post-user-info`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -140,7 +143,7 @@ export function useUserInfo() {
             }
 
             const result = await response.json();
-            console.log('✅ User info saved successfully');
+            console.log('✅ User info saved successfully', result);
 
             // Refresh data after save
             await fetchUserInfo(false);

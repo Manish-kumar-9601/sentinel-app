@@ -29,7 +29,7 @@ const client = neon(process.env.DATABASE_URL);
 // Test connection on initialization
 (async () => {
     try {
-        await client`DESCRIBE users;`;
+        await client`SELECT 1`;
         logger.info('✅ Database connection verified');
     } catch (error: any) {
         logger.error('❌ Database connection test failed:', {
