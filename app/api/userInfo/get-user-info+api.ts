@@ -16,6 +16,7 @@ export const GET = withAuth(
                 .select({
                     name: users.name,
                     email: users.email,
+                    phone: users.phone,
                 })
                 .from(users)
                 .where(eq(users.id, userId))
@@ -71,6 +72,7 @@ export const GET = withAuth(
                     userInfo: {
                         name: userInfoResult.name || '',
                         email: userInfoResult.email || '',
+                        phone: userInfoResult.phone || '',
 
                     },
                     medicalInfo: {

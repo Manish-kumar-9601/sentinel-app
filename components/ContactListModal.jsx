@@ -17,10 +17,8 @@ import * as Location from 'expo-location';
 import PhoneContactsModal from './PhoneContactsModal';
 
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
-const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const BATCH_SAVE_DELAY = 1000; // 1 second delay for batch saving
 
-const ContactListModal = ({ visible, onClose,refreshAppState }) => {
+const ContactListModal = ({ visible, onClose, refreshAppState }) => {
   const [contacts, setContacts] = useState([]);
   const [location, setLocation] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -29,50 +27,29 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
-  const [pendingSave, setPendingSave] = useState(false);
+  const [syncError, setSyncError] = useState(null);
   
-  // Refs for debouncing and batch operations
-  const saveTimeoutRef = useRef(null);
-  const syncTimeoutRef = useRef(null);
-  const pendingContactsRef = useRef([]);
-  const mountedRef = useRef(true); // Track if component is mounted
+  const mountedRef = useRef(true);
 
-  // Load contacts when component mounts - FIXED: Always load regardless of visible prop
   useEffect(() => {
-    console.log('ContactListModal mounted, loading contacts...');
-    loadContacts();
-    loadLastSyncTime();
-    
-    // Cleanup function
     return () => {
       mountedRef.current = false;
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
-      }
     };
-  }, []); // Empty dependency array - run only on mount
+  }, []);
 
-  // Handle visibility changes
   useEffect(() => {
     if (visible) {
       setModalVisible(true);
+      loadContacts();
       loadLocation();
-      // Auto-sync if needed (debounced)
-      debouncedAutoSync();
+      loadLastSyncTime();
+      syncWithDatabase();
     } else {
       setModalVisible(false);
       setIsManageMode(false);
-      // Save any pending changes before closing
-      if (pendingContactsRef.current.length > 0) {
-        saveContactsImmediately(pendingContactsRef.current);
-      }
     }
   }, [visible]);
 
-  // Load last sync time from storage
   const loadLastSyncTime = async () => {
     try {
       const lastSync = await AsyncStorage.getItem('contacts_last_sync');
@@ -84,48 +61,36 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
     }
   };
 
-  // FIXED: Improved contact loading with better error handling and logging
   const loadContacts = async () => {
-    console.log('Starting to load contacts from storage...');
+    console.log('Loading contacts from storage...');
     try {
       setIsLoading(true);
       
-      // Get data from AsyncStorage
       const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-      console.log('Raw stored contacts data:', storedContacts ? 'Found data' : 'No data found');
+      console.log('Stored contacts:', storedContacts);
       
       if (storedContacts && mountedRef.current) {
         try {
           const parsedContacts = JSON.parse(storedContacts);
-          console.log('Parsed contacts:', parsedContacts.length, 'contacts found');
-          
-          // Validate that it's an array
           if (Array.isArray(parsedContacts)) {
             setContacts(parsedContacts);
-            pendingContactsRef.current = parsedContacts;
-            console.log(`Successfully loaded ${parsedContacts.length} contacts from storage`);
+            console.log(`Loaded ${parsedContacts.length} contacts`);
           } else {
-            console.warn('Stored contacts is not an array, resetting to empty');
             setContacts([]);
-            pendingContactsRef.current = [];
           }
         } catch (parseError) {
-          console.error('Failed to parse stored contacts JSON:', parseError);
+          console.error('Failed to parse contacts:', parseError);
           setContacts([]);
-          pendingContactsRef.current = [];
         }
       } else {
-        console.log('No contacts found in storage or component unmounted');
         if (mountedRef.current) {
           setContacts([]);
-          pendingContactsRef.current = [];
         }
       }
     } catch (error) {
-      console.error("Failed to load contacts from storage", error);
+      console.error('Failed to load contacts:', error);
       if (mountedRef.current) {
         setContacts([]);
-        pendingContactsRef.current = [];
       }
     } finally {
       if (mountedRef.current) {
@@ -134,138 +99,27 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
     }
   };
 
-  // Debounced auto-sync
-  const debouncedAutoSync = useCallback(() => {
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-    
-    syncTimeoutRef.current = setTimeout(() => {
-      if (mountedRef.current) {
-        checkAndAutoSync();
-      }
-    }, 500);
-  }, []);
-
-  // Check if auto-sync is needed
-  const checkAndAutoSync = async () => {
-    if (!mountedRef.current) return;
-    
-    try {
-      const lastSync = await AsyncStorage.getItem('contacts_last_sync');
-      if (lastSync) {
-        const timeSinceSync = Date.now() - new Date(lastSync).getTime();
-        if (timeSinceSync > SYNC_INTERVAL) {
-          console.log('Auto-syncing contacts...');
-          await syncWithDatabase();
-        }
-      } else {
-        // First time, sync immediately but silently
-        await syncWithDatabase(true);
-      }
-    } catch (error) {
-      console.error('Auto-sync failed:', error);
-    }
-  };
-
-  // Optimized sync with database
-  const syncWithDatabase = async (silent = false) => {
-    if (isSyncing || !mountedRef.current) return; // Prevent multiple simultaneous syncs
-    
-    try {
-      if (!silent) setIsSyncing(true);
-      
-      // Fetch latest user info including contacts from API
-      const response = await fetch('/api/user-info', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok && mountedRef.current) {
-        const data = await response.json();
-        const serverContacts = data.emergencyContacts || [];
-        
-        // Merge server contacts with any local pending changes
-        const mergedContacts = mergeContacts(contacts, serverContacts);
-        
-        // Update state and storage without triggering another sync
-        await saveContactsToStorage(mergedContacts);
-        if (mountedRef.current) {
-          setContacts(mergedContacts);
-          pendingContactsRef.current = mergedContacts;
-        }
-        
-        // Update sync timestamp
-        const now = new Date().toISOString();
-        await AsyncStorage.setItem('contacts_last_sync', now);
-        if (mountedRef.current) {
-          setLastSyncTime(new Date(now));
-        }
-        
-        console.log(`Contacts synced successfully (${mergedContacts.length} contacts)`);
-      } else {
-        console.log('Failed to sync contacts:', response.status);
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-    } finally {
-      if (!silent && mountedRef.current) setIsSyncing(false);
-    }
-  };
-
-  // Merge contacts intelligently
-  const mergeContacts = (localContacts, serverContacts) => {
-    const merged = [...serverContacts]; // Start with server as source of truth
-    
-    // Add local contacts that don't exist on server
-    localContacts.forEach(localContact => {
-      const existsOnServer = serverContacts.some(
-        serverContact => serverContact.id === localContact.id || 
-                        serverContact.phone === localContact.phone
-      );
-      
-      if (!existsOnServer && localContact.name && localContact.phone) {
-        merged.push({
-          ...localContact,
-          synced: false // Mark as needing sync
-        });
-      }
-    });
-    
-    return merged.map(contact => ({
-      ...contact,
-      synced: serverContacts.some(sc => sc.id === contact.id) // Mark as synced if from server
-    }));
-  };
-
-  // Load location (cached)
   const loadLocation = useCallback(async () => {
-    if (location || !mountedRef.current) return; // Use cached location
+    if (location || !mountedRef.current) return;
     
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted' && mountedRef.current) {
         const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced, // Faster, less accurate
+          accuracy: Location.Accuracy.Balanced,
         });
         if (mountedRef.current) {
           setLocation(currentLocation);
         }
-      } else {
-        Alert.alert("Permission Denied", "Location access is needed for check-in messages.");
       }
     } catch (error) {
-      console.error("Failed to get location", error);
+      console.error('Failed to get location:', error);
     }
   }, [location]);
 
-  // FIXED: Improved save to storage with validation
   const saveContactsToStorage = async (contactsToSave) => {
-    refreshAppState()
     if (!Array.isArray(contactsToSave)) {
-      console.error('Invalid contacts data for saving:', contactsToSave);
+      console.error('Invalid contacts data:', contactsToSave);
       return false;
     }
     
@@ -273,131 +127,171 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
       const jsonValue = JSON.stringify(contactsToSave);
       await AsyncStorage.setItem(CONTACTS_STORAGE_KEY, jsonValue);
       console.log(`Saved ${contactsToSave.length} contacts to storage`);
-      
-      // Verify the save worked
-      const verification = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-      if (verification) {
-        console.log('Storage save verified successfully');
-        return true;
-      } else {
-        console.error('Storage save verification failed');
-        return false;
-      }
+      return true;
     } catch (error) {
       console.error('Failed to save contacts to storage:', error);
       return false;
     }
   };
 
-  // Batch save contacts with debouncing
-  const batchSaveContacts = useCallback((contactsToSave) => {
-    if (!mountedRef.current) return;
-    
-    pendingContactsRef.current = contactsToSave;
-    setPendingSave(true);
-    
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // Set new timeout for batch save
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (mountedRef.current) {
-        await saveContactsImmediately(contactsToSave);
-        setPendingSave(false);
-      }
-    }, BATCH_SAVE_DELAY);
-  }, []);
-
-  // Immediate save (for critical operations)
-  const saveContactsImmediately = async (contactsToSave) => {
-    if (!mountedRef.current) return false;
+  const syncWithDatabase = async () => {
+    if (!mountedRef.current || isSyncing) return;
     
     try {
-      // Save to storage first (fast)
-      const saveSuccess = await saveContactsToStorage(contactsToSave);
-      if (!saveSuccess) {
-        console.error('Failed to save to local storage');
-        return false;
+      setIsSyncing(true);
+      setSyncError(null);
+      console.log('Starting database sync...');
+
+      // Fetch current user info from API
+      const response = await fetch('/api/userInfo/get-user-info+api', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('Fetched user info:', data);
+
+      if (!mountedRef.current) return;
+
+      const serverContacts = data.emergencyContacts || [];
       
-      // Sync to database in background (slow)
-      syncContactsToDatabase(contactsToSave);
+      // Merge server contacts with local storage
+      const mergedContacts = mergeContacts(contacts, serverContacts);
       
-      return true;
+      if (mountedRef.current) {
+        setContacts(mergedContacts);
+        await saveContactsToStorage(mergedContacts);
+        
+        // Update sync time
+        const now = new Date().toISOString();
+        await AsyncStorage.setItem('contacts_last_sync', now);
+        setLastSyncTime(new Date(now));
+        
+        console.log(`Database sync completed (${mergedContacts.length} contacts)`);
+      }
     } catch (error) {
-      console.error('Failed to save contacts immediately:', error);
-      return false;
+      console.error('Database sync error:', error);
+      if (mountedRef.current) {
+        setSyncError('Failed to sync contacts with database');
+      }
+    } finally {
+      if (mountedRef.current) {
+        setIsSyncing(false);
+      }
     }
   };
 
-  // Background sync to database (non-blocking)
-  const syncContactsToDatabase = async (contactsToSync) => {
-    if (!mountedRef.current) return;
+  const mergeContacts = (localContacts, serverContacts) => {
+    const merged = [...serverContacts];
     
+    localContacts.forEach(localContact => {
+      const existsOnServer = serverContacts.some(
+        sc => sc.id === localContact.id || 
+              sc.phone === localContact.phone
+      );
+      
+      if (!existsOnServer && localContact.name && localContact.phone) {
+        merged.push({
+          ...localContact,
+          synced: false,
+        });
+      }
+    });
+    
+    return merged.map(contact => ({
+      ...contact,
+      synced: serverContacts.some(sc => sc.id === contact.id),
+    }));
+  };
+
+  const pushContactsToDatabase = async (contactsToSync) => {
     try {
-      // Get current user info first
-      const userInfoResponse = await fetch('/api/user-info', {
+      console.log('Pushing contacts to database:', contactsToSync);
+      
+      // First get current user info
+      const getResponse = await fetch('/api/userInfo/get-user-info+api', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (!userInfoResponse.ok) {
-        throw new Error('Failed to get current user info');
+      if (!getResponse.ok) {
+        throw new Error('Failed to fetch current user info');
       }
 
-      const currentData = await userInfoResponse.json();
-      
-      // Prepare the sync payload
+      const currentData = await getResponse.json();
+      console.log('Current data from server:', currentData);
+
+      // Prepare payload with all current data
       const payload = {
-        userInfo: currentData.userInfo,
-        medicalInfo: currentData.medicalInfo,
+        userInfo: {
+          name: currentData.userInfo?.name || '',
+          email: currentData.userInfo?.email || '',
+          phone: currentData.userInfo?.phone || '',
+        },
+        medicalInfo: {
+          bloodGroup: currentData.medicalInfo?.bloodGroup || '',
+          allergies: currentData.medicalInfo?.allergies || '',
+          medications: currentData.medicalInfo?.medications || '',
+          emergencyContactName: currentData.medicalInfo?.emergencyContactName || '',
+          emergencyContactPhone: currentData.medicalInfo?.emergencyContactPhone || '',
+        },
         emergencyContacts: contactsToSync.map(contact => ({
           id: contact.id,
           name: contact.name,
           phone: contact.phone,
           relationship: contact.relationship || '',
-          createdAt: contact.createdAt || new Date().toISOString()
-        }))
+          createdAt: contact.createdAt || new Date().toISOString(),
+        })),
       };
 
-      const response = await fetch('/api/user-info', {
+      console.log('Payload to send:', JSON.stringify(payload, null, 2));
+
+      const postResponse = await fetch('/api/userInfo/post-user-info+api', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
 
-      if (response.ok && mountedRef.current) {
-        console.log('Contacts synced to database successfully');
-        
-        // Update sync status in state
-        const syncedContacts = contactsToSync.map(contact => ({
-          ...contact,
-          synced: true
-        }));
+      if (!postResponse.ok) {
+        const errorData = await postResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `API Error: ${postResponse.status}`);
+      }
+
+      const result = await postResponse.json();
+      console.log('Database push successful:', result);
+
+      if (mountedRef.current) {
+        // Mark all as synced
+        const syncedContacts = contactsToSync.map(c => ({ ...c, synced: true }));
         setContacts(syncedContacts);
+        await saveContactsToStorage(syncedContacts);
         
         // Update sync time
         const now = new Date().toISOString();
         await AsyncStorage.setItem('contacts_last_sync', now);
-        if (mountedRef.current) {
-          setLastSyncTime(new Date(now));
-        }
-      } else {
-        console.error('Failed to sync contacts to database');
+        setLastSyncTime(new Date(now));
+        
+        setSyncError(null);
       }
+
+      return true;
     } catch (error) {
-      console.error('Database sync error:', error);
-      
-      // Mark contacts as unsynced
+      console.error('Push to database error:', error);
       if (mountedRef.current) {
-        const unsyncedContacts = contactsToSync.map(contact => ({
-          ...contact,
-          synced: false
-        }));
-        setContacts(unsyncedContacts);
+        setSyncError(error.message);
+        Alert.alert('Sync Error', error.message);
       }
+      return false;
     }
   };
 
@@ -415,7 +309,6 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
       
       try {
         await SMS.sendSMSAsync([contact.phone], message);
-        // Simple success feedback without annoying popup
         console.log(`Check-in sent to ${contact.name}`);
         onClose();
       } catch (error) {
@@ -434,10 +327,11 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
-          onPress: () => {
-            const updatedContacts = contacts.filter(contact => contact.id !== contactToRemove.id);
+          onPress: async () => {
+            const updatedContacts = contacts.filter(c => c.id !== contactToRemove.id);
             setContacts(updatedContacts);
-            batchSaveContacts(updatedContacts);
+            await saveContactsToStorage(updatedContacts);
+            await pushContactsToDatabase(updatedContacts);
           },
           style: 'destructive',
         },
@@ -445,61 +339,32 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
     );
   };
 
-  const handleAddFromPhone = (selectedContact) => {
-    // Check if contact already exists
+  const handleAddFromPhone = async (selectedContact) => {
     if (contacts.some(c => c.phone === selectedContact.phone)) {
       Alert.alert("Already Added", `${selectedContact.name} is already in your contacts.`);
       return;
     }
 
-    // Create new contact with proper structure
     const newContact = {
-      id: selectedContact.id || generateUniqueId(),
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: selectedContact.name,
       phone: selectedContact.phone,
       relationship: selectedContact.relationship || '',
       createdAt: new Date().toISOString(),
-      synced: false // Mark as not synced yet
+      synced: false,
     };
 
     const updatedContacts = [...contacts, newContact];
     setContacts(updatedContacts);
-    batchSaveContacts(updatedContacts);
+    await saveContactsToStorage(updatedContacts);
     
-    // Simple success feedback
-    console.log(`${selectedContact.name} added to contacts`);
-  };
-
-  // Generate unique ID for new contacts
-  const generateUniqueId = () => {
-    return 'contact_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    // Push to database immediately
+    await pushContactsToDatabase(updatedContacts);
+    console.log(`${selectedContact.name} added and synced to database`);
   };
 
   const toggleManageMode = () => {
     setIsManageMode(!isManageMode);
-  };
-
-  const handleManualSync = async () => {
-    await syncWithDatabase();
-  };
-
-  // FIXED: Add debug function to test storage
-  const debugStorage = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-      console.log('=== DEBUG STORAGE ===');
-      console.log('Raw stored data:', stored);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        console.log('Parsed data:', parsed);
-        console.log('Is array:', Array.isArray(parsed));
-        console.log('Length:', parsed.length);
-      }
-      console.log('Current contacts state:', contacts);
-      console.log('=== END DEBUG ===');
-    } catch (error) {
-      console.error('Debug storage error:', error);
-    }
   };
 
   const ContactItem = ({ item }) => (
@@ -556,19 +421,9 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
                 {isManageMode ? 'Manage Contacts' : 'Emergency Contacts'}
               </Text>
               <View style={styles.headerButtons}>
-                {/* Debug button - remove in production */}
-                <TouchableOpacity 
-                  style={styles.headerButton} 
-                  onPress={debugStorage}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="bug" size={18} color="#666" />
-                </TouchableOpacity>
-                
-                {/* Sync button */}
                 <TouchableOpacity 
                   style={[styles.headerButton, isSyncing && styles.syncingButton]} 
-                  onPress={handleManualSync}
+                  onPress={syncWithDatabase}
                   disabled={isSyncing}
                   activeOpacity={0.7}
                 >
@@ -598,15 +453,18 @@ const ContactListModal = ({ visible, onClose,refreshAppState }) => {
               </View>
             </View>
 
-            {/* Status bar */}
+            {syncError && (
+              <View style={styles.errorBanner}>
+                <Ionicons name="alert-circle" size={16} color="#FF3B30" />
+                <Text style={styles.errorText}>{syncError}</Text>
+              </View>
+            )}
+
             <View style={styles.statusBar}>
               <View style={styles.statusLeft}>
                 <Text style={styles.contactCount}>
                   {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
                 </Text>
-                {pendingSave && (
-                  <Text style={styles.savingText}>Saving...</Text>
-                )}
               </View>
               
               {lastSyncTime && (
@@ -725,6 +583,20 @@ const styles = StyleSheet.create({
   syncingButton: {
     backgroundColor: '#E3F2FD'
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFE5E5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    color: '#FF3B30',
+    fontSize: 13,
+  },
   statusBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -743,11 +615,6 @@ const styles = StyleSheet.create({
   contactCount: {
     fontSize: 13,
     color: '#666',
-    fontWeight: '500',
-  },
-  savingText: {
-    fontSize: 12,
-    color: '#FF9500',
     fontWeight: '500',
   },
   syncText: {

@@ -3,7 +3,7 @@ import { ActivityIndicator, View, StyleSheet, Image, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 // Import the app logo
-import sentinelIcon from '../assets/images/sentinel-icon.png';
+const sentinelIcon = require('../assets/images/sentinel-icon.png');
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
