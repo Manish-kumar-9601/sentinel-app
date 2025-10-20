@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import {
- 
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import
+  {
+
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TouchableOpacity,
+    Alert,
+  } from 'react-native';
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { router, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Updates from 'expo-updates';
 import { useTranslation } from 'react-i18next';
@@ -24,35 +25,40 @@ const LANGUAGES = [
 ];
 const LANGUAGE_KEY = 'user_language';
 
-const LanguageScreen = () => {
+const LanguageScreen = () =>
+{
   const { i18n } = useTranslation();
   // Initialize state with the currently active language from i18next
   const [currentLang, setCurrentLang] = useState(i18n.language);
 
-  const handleSelectLanguage = async (langCode) => {
-    try {
+  const handleSelectLanguage = async (langCode) =>
+  {
+    try
+    {
       // 1. Change the language
       await i18n.changeLanguage(langCode);
-      
+
       // 2. Save the new language preference to storage
       await AsyncStorage.setItem(LANGUAGE_KEY, langCode);
 
       // 3. Update the local state to show the checkmark immediately
       setCurrentLang(langCode);
-      
+
       // 4. Alert the user and offer to restart the app
       Alert.alert(
         "Language Changed",
         "The app will now restart to apply the new language.",
         [{ text: "OK", onPress: () => Updates.reloadAsync() }]
       );
-    } catch (error) {
+    } catch (error)
+    {
       console.error("Failed to save or change language", error);
       Alert.alert("Error", "Could not apply the selected language.");
     }
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item }) =>
+  {
     const isSelected = currentLang === item.code;
     return (
       <TouchableOpacity
@@ -67,15 +73,15 @@ const LanguageScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-       <View style={styles.header}>
+      <View style={styles.header}>
 
-                          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-                              <Feather name="chevron-left" size={32} color="#007AFF" />
-                              <Text style={styles.headerTitle}>Language</Text>
-                          </TouchableOpacity>
-      
-                      
-                      </View>
+        <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+          <Feather name="chevron-left" size={32} color="#007AFF" />
+          <Text style={styles.headerTitle}>Language</Text>
+        </TouchableOpacity>
+
+
+      </View>
       <FlatList
         data={LANGUAGES}
         renderItem={renderItem}
@@ -91,14 +97,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   header: {
-        paddingTop:8,
-        paddingBottom: 6,
-        paddingHorizontal: 20,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
-        marginBottom: 10,
-    },
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 10,
+  },
   headerPressable: {
     flexDirection: 'row',
     alignItems: 'center',
