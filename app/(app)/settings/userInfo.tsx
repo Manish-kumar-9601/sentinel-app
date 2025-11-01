@@ -43,7 +43,7 @@ interface EmergencyContact {
 }
 
 export default function UserInfoScreen() {
-    const { user, logout } = useAuth();
+    const { user: authUser, logout } = useAuth();
     const {
         data: userInfoData,
         loading: isLoadingUserInfo,
@@ -59,6 +59,7 @@ export default function UserInfoScreen() {
     const [error, setError] = useState<string | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
     const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Form data
     const [userInfo, setUserInfo] = useState<UserInfo>({
@@ -90,56 +91,88 @@ export default function UserInfoScreen() {
         relationship: '',
     });
 
-    // Check for changes
-    useEffect(() => {
-        if (originalData) {
-            const hasUserInfoChanges =
-                userInfo.name !== originalData.userInfo.name ||
-                userInfo.phone !== originalData.userInfo.phone;
-
-            const hasMedicalChanges =
-                medicalInfo.bloodGroup !== originalData.medicalInfo.bloodGroup ||
-                medicalInfo.allergies !== originalData.medicalInfo.allergies ||
-                medicalInfo.medications !== originalData.medicalInfo.medications;
-
-            const hasContactChanges = JSON.stringify(emergencyContacts) !== JSON.stringify(originalData.emergencyContacts);
-
-            setHasChanges(hasUserInfoChanges || hasMedicalChanges || hasContactChanges);
-        }
-    }, [userInfo, medicalInfo, emergencyContacts, originalData]);
-
     // Initialize data from hook when loaded
     useEffect(() => {
-        if (userInfoData) {
-            setUserInfo({
-                name: userInfoData.userInfo.name,
-                email: userInfoData.userInfo.email,
+        console.log('📊 UserInfo screen - Data update:', {
+            hasData: !!userInfoData,
+            loading: isLoadingUserInfo,
+            error: userInfoError,
+            isInitialized
+        });
+
+        if (userInfoData && !isInitialized) {
+            console.log('🎬 Initializing form with fetched data');
+            const initialUserInfo = {
+                name: userInfoData.userInfo.name || '',
+                email: userInfoData.userInfo.email || '',
                 phone: userInfoData.userInfo.phone || '',
-            });
-            setMedicalInfo(userInfoData.medicalInfo);
-            setEmergencyContacts(userInfoData.emergencyContacts || []);
+            };
+            const initialMedicalInfo = {
+                bloodGroup: userInfoData.medicalInfo.bloodGroup || '',
+                allergies: userInfoData.medicalInfo.allergies || '',
+                medications: userInfoData.medicalInfo.medications || '',
+            };
+            const initialContacts = Array.isArray(userInfoData.emergencyContacts)
+                ? userInfoData.emergencyContacts
+                : [];
+
+            setUserInfo(initialUserInfo);
+            setMedicalInfo(initialMedicalInfo);
+            setEmergencyContacts(initialContacts);
             setOriginalData({
-                userInfo: {
-                    name: userInfoData.userInfo.name,
-                    email: userInfoData.userInfo.email,
-                    phone: userInfoData.userInfo.phone || '',
-                },
-                medicalInfo: userInfoData.medicalInfo,
-                emergencyContacts: userInfoData.emergencyContacts || [],
+                userInfo: initialUserInfo,
+                medicalInfo: initialMedicalInfo,
+                emergencyContacts: initialContacts,
             });
             setLastSyncTime(lastSync);
+            setError(null);
+            setIsInitialized(true);
+            console.log('✅ Form initialized with data');
         }
-    }, [userInfoData, lastSync]);
+    }, [userInfoData, isInitialized, lastSync]);
 
     // Update error state from hook
     useEffect(() => {
-        setError(userInfoError);
+        if (userInfoError) {
+            console.log('⚠️ Error from hook:', userInfoError);
+            setError(userInfoError);
+        }
     }, [userInfoError]);
 
+    // Check for changes
+    useEffect(() => {
+        if (!originalData || !isInitialized) {
+            setHasChanges(false);
+            return;
+        }
+
+        const hasUserInfoChanges =
+            userInfo.name !== originalData.userInfo.name ||
+            userInfo.phone !== originalData.userInfo.phone;
+
+        const hasMedicalChanges =
+            medicalInfo.bloodGroup !== originalData.medicalInfo.bloodGroup ||
+            medicalInfo.allergies !== originalData.medicalInfo.allergies ||
+            medicalInfo.medications !== originalData.medicalInfo.medications;
+
+        const hasContactChanges = JSON.stringify(emergencyContacts) !== JSON.stringify(originalData.emergencyContacts);
+
+        const changed = hasUserInfoChanges || hasMedicalChanges || hasContactChanges;
+        setHasChanges(changed);
+    }, [userInfo, medicalInfo, emergencyContacts, originalData, isInitialized]);
+
     const handleRefresh = async () => {
+        console.log('🔄 Manual refresh triggered');
         setIsRefreshing(true);
-        await refresh(true); // Force refresh
-        setIsRefreshing(false);
+        setError(null);
+        try {
+            await refresh(true); // Force refresh
+        } catch (err: any) {
+            console.error('❌ Refresh failed:', err);
+            setError('Failed to refresh data');
+        } finally {
+            setIsRefreshing(false);
+        }
     };
 
     const validateForm = (): string[] => {
@@ -167,6 +200,8 @@ export default function UserInfoScreen() {
     };
 
     const handleSave = async () => {
+        console.log('💾 Save button pressed');
+
         // Validate form
         const validationErrors = validateForm();
         if (validationErrors.length > 0) {
@@ -188,8 +223,6 @@ export default function UserInfoScreen() {
                     bloodGroup: medicalInfo.bloodGroup.trim(),
                     allergies: medicalInfo.allergies.trim(),
                     medications: medicalInfo.medications.trim(),
-                    emergencyContactName: '',
-                    emergencyContactPhone: '',
                 },
                 emergencyContacts: emergencyContacts.map(contact => ({
                     id: contact.id,
@@ -200,6 +233,11 @@ export default function UserInfoScreen() {
                 })),
                 lastUpdated: new Date().toISOString(),
             };
+
+            console.log('📦 Saving payload:', {
+                userName: payload.userInfo.name,
+                contactsCount: payload.emergencyContacts.length
+            });
 
             const result = await save(payload);
 
@@ -222,8 +260,9 @@ export default function UserInfoScreen() {
             }
         } catch (err: any) {
             console.error('❌ Error saving user info:', err);
-            setError(err.message || 'Failed to save user information');
-            Alert.alert('Save Failed', err.message || 'Could not save your information. Please try again.');
+            const errorMsg = err.message || 'Failed to save user information';
+            setError(errorMsg);
+            Alert.alert('Save Failed', errorMsg + '\n\nPlease try again.');
         } finally {
             setIsSaving(false);
         }
@@ -292,7 +331,8 @@ export default function UserInfoScreen() {
         );
     };
 
-    if (isLoadingUserInfo && !originalData) {
+    // Loading state
+    if (isLoadingUserInfo && !isInitialized) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.centerContainer}>
@@ -303,7 +343,8 @@ export default function UserInfoScreen() {
         );
     }
 
-    if (error && !originalData) {
+    // Error state (only if no data and there's an error)
+    if (error && !isInitialized && !userInfoData) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.centerContainer}>
@@ -312,6 +353,12 @@ export default function UserInfoScreen() {
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={() => refresh(true)}>
                         <Text style={styles.retryButtonText}>Try Again</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.retryButton, { backgroundColor: '#FF3B30', marginTop: 10 }]}
+                        onPress={logout}
+                    >
+                        <Text style={styles.retryButtonText}>Logout</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -686,10 +733,9 @@ const styles = StyleSheet.create({
         color: '#000',
     },
     syncText: {
-        paddingHorizontal: 20,
-        marginTop: 10,
         fontSize: 12,
-        color: '#8E8E93',
+        color: '#34C759',
+        marginLeft: 6,
     },
     loadingText: {
         marginTop: 10,
@@ -710,20 +756,6 @@ const styles = StyleSheet.create({
         color: '#FF3B30',
         fontSize: 14,
     },
-    syncErrorBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF3E0',
-        padding: 12,
-        margin: 15,
-        borderRadius: 8,
-        gap: 8,
-    },
-    syncErrorText: {
-        flex: 1,
-        color: '#FF9500',
-        fontSize: 14,
-    },
     errorTitle: {
         fontSize: 20,
         fontWeight: 'bold',
@@ -740,13 +772,11 @@ const styles = StyleSheet.create({
     syncStatus: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
         paddingHorizontal: 20,
         paddingVertical: 8,
         backgroundColor: '#F0F9FF',
         marginBottom: 10,
     },
-
     pickerModalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -849,26 +879,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'transparent',
     },
-    phoneInputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F2F2F7',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: 'transparent',
-        paddingLeft: 12,
-    },
-    phonePrefix: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#8E8E93',
-        marginRight: 8,
-    },
-    phoneInput: {
-        flex: 1,
-        padding: 12,
-        fontSize: 16,
-    },
     multilineInput: {
         height: 80,
         textAlignVertical: 'top',
@@ -897,33 +907,15 @@ const styles = StyleSheet.create({
     contactInfo: {
         flex: 1,
     },
-    contactHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 6,
-    },
     contactName: {
         fontSize: 16,
         fontWeight: '600',
         color: '#000',
     },
-    relationship: {
-        fontSize: 12,
-        color: '#8E8E93',
-        backgroundColor: '#F2F2F7',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    phoneRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
     contactPhone: {
         fontSize: 14,
         color: '#007AFF',
+        marginTop: 4,
     },
     contactActions: {
         flexDirection: 'row',
@@ -978,9 +970,6 @@ const styles = StyleSheet.create({
     saveButton: {
         backgroundColor: '#007AFF',
     },
-    clearButton: {
-        backgroundColor: '#E5E5EA',
-    },
     disabledButton: {
         opacity: 0.5,
     },
@@ -988,16 +977,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
-    },
-    clearButtonText: {
-        color: '#007AFF',
-    },
-    logoutButton: {
-        backgroundColor: '#FF3B30',
-        marginTop: 10,
-    },
-    logoutButtonText: {
-        color: 'white',
     },
     retryButton: {
         backgroundColor: '#007AFF',

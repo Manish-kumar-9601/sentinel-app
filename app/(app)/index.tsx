@@ -1,7 +1,6 @@
 ﻿import { useModal } from '../../context/ModalContext';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -866,7 +865,9 @@ const styles = StyleSheet.create({
         borderRadius: 75,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#2876b8',
+    
+        shadowColor:'#2876b8' ,
+        
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.3,
         shadowRadius: 20,

@@ -50,9 +50,10 @@ export function withAuth(
       if (!token) {
         logger.warn('❌ No authentication token found');
         return addCorsHeaders(new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "Authentication required. Please log in.",
-            code: "NO_TOKEN"
+            code: "NO_TOKEN",
+            success: false
           }),
           { status: 401, headers: { 'Content-Type': 'application/json' } }
         ));
@@ -62,9 +63,10 @@ export function withAuth(
       if (!JWT_SECRET) {
         logger.error('❌ JWT_SECRET is not configured!');
         return addCorsHeaders(new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "Server configuration error",
-            code: "SERVER_CONFIG_ERROR"
+            code: "SERVER_CONFIG_ERROR",
+            success: false
           }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
         ));
@@ -74,23 +76,26 @@ export function withAuth(
       let decodedPayload;
       try {
         decodedPayload = jwt.verify(token, JWT_SECRET);
+        logger.info('✅ Token verified successfully');
       } catch (jwtError: any) {
         logger.warn('❌ Token verification failed:', jwtError.message);
-        
+
         if (jwtError.name === 'TokenExpiredError') {
           return addCorsHeaders(new Response(
-            JSON.stringify({ 
+            JSON.stringify({
               error: "Session expired. Please log in again.",
-              code: "TOKEN_EXPIRED"
+              code: "TOKEN_EXPIRED",
+              success: false
             }),
             { status: 401, headers: { 'Content-Type': 'application/json' } }
           ));
         }
-        
+
         return addCorsHeaders(new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "Invalid authentication token",
-            code: "INVALID_TOKEN"
+            code: "INVALID_TOKEN",
+            success: false
           }),
           { status: 401, headers: { 'Content-Type': 'application/json' } }
         ));
@@ -104,9 +109,10 @@ export function withAuth(
       ) {
         logger.error('❌ Invalid token payload structure');
         return addCorsHeaders(new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "Invalid token payload",
-            code: "INVALID_PAYLOAD"
+            code: "INVALID_PAYLOAD",
+            success: false
           }),
           { status: 401, headers: { 'Content-Type': 'application/json' } }
         ));
@@ -115,15 +121,42 @@ export function withAuth(
       const user = decodedPayload as AuthUser;
       logger.info('✅ Authentication successful for user:', user.email);
 
-      // Call the actual handler
-      return await handler(req, user);
+      // Call the actual handler with proper error handling
+      try {
+        const response = await handler(req, user);
+        return response;
+      } catch (handlerError: any) {
+        logger.error('❌ Handler execution error:', handlerError);
+        logger.error('Error details:', {
+          message: handlerError.message,
+          name: handlerError.name,
+          stack: process.env.NODE_ENV === 'development' ? handlerError.stack : undefined
+        });
+
+        return addCorsHeaders(new Response(
+          JSON.stringify({
+            error: "Request processing failed",
+            code: "HANDLER_ERROR",
+            success: false,
+            details: process.env.NODE_ENV === 'development' ? handlerError.message : undefined
+          }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        ));
+      }
 
     } catch (error: any) {
       logger.error("❌ Auth middleware error:", error);
+      logger.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+
       return addCorsHeaders(new Response(
         JSON.stringify({
           error: "Authentication error occurred",
           code: "AUTH_ERROR",
+          success: false,
           details: process.env.NODE_ENV === 'development' ? error.message : undefined
         }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -134,12 +167,12 @@ export function withAuth(
 
 export default function addCorsHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
-  
+
   // More permissive CORS for development
-  const origin = process.env.NODE_ENV === 'production' 
+  const origin = process.env.NODE_ENV === 'production'
     ? 'https://manish-9601-sentinel.expo.app'
     : '*';
-    
+
   headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');

@@ -1,43 +1,61 @@
 ﻿// db/client.ts
 import { drizzle } from 'drizzle-orm/neon-http';
-import 'dotenv/config';
 import { neon } from '@neondatabase/serverless';
-import { logger } from '@/utils/logger';
-import { emergencyContacts, medicalInfo, users } from './schema';
+import * as schema from './schema';
 
+// Validate environment variable
 if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL is not set in environment variables');
     throw new Error('DATABASE_URL is not set in environment variables');
 }
-logger.info('🔧 Initializing database connection...');
-logger.info('📍 Environment:', process.env.NODE_ENV);
-logger.info('🌐 Database URL exists:', !!process.env.DATABASE_URL);
-const connectionString: string = `${process.env.DATABASE_URL}`;
+
+console.log('🔧 Initializing database connection...');
+console.log('📍 Environment:', process.env.NODE_ENV);
+console.log('🌐 Database URL exists:', !!process.env.DATABASE_URL);
+
+const connectionString: string = process.env.DATABASE_URL;
+
+// Validate URL format
 try {
     const url = new URL(connectionString);
-    logger.info('🔌 Connecting to:', {
+    console.log('🔌 Connecting to:', {
         host: url.hostname,
         port: url.port || '5432',
         database: url.pathname.slice(1),
         user: url.username
     });
 } catch (e) {
-    logger.error('❌ Invalid DATABASE_URL format:', e);
+    console.error('❌ Invalid DATABASE_URL format:', e);
+    throw new Error('Invalid DATABASE_URL format');
 }
 
-const client = neon(process.env.DATABASE_URL);
+// Create Neon client
+let client;
+try {
+    client = neon(connectionString);
+    console.log('✅ Neon client created');
+} catch (error: any) {
+    console.error('❌ Failed to create Neon client:', error);
+    throw error;
+}
 
 // Test connection on initialization
 (async () => {
     try {
         await client`SELECT 1`;
-        logger.info('✅ Database connection verified');
+        console.log('✅ Database connection verified');
     } catch (error: any) {
-        logger.error('❌ Database connection test failed:', {
+        console.error('❌ Database connection test failed:', {
             message: error.message,
             code: error.code,
             detail: error.detail
         });
     }
 })();
-export const db = drizzle(client, { schema: { users, emergencyContacts, medicalInfo } });
-logger.info('✅ Database client initialized');
+
+// Create Drizzle instance with schema
+export const db = drizzle(client, { schema });
+console.log('✅ Database client initialized with schema');
+
+// Export schema for direct access
+export { schema };

@@ -14,8 +14,6 @@ interface MedicalInfo {
     bloodGroup: string;
     allergies: string;
     medications: string;
-    emergencyContactName: string;
-    emergencyContactPhone: string;
 }
 
 interface EmergencyContact {
@@ -56,7 +54,7 @@ const getApiBaseUrl = () => {
         console.log('🌍 Window origin:', origin);
 
         // If running locally, always use local server
-        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('10.193.8.138')) {
             console.log('🏠 Using local development API server');
             return `${origin}/api`;
         }
@@ -89,7 +87,7 @@ const getApiBaseUrl = () => {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export const useUserInfo = () => {
-    const { token } = useAuth(); // Get token from AuthContext
+    const { token, user: authUser } = useAuth();
     const [data, setData] = useState<UserInfoData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -98,6 +96,7 @@ export const useUserInfo = () => {
     const cacheRef = useRef<{ data: UserInfoData; timestamp: number } | null>(null);
     const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const isMountedRef = useRef(true);
+    const fetchInProgressRef = useRef(false);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -116,6 +115,8 @@ export const useUserInfo = () => {
             if (age < CACHE_DURATION) {
                 console.log('✅ Loading user info from cache');
                 return cacheRef.current.data;
+            } else {
+                console.log('⏰ Cache expired');
             }
         }
         return null;
@@ -131,7 +132,13 @@ export const useUserInfo = () => {
     }, []);
 
     // Fetch from API with authentication
-    const fetchUserInfo = useCallback(async (forceRefresh = false): Promise<UserInfoData | null | undefined> => {
+    const fetchUserInfo = useCallback(async (forceRefresh = false): Promise<UserInfoData | null> => {
+        // Prevent multiple simultaneous fetches
+        if (fetchInProgressRef.current && !forceRefresh) {
+            console.log('⏳ Fetch already in progress, skipping...');
+            return null;
+        }
+
         // Check if token exists
         if (!token) {
             const errorMsg = 'Authentication required. Please log in.';
@@ -143,29 +150,48 @@ export const useUserInfo = () => {
             return null;
         }
 
+        // Check if auth user exists
+        if (!authUser) {
+            const errorMsg = 'User session not found';
+            console.error('❌ No auth user available');
+            if (isMountedRef.current) {
+                setError(errorMsg);
+                setLoading(false);
+            }
+            return null;
+        }
+
         try {
             // Check cache first unless force refresh
             if (!forceRefresh) {
                 const cached = loadFromCache();
-                if (cached) {
+                if (cached && isMountedRef.current) {
                     setData(cached);
                     setError(null);
+                    setLoading(false);
                     return cached;
                 }
             }
 
-            setLoading(true);
+            fetchInProgressRef.current = true;
+            if (isMountedRef.current) {
+                setLoading(true);
+                setError(null);
+            }
+
             const apiBase = getApiBaseUrl();
             const url = `${apiBase}/user-info+api`;
+
             console.log('🔄 Fetching user info from API with auth token...');
             console.log('🌐 API URL:', url);
-            console.log('🔑 Token exists:', !!token);
+            console.log('🔑 Token length:', token.length);
+            console.log('👤 Auth user:', authUser.email);
 
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`, // Add Bearer token
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -173,15 +199,35 @@ export const useUserInfo = () => {
             console.log('📡 Response ok:', response.ok);
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(
-                    errorData.error ||
-                    errorData.message ||
-                    `Failed to fetch user info (${response.status})`
-                );
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+                }
+
+                console.error('❌ API Error Response:', errorData);
+
+                // Handle specific error codes
+                if (response.status === 401) {
+                    throw new Error('Session expired. Please log in again.');
+                } else if (response.status === 404) {
+                    throw new Error('User data not found');
+                } else {
+                    throw new Error(
+                        errorData.error ||
+                        errorData.message ||
+                        `Failed to fetch user info (${response.status})`
+                    );
+                }
             }
 
             const responseData = await response.json();
+            console.log('📦 Response data received:', {
+                hasUserInfo: !!responseData.userInfo,
+                hasMedicalInfo: !!responseData.medicalInfo,
+                contactsCount: responseData.emergencyContacts?.length || 0
+            });
 
             // Validate response structure
             if (!responseData.userInfo || !responseData.medicalInfo) {
@@ -189,9 +235,19 @@ export const useUserInfo = () => {
             }
 
             const fetchedData: UserInfoData = {
-                userInfo: responseData.userInfo,
-                medicalInfo: responseData.medicalInfo,
-                emergencyContacts: responseData.emergencyContacts || [],
+                userInfo: {
+                    name: responseData.userInfo.name || '',
+                    email: responseData.userInfo.email || '',
+                    phone: responseData.userInfo.phone || '',
+                },
+                medicalInfo: {
+                    bloodGroup: responseData.medicalInfo.bloodGroup || '',
+                    allergies: responseData.medicalInfo.allergies || '',
+                    medications: responseData.medicalInfo.medications || '',
+                },
+                emergencyContacts: Array.isArray(responseData.emergencyContacts)
+                    ? responseData.emergencyContacts
+                    : [],
                 lastUpdated: responseData.lastUpdated || new Date().toISOString(),
             };
 
@@ -200,12 +256,15 @@ export const useUserInfo = () => {
                 setData(fetchedData);
                 setLastSync(new Date());
                 setError(null);
-                console.log('✅ User info fetched successfully');
-                return fetchedData;
+                console.log('✅ User info fetched and set successfully');
             }
+
+            return fetchedData;
+
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to fetch user information';
             console.error('❌ Fetch error:', errorMessage);
+            console.error('❌ Error details:', err);
 
             if (isMountedRef.current) {
                 setError(errorMessage);
@@ -216,11 +275,12 @@ export const useUserInfo = () => {
             }
             return null;
         } finally {
+            fetchInProgressRef.current = false;
             if (isMountedRef.current) {
                 setLoading(false);
             }
         }
-    }, [token, loadFromCache, saveToCache, data]);
+    }, [token, authUser, loadFromCache, saveToCache, data]);
 
     // Save user info with authentication
     const saveUserInfo = useCallback(async (payload: SavePayload): Promise<SaveResult> => {
@@ -236,6 +296,11 @@ export const useUserInfo = () => {
 
         try {
             console.log('💾 Saving user info with auth token...');
+            console.log('📦 Payload:', {
+                hasUserInfo: !!payload.userInfo,
+                hasMedicalInfo: !!payload.medicalInfo,
+                contactsCount: payload.emergencyContacts?.length || 0
+            });
 
             // Validate payload
             if (!payload.userInfo || !payload.medicalInfo) {
@@ -243,17 +308,28 @@ export const useUserInfo = () => {
             }
 
             const apiBase = getApiBaseUrl();
-            const response = await fetch(`${apiBase}/user-info+api`, {
+            const url = `${apiBase}/user-info+api`;
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`, // Add Bearer token
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
 
+            console.log('📡 Save response status:', response.status);
+
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+                }
+
+                console.error('❌ Save Error Response:', errorData);
                 throw new Error(
                     errorData.error ||
                     errorData.message ||
@@ -278,6 +354,7 @@ export const useUserInfo = () => {
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to save user information';
             console.error('❌ Save error:', errorMessage);
+            console.error('❌ Error details:', err);
 
             if (isMountedRef.current) {
                 setError(errorMessage);
@@ -294,12 +371,14 @@ export const useUserInfo = () => {
     const refresh = useCallback(async (forceRefresh = false) => {
         if (!isMountedRef.current) return;
 
+        // Clear any pending refresh
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+            refreshTimeoutRef.current = undefined;
+        }
+
         // If not force refresh, use debouncing
         if (!forceRefresh) {
-            if (refreshTimeoutRef.current) {
-                clearTimeout(refreshTimeoutRef.current);
-            }
-
             refreshTimeoutRef.current = setTimeout(() => {
                 if (isMountedRef.current) {
                     fetchUserInfo(false);
@@ -324,6 +403,18 @@ export const useUserInfo = () => {
             validationErrors.push('Email is required');
         }
 
+        // Validate emergency contacts
+        if (Array.isArray(payload.emergencyContacts)) {
+            payload.emergencyContacts.forEach((contact, index) => {
+                if (!contact.name?.trim()) {
+                    validationErrors.push(`Contact ${index + 1}: Name is required`);
+                }
+                if (!contact.phone?.trim()) {
+                    validationErrors.push(`Contact ${index + 1}: Phone is required`);
+                }
+            });
+        }
+
         if (validationErrors.length > 0) {
             return {
                 success: false,
@@ -346,15 +437,17 @@ export const useUserInfo = () => {
 
     // Initial load on mount or when token changes
     useEffect(() => {
-        if (token) {
+        if (token && authUser) {
+            console.log('🚀 Initial fetch triggered by token/user change');
             fetchUserInfo(false);
         } else {
+            console.log('⚠️ No token or user, clearing data');
             // Clear data if no token
             setData(null);
-            setError('Authentication required. Please log in.');
+            setError(token ? 'User session not found' : 'Authentication required. Please log in.');
             setLoading(false);
         }
-    }, [token, fetchUserInfo]);
+    }, [token, authUser]); // Don't include fetchUserInfo to avoid loops
 
     return {
         data,

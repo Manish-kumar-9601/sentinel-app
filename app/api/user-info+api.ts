@@ -1,6 +1,4 @@
-﻿import { db } from '@/db/client';
-import { eq } from 'drizzle-orm';
-import { emergencyContacts, medicalInfo, users } from '../../db/schema';
+﻿// app/api/user-info+api.ts
 import addCorsHeaders, { AuthUser, withAuth } from '../../utils/middleware';
 
 export async function OPTIONS() {
@@ -9,36 +7,37 @@ export async function OPTIONS() {
 
 // GET handler - Fetch user information
 const getHandler = async (request: Request, user: AuthUser) => {
-    try {
-        const userId = user.id;
-        console.log('📋 Fetching user info for:', userId);
-        console.log('🔍 Database instance:', typeof db);
-        console.log('🔍 Users table:', typeof users);
+    console.log('=== GET USER INFO START ===');
+    console.log('📋 Request from user:', user.email);
+    console.log('👤 User ID:', user.id);
 
-        // Fetch user info with error handling
-        let userData;
-        try {
-            console.log('🔄 Querying users table...');
-            userData = await db
-                .select({
-                    name: users.name,
-                    email: users.email,
-                    phone: users.phone,
-                })
-                .from(users)
-                .where(eq(users.id, userId))
-                .limit(1);
-            console.log('✅ User data query completed:', userData.length, 'records');
-        } catch (dbError: any) {
-            console.error('❌ Database error fetching user:', dbError);
-            console.error('❌ Error stack:', dbError.stack);
-            throw new Error('Failed to fetch user data from database: ' + dbError.message);
-        }
+    try {
+        // Dynamic imports to avoid initialization issues
+        const { db } = await import('@/db/client');
+        const { users, medicalInfo, emergencyContacts } = await import('@/db/schema');
+        const { eq } = await import('drizzle-orm');
+
+        console.log('✅ All modules imported successfully');
+
+        const userId = user.id;
+
+        // Fetch user info
+        console.log('🔄 Querying users table...');
+        const userData = await db
+            .select({
+                name: users.name,
+                email: users.email,
+                phone: users.phone,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+        console.log('✅ User query completed. Records found:', userData.length);
 
         if (userData.length === 0) {
-            console.warn('⚠️ User not found in database:', userId);
+            console.warn('⚠️ User not found in database. Returning default data.');
 
-            // Return default empty data for new users instead of error
             const defaultResponse = {
                 userInfo: {
                     name: user.name || '',
@@ -56,8 +55,6 @@ const getHandler = async (request: Request, user: AuthUser) => {
                 isNewUser: true,
             };
 
-            console.log('ℹ️ Returning default data for new user');
-
             return addCorsHeaders(new Response(
                 JSON.stringify(defaultResponse),
                 { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -65,6 +62,7 @@ const getHandler = async (request: Request, user: AuthUser) => {
         }
 
         // Fetch medical info
+        console.log('🔄 Fetching medical info...');
         let medicalData: any[] = [];
         try {
             medicalData = await db
@@ -76,13 +74,14 @@ const getHandler = async (request: Request, user: AuthUser) => {
                 .from(medicalInfo)
                 .where(eq(medicalInfo.userId, userId))
                 .limit(1);
+            console.log('✅ Medical info query completed. Records:', medicalData.length);
         } catch (dbError: any) {
-            console.error('❌ Database error fetching medical info:', dbError);
-            // Continue with empty medical info rather than failing
+            console.error('⚠️ Error fetching medical info:', dbError.message);
             medicalData = [];
         }
 
         // Fetch emergency contacts
+        console.log('🔄 Fetching emergency contacts...');
         let contactsData: any[] = [];
         try {
             contactsData = await db
@@ -97,17 +96,13 @@ const getHandler = async (request: Request, user: AuthUser) => {
                 .from(emergencyContacts)
                 .where(eq(emergencyContacts.userId, userId))
                 .orderBy(emergencyContacts.createdAt);
+            console.log('✅ Contacts query completed. Records:', contactsData.length);
         } catch (dbError: any) {
-            console.error('❌ Database error fetching contacts:', dbError);
-            // Continue with empty contacts rather than failing
+            console.error('⚠️ Error fetching contacts:', dbError.message);
             contactsData = [];
         }
 
-        // Ensure contactsData is always an array
-        if (!contactsData) {
-            contactsData = [];
-        }
-
+        // Build response
         const defaultMedicalInfo = {
             bloodGroup: '',
             allergies: '',
@@ -141,17 +136,27 @@ const getHandler = async (request: Request, user: AuthUser) => {
         };
 
         console.log('✅ User info fetched successfully');
+        console.log('📊 Response summary:', {
+            userName: response.userInfo.name,
+            hasPhone: !!response.userInfo.phone,
+            contactsCount: response.emergencyContacts.length
+        });
+        console.log('=== GET USER INFO END ===');
 
         return addCorsHeaders(new Response(
             JSON.stringify(response),
-            {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            }
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
         ));
 
     } catch (error: any) {
-        console.error('💥 Error fetching user info:', error);
+        console.error('💥 CRITICAL ERROR in getHandler:');
+        console.error('   Message:', error.message);
+        console.error('   Name:', error.name);
+        if (process.env.NODE_ENV === 'development') {
+            console.error('   Stack:', error.stack);
+        }
+        console.log('=== GET USER INFO END (ERROR) ===');
+
         return addCorsHeaders(new Response(
             JSON.stringify({
                 error: 'Failed to fetch user information',
@@ -165,7 +170,14 @@ const getHandler = async (request: Request, user: AuthUser) => {
 
 // POST handler - Save user information
 const postHandler = async (request: Request, user: AuthUser) => {
+    console.log('=== POST USER INFO START ===');
+
     try {
+        // Dynamic imports
+        const { db } = await import('@/db/client');
+        const { users, medicalInfo, emergencyContacts } = await import('@/db/schema');
+        const { eq } = await import('drizzle-orm');
+
         const body = await request.json();
         const {
             userInfo: userInfoData,
@@ -174,7 +186,6 @@ const postHandler = async (request: Request, user: AuthUser) => {
         } = body;
 
         const userId = user.id;
-
         console.log('💾 Saving user info for:', userId);
 
         // Validate payload
@@ -219,17 +230,12 @@ const postHandler = async (request: Request, user: AuthUser) => {
                     updateData.phone = userInfoData.phone?.trim() || null;
                 }
 
-                try {
-                    await tx
-                        .update(users)
-                        .set(updateData)
-                        .where(eq(users.id, userId));
+                await tx
+                    .update(users)
+                    .set(updateData)
+                    .where(eq(users.id, userId));
 
-                    console.log('✅ User info updated');
-                } catch (dbError: any) {
-                    console.error('❌ Error updating user:', dbError);
-                    throw new Error('Failed to update user information');
-                }
+                console.log('✅ User info updated');
             }
 
             // Upsert medical info
@@ -242,106 +248,96 @@ const postHandler = async (request: Request, user: AuthUser) => {
                     updatedAt: new Date(),
                 };
 
-                try {
-                    await tx
-                        .insert(medicalInfo)
-                        .values(medicalDataToSave)
-                        .onConflictDoUpdate({
-                            target: medicalInfo.userId,
-                            set: {
-                                bloodGroup: medicalDataToSave.bloodGroup,
-                                allergies: medicalDataToSave.allergies,
-                                medications: medicalDataToSave.medications,
-                                updatedAt: medicalDataToSave.updatedAt,
-                            }
-                        });
+                await tx
+                    .insert(medicalInfo)
+                    .values(medicalDataToSave)
+                    .onConflictDoUpdate({
+                        target: medicalInfo.userId,
+                        set: {
+                            bloodGroup: medicalDataToSave.bloodGroup,
+                            allergies: medicalDataToSave.allergies,
+                            medications: medicalDataToSave.medications,
+                            updatedAt: medicalDataToSave.updatedAt,
+                        }
+                    });
 
-                    console.log('✅ Medical info updated');
-                } catch (dbError: any) {
-                    console.error('❌ Error updating medical info:', dbError);
-                    throw new Error('Failed to update medical information');
-                }
+                console.log('✅ Medical info updated');
             }
 
             // Sync emergency contacts
             if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
-                try {
-                    // Get existing contacts
-                    const existingContacts = await tx
-                        .select({ id: emergencyContacts.id })
-                        .from(emergencyContacts)
-                        .where(eq(emergencyContacts.userId, userId));
+                // Get existing contacts
+                const existingContacts = await tx
+                    .select({ id: emergencyContacts.id })
+                    .from(emergencyContacts)
+                    .where(eq(emergencyContacts.userId, userId));
 
-                    const existingContactIds = existingContacts.map(c => c.id);
-                    const incomingContactIds = emergencyContactsData
-                        .filter(c => c.id && !c.id.startsWith('temp_'))
-                        .map(c => c.id);
+                const existingContactIds = existingContacts.map(c => c.id);
+                const incomingContactIds = emergencyContactsData
+                    .filter(c => c.id && !c.id.startsWith('temp_'))
+                    .map(c => c.id);
 
-                    // Delete removed contacts
-                    const contactsToDelete = existingContactIds.filter(
-                        id => !incomingContactIds.includes(id)
-                    );
+                // Delete removed contacts
+                const contactsToDelete = existingContactIds.filter(
+                    id => !incomingContactIds.includes(id)
+                );
 
-                    for (const contactId of contactsToDelete) {
-                        await tx
-                            .delete(emergencyContacts)
-                            .where(eq(emergencyContacts.id, contactId));
-                    }
-
-                    if (contactsToDelete.length > 0) {
-                        console.log(`🗑️ Deleted ${contactsToDelete.length} contacts`);
-                    }
-
-                    // Upsert contacts
-                    let addedCount = 0;
-                    let updatedCount = 0;
-
-                    for (const contact of emergencyContactsData) {
-                        // Validate contact data
-                        if (!contact.name?.trim() || !contact.phone?.trim()) {
-                            console.warn('⚠️ Skipping invalid contact:', contact);
-                            continue;
-                        }
-
-                        const isNewContact = !contact.id || contact.id.startsWith('temp_');
-                        const contactData = {
-                            id: isNewContact ? crypto.randomUUID() : contact.id,
-                            userId: userId,
-                            name: contact.name.trim(),
-                            phone: contact.phone.trim(),
-                            relationship: contact.relationship?.trim() || null,
-                            createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
-                            updatedAt: new Date(),
-                        };
-
-                        if (isNewContact) {
-                            await tx
-                                .insert(emergencyContacts)
-                                .values(contactData);
-                            addedCount++;
-                        } else {
-                            await tx
-                                .update(emergencyContacts)
-                                .set({
-                                    name: contactData.name,
-                                    phone: contactData.phone,
-                                    relationship: contactData.relationship,
-                                    updatedAt: contactData.updatedAt,
-                                })
-                                .where(eq(emergencyContacts.id, contact.id));
-                            updatedCount++;
-                        }
-                    }
-
-                    console.log(`✅ Contacts synced: ${addedCount} added, ${updatedCount} updated`);
-                } catch (dbError: any) {
-                    console.error('❌ Error syncing contacts:', dbError);
-                    throw new Error('Failed to update emergency contacts');
+                for (const contactId of contactsToDelete) {
+                    await tx
+                        .delete(emergencyContacts)
+                        .where(eq(emergencyContacts.id, contactId));
                 }
+
+                if (contactsToDelete.length > 0) {
+                    console.log(`🗑️ Deleted ${contactsToDelete.length} contacts`);
+                }
+
+                // Upsert contacts
+                let addedCount = 0;
+                let updatedCount = 0;
+
+                for (const contact of emergencyContactsData) {
+                    if (!contact.name?.trim() || !contact.phone?.trim()) {
+                        console.warn('⚠️ Skipping invalid contact');
+                        continue;
+                    }
+
+                    const isNewContact = !contact.id || contact.id.startsWith('temp_');
+                    const contactData = {
+                        id: isNewContact ? crypto.randomUUID() : contact.id,
+                        userId: userId,
+                        name: contact.name.trim(),
+                        phone: contact.phone.trim(),
+                        relationship: contact.relationship?.trim() || null,
+                        createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
+                        updatedAt: new Date(),
+                    };
+
+                    if (isNewContact) {
+                        await tx
+                            .insert(emergencyContacts)
+                            .values(contactData);
+                        addedCount++;
+                    } else {
+                        await tx
+                            .update(emergencyContacts)
+                            .set({
+                                name: contactData.name,
+                                phone: contactData.phone,
+                                relationship: contactData.relationship,
+                                updatedAt: contactData.updatedAt,
+                            })
+                            .where(eq(emergencyContacts.id, contact.id));
+                        updatedCount++;
+                    }
+                }
+
+                console.log(`✅ Contacts synced: ${addedCount} added, ${updatedCount} updated`);
             }
         });
 
         console.log('✅ All user info saved successfully');
+        console.log('=== POST USER INFO END ===');
 
         return addCorsHeaders(new Response(
             JSON.stringify({
@@ -354,6 +350,7 @@ const postHandler = async (request: Request, user: AuthUser) => {
 
     } catch (error: any) {
         console.error('💥 Error saving user info:', error);
+        console.log('=== POST USER INFO END (ERROR) ===');
 
         let errorMessage = 'Failed to save user information';
         let statusCode = 500;
