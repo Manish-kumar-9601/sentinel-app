@@ -57,11 +57,8 @@ const styles = StyleSheet.create({
         borderRadius: 75,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#2876b8',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 10,
+        boxShadow: '0 10px 20px rgba(40, 119, 184, 1)',
+      
     },
     sosButtonInner: {
         width: 130,
@@ -94,11 +91,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 10,
         padding: 15,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
         backgroundColor: 'white',
         borderRadius: 20,
         marginBottom: 10

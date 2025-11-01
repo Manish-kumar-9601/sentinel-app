@@ -319,9 +319,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 15,
     marginHorizontal: 16,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
   
-    // elevation: 3,
+ 
   },
   row: {
     flexDirection: 'row',

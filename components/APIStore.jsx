@@ -130,12 +130,7 @@ export const API_Storing = () =>
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#1a89ffff',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 3,
-          // Shadow for Android
-          elevation: 5,
+          boxShadow: '0 5px 8px rgba(0,0,0,0.2)',
         }} onPress={saveApiKey}>
           <Text style={styles.buttonText}>Save API Key to Device</Text>
         </TouchableOpacity>
@@ -201,14 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     width: '100%',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
   },
   subTitle: {
     fontSize: 18,
@@ -240,12 +228,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     // Shadow for iOS
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    boxShadow: '0 5px 5px rgba(0,0,0,0.1)',
     // Shadow for Android
-    elevation: 5,
+ 
   },
   buttonText: {
     color: '#FFFFFF',
