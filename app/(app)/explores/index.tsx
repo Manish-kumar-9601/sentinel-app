@@ -120,11 +120,8 @@ const styles = StyleSheet.create({
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: '0 3px 8px rgba(0,0,0,1)',
+  
   },
   comingSoonCard: {
     opacity: 0.6,

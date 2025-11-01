@@ -957,11 +957,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B6B',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    boxShadow: '0 10px 20px rgba(255, 107, 107, 1)',
   },
   recordingButton: {
     backgroundColor: '#FF4500',

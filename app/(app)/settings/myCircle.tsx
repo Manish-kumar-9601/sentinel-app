@@ -179,11 +179,8 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
+    boxShadow: '0 2px 5px rgba(0, 0, 0, 1)',
+  
   },
   avatar: {
     width: 50,
