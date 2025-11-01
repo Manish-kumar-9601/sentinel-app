@@ -1,132 +1,281 @@
-﻿import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    ScrollView,
-    ActivityIndicator,
-    Alert,
-    RefreshControl,
-    Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/context/AuthContext';
+﻿import { useAuth } from '@/context/AuthContext';
 import { useUserInfo } from '@/hooks/useUserInfo';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Blood group options
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+interface UserInfo {
+    name: string;
+    email: string;
+    phone?: string;
+}
+
+interface MedicalInfo {
+    bloodGroup: string;
+    allergies: string;
+    medications: string;
+}
+
+interface EmergencyContact {
+    id: string;
+    name: string;
+    phone: string;
+    relationship?: string;
+    createdAt?: string;
+}
 
 export default function UserInfoScreen() {
     const { user, logout } = useAuth();
-    const { data, loading, error, lastSync, refresh, save } = useUserInfo();
+    const {
+        data: userInfoData,
+        loading: isLoadingUserInfo,
+        error: userInfoError,
+        lastSync,
+        refresh,
+        save
+    } = useUserInfo();
 
-    const [formData, setFormData] = useState({
+    // Loading and error states
+    const [isSaving, setIsSaving] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+    // Form data
+    const [userInfo, setUserInfo] = useState<UserInfo>({
         name: '',
+        email: '',
         phone: '',
+    });
+
+    const [medicalInfo, setMedicalInfo] = useState<MedicalInfo>({
         bloodGroup: '',
         allergies: '',
         medications: '',
     });
 
-    const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
-    const [newContact, setNewContact] = useState({ name: '', phone: '', relationship: '' });
-    const [showAddContact, setShowAddContact] = useState(false);
-    const [editingContactId, setEditingContactId] = useState<string | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const [hasChanges, setHasChanges] = useState(false);
-    const [syncError, setSyncError] = useState<string | null>(null);
+    const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
 
+    // Original data for comparison
+    const [originalData, setOriginalData] = useState<any>(null);
+
+    // Modal states
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
+    const [showBloodGroupPicker, setShowBloodGroupPicker] = useState(false);
+
+    // New contact form
+    const [newContact, setNewContact] = useState({
+        name: '',
+        phone: '',
+        relationship: '',
+    });
+
+    // Check for changes
     useEffect(() => {
-        if (data) {
-            setFormData({
-                name: data.userInfo.name || '',
-                phone: data.userInfo.phone || '',
-                bloodGroup: data.medicalInfo.bloodGroup || '',
-                allergies: data.medicalInfo.allergies || '',
-                medications: data.medicalInfo.medications || '',
-            });
-            setEmergencyContacts(data.emergencyContacts || []);
-            setSyncError(null);
-        }
-    }, [data]);
+        if (originalData) {
+            const hasUserInfoChanges =
+                userInfo.name !== originalData.userInfo.name ||
+                userInfo.phone !== originalData.userInfo.phone;
 
-    const handleFieldChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        setHasChanges(true);
+            const hasMedicalChanges =
+                medicalInfo.bloodGroup !== originalData.medicalInfo.bloodGroup ||
+                medicalInfo.allergies !== originalData.medicalInfo.allergies ||
+                medicalInfo.medications !== originalData.medicalInfo.medications;
+
+            const hasContactChanges = JSON.stringify(emergencyContacts) !== JSON.stringify(originalData.emergencyContacts);
+
+            setHasChanges(hasUserInfoChanges || hasMedicalChanges || hasContactChanges);
+        }
+    }, [userInfo, medicalInfo, emergencyContacts, originalData]);
+
+    // Initialize data from hook when loaded
+    useEffect(() => {
+        if (userInfoData) {
+            setUserInfo({
+                name: userInfoData.userInfo.name,
+                email: userInfoData.userInfo.email,
+                phone: userInfoData.userInfo.phone || '',
+            });
+            setMedicalInfo(userInfoData.medicalInfo);
+            setEmergencyContacts(userInfoData.emergencyContacts || []);
+            setOriginalData({
+                userInfo: {
+                    name: userInfoData.userInfo.name,
+                    email: userInfoData.userInfo.email,
+                    phone: userInfoData.userInfo.phone || '',
+                },
+                medicalInfo: userInfoData.medicalInfo,
+                emergencyContacts: userInfoData.emergencyContacts || [],
+            });
+            setLastSyncTime(lastSync);
+        }
+    }, [userInfoData, lastSync]);
+
+    // Update error state from hook
+    useEffect(() => {
+        setError(userInfoError);
+    }, [userInfoError]);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await refresh(true); // Force refresh
+        setIsRefreshing(false);
     };
 
-    const validateContact = (contact: any) => {
+    const validateForm = (): string[] => {
         const errors: string[] = [];
-        
-        if (!contact.name || !contact.name.trim()) {
+
+        if (!userInfo.name.trim()) {
             errors.push('Name is required');
         }
-        
-        if (!contact.phone || !contact.phone.trim()) {
-            errors.push('Phone number is required');
-        } else if (!/^\d{10}$|^\+\d{1,15}$|^\(\d{3}\)\s\d{3}-\d{4}$/.test(contact.phone.trim())) {
-            errors.push('Please enter a valid phone number');
+
+        if (userInfo.phone && !/^\+?\d{10,15}$/.test(userInfo.phone.replace(/[\s()-]/g, ''))) {
+            errors.push('Invalid phone number format');
         }
-        
+
+        // Validate emergency contacts
+        emergencyContacts.forEach((contact, index) => {
+            if (!contact.name.trim()) {
+                errors.push(`Contact ${index + 1}: Name is required`);
+            }
+            if (!contact.phone.trim() || !/^\+?\d{10,15}$/.test(contact.phone.replace(/[\s()-]/g, ''))) {
+                errors.push(`Contact ${index + 1}: Valid phone number required`);
+            }
+        });
+
         return errors;
     };
 
-    const handleAddContact = () => {
-        const errors = validateContact(newContact);
-        
-        if (errors.length > 0) {
-            Alert.alert('Validation Error', errors.join('\n'));
+    const handleSave = async () => {
+        // Validate form
+        const validationErrors = validateForm();
+        if (validationErrors.length > 0) {
+            Alert.alert('Validation Error', validationErrors.join('\n'));
             return;
         }
 
-        try {
-            if (editingContactId) {
-                setEmergencyContacts(prev =>
-                    prev.map(c =>
-                        c.id === editingContactId
-                            ? { 
-                                ...c, 
-                                name: newContact.name.trim(),
-                                phone: newContact.phone.trim(),
-                                relationship: newContact.relationship.trim() || '',
-                                updatedAt: new Date().toISOString()
-                              }
-                            : c
-                    )
-                );
-                setEditingContactId(null);
-            } else {
-                const contact = {
-                    id: `temp_${Date.now()}_${Math.random()}`,
-                    name: newContact.name.trim(),
-                    phone: newContact.phone.trim(),
-                    relationship: newContact.relationship.trim() || '',
-                    createdAt: new Date().toISOString(),
-                };
-                setEmergencyContacts(prev => [...prev, contact]);
-            }
+        setIsSaving(true);
+        setError(null);
 
-            setNewContact({ name: '', phone: '', relationship: '' });
-            setShowAddContact(false);
-            setHasChanges(true);
-        } catch (error) {
-            console.error('Error adding contact:', error);
-            Alert.alert('Error', 'Failed to add contact. Please try again.');
+        try {
+            const payload = {
+                userInfo: {
+                    name: userInfo.name.trim(),
+                    email: userInfo.email,
+                    phone: userInfo.phone?.trim() || undefined,
+                },
+                medicalInfo: {
+                    bloodGroup: medicalInfo.bloodGroup.trim(),
+                    allergies: medicalInfo.allergies.trim(),
+                    medications: medicalInfo.medications.trim(),
+                    emergencyContactName: '',
+                    emergencyContactPhone: '',
+                },
+                emergencyContacts: emergencyContacts.map(contact => ({
+                    id: contact.id,
+                    name: contact.name.trim(),
+                    phone: contact.phone.trim(),
+                    relationship: contact.relationship?.trim() || '',
+                    createdAt: contact.createdAt || new Date().toISOString(),
+                })),
+                lastUpdated: new Date().toISOString(),
+            };
+
+            const result = await save(payload);
+
+            if (result.success) {
+                // Update original data to reflect saved state
+                setOriginalData({
+                    userInfo,
+                    medicalInfo,
+                    emergencyContacts,
+                });
+                setHasChanges(false);
+                setLastSyncTime(new Date());
+
+                // Show success message
+                Alert.alert('Success', result.message || 'Your information has been saved successfully');
+
+                console.log('✅ User info saved successfully');
+            } else {
+                throw new Error(result.error || 'Failed to save user information');
+            }
+        } catch (err: any) {
+            console.error('❌ Error saving user info:', err);
+            setError(err.message || 'Failed to save user information');
+            Alert.alert('Save Failed', err.message || 'Could not save your information. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleEditContact = (contact: any) => {
+    const handleAddContact = () => {
+        // Validate new contact
+        if (!newContact.name.trim()) {
+            Alert.alert('Validation Error', 'Contact name is required');
+            return;
+        }
+
+        if (!newContact.phone.trim() || !/^\+?\d{10,15}$/.test(newContact.phone.replace(/[\s()-]/g, ''))) {
+            Alert.alert('Validation Error', 'Please enter a valid phone number');
+            return;
+        }
+
+        const contact: EmergencyContact = {
+            id: editingContact?.id || `temp_${Date.now()}_${Math.random()}`,
+            name: newContact.name.trim(),
+            phone: newContact.phone.trim(),
+            relationship: newContact.relationship.trim(),
+            createdAt: editingContact?.createdAt || new Date().toISOString(),
+        };
+
+        if (editingContact) {
+            // Update existing contact
+            setEmergencyContacts(prev =>
+                prev.map(c => c.id === editingContact.id ? contact : c)
+            );
+        } else {
+            // Add new contact
+            setEmergencyContacts(prev => [...prev, contact]);
+        }
+
+        // Reset form
+        setNewContact({ name: '', phone: '', relationship: '' });
+        setEditingContact(null);
+        setShowContactModal(false);
+    };
+
+    const handleEditContact = (contact: EmergencyContact) => {
+        setEditingContact(contact);
         setNewContact({
             name: contact.name,
             phone: contact.phone,
             relationship: contact.relationship || '',
         });
-        setEditingContactId(contact.id);
-        setShowAddContact(true);
+        setShowContactModal(true);
     };
 
-    const handleDeleteContact = (id: string) => {
+    const handleDeleteContact = (contactId: string) => {
         Alert.alert(
             'Delete Contact',
             'Are you sure you want to remove this emergency contact?',
@@ -134,102 +283,16 @@ export default function UserInfoScreen() {
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Delete',
-                    onPress: () => {
-                        setEmergencyContacts(prev => prev.filter(c => c.id !== id));
-                        setHasChanges(true);
-                    },
                     style: 'destructive',
-                },
-            ]
-        );
-    };
-
-    const handleSave = async () => {
-        // Validate all contacts before saving
-        const invalidContacts = emergencyContacts.filter(contact => {
-            const errors = validateContact(contact);
-            return errors.length > 0;
-        });
-
-        if (invalidContacts.length > 0) {
-            Alert.alert(
-                'Invalid Contacts',
-                'Please fix the following contacts before saving:\n' + 
-                invalidContacts.map(c => `- ${c.name || 'Unnamed'}`).join('\n')
-            );
-            return;
-        }
-
-        setIsSaving(true);
-        setSyncError(null);
-
-        try {
-            // Prepare emergency contacts for database
-            const contactsForDb = emergencyContacts.map(contact => ({
-                id: contact.id,
-                name: contact.name,
-                phone: contact.phone,
-                relationship: contact.relationship || '',
-                createdAt: contact.createdAt || new Date().toISOString(),
-            }));
-
-            // Call the save function from the hook
-            const result = await save({
-                userInfo: {
-                    name: formData.name,
-                    email: data?.userInfo.email || '',
-                    phone: formData.phone,
-                },
-                medicalInfo: {
-                    bloodGroup: formData.bloodGroup,
-                    allergies: formData.allergies,
-                    medications: formData.medications,
-                    emergencyContactName: '',
-                    emergencyContactPhone: '',
-                },
-                emergencyContacts: contactsForDb,
-                lastUpdated: new Date().toISOString(),
-            });
-
-            if (result.success) {
-                Alert.alert('Success', 'Your information has been saved');
-                setHasChanges(false);
-                // Refresh data from server
-                refresh(true);
-            } else {
-                const errorMsg = result.error || 'Failed to save information';
-                setSyncError(errorMsg);
-                Alert.alert('Error', errorMsg);
-            }
-        } catch (error: any) {
-            const errorMsg = error.message || 'An unexpected error occurred';
-            console.error('Save error:', error);
-            setSyncError(errorMsg);
-            Alert.alert('Error', errorMsg);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleClearCache = async () => {
-        Alert.alert(
-            'Refresh Data',
-            'This will reload your data from the server.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Refresh',
                     onPress: () => {
-                        refresh(true);
-                        setSyncError(null);
+                        setEmergencyContacts(prev => prev.filter(c => c.id !== contactId));
                     },
-                    style: 'default',
                 },
             ]
         );
     };
 
-    if (loading && !data) {
+    if (isLoadingUserInfo && !originalData) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.centerContainer}>
@@ -240,7 +303,7 @@ export default function UserInfoScreen() {
         );
     }
 
-    if (error && !data) {
+    if (error && !originalData) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.centerContainer}>
@@ -250,12 +313,6 @@ export default function UserInfoScreen() {
                     <TouchableOpacity style={styles.retryButton} onPress={() => refresh(true)}>
                         <Text style={styles.retryButtonText}>Try Again</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.retryButton, styles.logoutButton]}
-                        onPress={logout}
-                    >
-                        <Text style={styles.logoutButtonText}>Logout</Text>
-                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
@@ -263,245 +320,244 @@ export default function UserInfoScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView
-                style={styles.scrollView}
-                refreshControl={
-                    <RefreshControl refreshing={loading} onRefresh={() => refresh(true)} />
-                }
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <View style={styles.header}>
-                    <TouchableOpacity style={styles.headerPressable} onPress={() => router.back()}>
-                        <Feather name="chevron-left" size={24} color="#007AFF" />
-                        <Text style={styles.headerTitle}>User & Medical Info</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {error && (
-                    <View style={styles.errorBanner}>
-                        <Feather name="alert-triangle" size={16} color="#FF3B30" />
-                        <Text style={styles.errorBannerText}>{error}</Text>
-                    </View>
-                )}
-
-                {syncError && (
-                    <View style={styles.syncErrorBanner}>
-                        <Feather name="alert-circle" size={16} color="#FF9500" />
-                        <Text style={styles.syncErrorText}>{syncError}</Text>
-                    </View>
-                )}
-
-                {lastSync && (
-                    <Text style={styles.syncText}>
-                        Last synced: {lastSync.toLocaleString()}
-                    </Text>
-                )}
-
-                {/* Personal Information */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Feather name="user" size={20} color="#007AFF" />
-                        <Text style={styles.sectionTitle}>Personal Information</Text>
+                <ScrollView
+                    style={styles.scrollView}
+                    refreshControl={
+                        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+                    }
+                >
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <TouchableOpacity
+                            style={styles.headerPressable}
+                            onPress={() => {
+                                if (hasChanges) {
+                                    Alert.alert(
+                                        'Unsaved Changes',
+                                        'You have unsaved changes. Do you want to discard them?',
+                                        [
+                                            { text: 'Cancel', style: 'cancel' },
+                                            { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+                                        ]
+                                    );
+                                } else {
+                                    router.back();
+                                }
+                            }}
+                        >
+                            <Feather name="chevron-left" size={24} color="#007AFF" />
+                            <Text style={styles.headerTitle}>User & Medical Info</Text>
+                        </TouchableOpacity>
                     </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.name}
-                            onChangeText={(value) => handleFieldChange('name', value)}
-                            placeholder="Enter your name"
-                            placeholderTextColor="#C7C7CC"
-                        />
-                    </View>
+                    {/* Sync Status */}
+                    {lastSyncTime && (
+                        <View style={styles.syncStatus}>
+                            <Feather name="check-circle" size={14} color="#34C759" />
+                            <Text style={styles.syncText}>
+                                Last synced: {lastSyncTime.toLocaleTimeString()}
+                            </Text>
+                        </View>
+                    )}
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <TextInput
-                            style={[styles.input, styles.disabledInput]}
-                            value={data?.userInfo.email}
-                            editable={false}
-                            placeholderTextColor="#C7C7CC"
-                        />
-                        <Text style={styles.helperText}>Email cannot be changed</Text>
-                    </View>
+                    {/* Error Banner */}
+                    {error && (
+                        <View style={styles.errorBanner}>
+                            <Feather name="alert-triangle" size={16} color="#FF3B30" />
+                            <Text style={styles.errorBannerText}>{error}</Text>
+                        </View>
+                    )}
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Phone Number</Text>
-                        <View style={styles.phoneInputContainer}>
-                            <Text style={styles.phonePrefix}>+91</Text>
+                    {/* Personal Information */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Feather name="user" size={20} color="#007AFF" />
+                            <Text style={styles.sectionTitle}>Personal Information</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Full Name *</Text>
                             <TextInput
-                                style={styles.phoneInput}
-                                value={formData.phone}
-                                onChangeText={(value) => handleFieldChange('phone', value)}
-                                placeholder="9876543210"
+                                style={styles.input}
+                                value={userInfo.name}
+                                onChangeText={(text) => setUserInfo(prev => ({ ...prev, name: text }))}
+                                placeholder="Enter your name"
+                                placeholderTextColor="#C7C7CC"
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email Address</Text>
+                            <TextInput
+                                style={[styles.input, styles.disabledInput]}
+                                value={userInfo.email}
+                                editable={false}
+                                placeholderTextColor="#C7C7CC"
+                            />
+                            <Text style={styles.helperText}>Email cannot be changed</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Phone Number</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={userInfo.phone}
+                                onChangeText={(text) => setUserInfo(prev => ({ ...prev, phone: text }))}
+                                placeholder="+91 9876543210"
                                 keyboardType="phone-pad"
                                 placeholderTextColor="#C7C7CC"
                             />
                         </View>
                     </View>
-                </View>
 
-                {/* Medical Information */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Feather name="heart" size={20} color="#FF3B30" />
-                        <Text style={styles.sectionTitle}>Medical Information</Text>
-                    </View>
+                    {/* Medical Information */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Feather name="heart" size={20} color="#FF3B30" />
+                            <Text style={styles.sectionTitle}>Medical Information</Text>
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Blood Group</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.bloodGroup}
-                            onChangeText={(value) => handleFieldChange('bloodGroup', value)}
-                            placeholder="e.g., O+, A-, B+"
-                            placeholderTextColor="#C7C7CC"
-                        />
-                    </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Blood Group</Text>
+                            <TouchableOpacity
+                                style={styles.pickerButton}
+                                onPress={() => setShowBloodGroupPicker(true)}
+                            >
+                                <Text style={[styles.pickerButtonText, !medicalInfo.bloodGroup && styles.placeholderText]}>
+                                    {medicalInfo.bloodGroup || 'Select blood group'}
+                                </Text>
+                                <Feather name="chevron-down" size={20} color="#666" />
+                            </TouchableOpacity>
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Allergies</Text>
-                        <TextInput
-                            style={[styles.input, styles.multilineInput]}
-                            value={formData.allergies}
-                            onChangeText={(value) => handleFieldChange('allergies', value)}
-                            placeholder="e.g., peanuts, shellfish, medications"
-                            multiline
-                            numberOfLines={3}
-                            placeholderTextColor="#C7C7CC"
-                        />
-                    </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Allergies</Text>
+                            <TextInput
+                                style={[styles.input, styles.multilineInput]}
+                                value={medicalInfo.allergies}
+                                onChangeText={(text) => setMedicalInfo(prev => ({ ...prev, allergies: text }))}
+                                placeholder="e.g., peanuts, shellfish, medications"
+                                multiline
+                                numberOfLines={3}
+                                placeholderTextColor="#C7C7CC"
+                            />
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Current Medications</Text>
-                        <TextInput
-                            style={[styles.input, styles.multilineInput]}
-                            value={formData.medications}
-                            onChangeText={(value) => handleFieldChange('medications', value)}
-                            placeholder="Include dosages"
-                            multiline
-                            numberOfLines={3}
-                            placeholderTextColor="#C7C7CC"
-                        />
-                    </View>
-                </View>
-
-                {/* Emergency Contacts */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Feather name="phone" size={20} color="#34C759" />
-                        <Text style={styles.sectionTitle}>Emergency Contacts</Text>
-                        <View style={styles.contactBadge}>
-                            <Text style={styles.contactBadgeText}>{emergencyContacts.length}</Text>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Current Medications</Text>
+                            <TextInput
+                                style={[styles.input, styles.multilineInput]}
+                                value={medicalInfo.medications}
+                                onChangeText={(text) => setMedicalInfo(prev => ({ ...prev, medications: text }))}
+                                placeholder="Include dosages"
+                                multiline
+                                numberOfLines={3}
+                                placeholderTextColor="#C7C7CC"
+                            />
                         </View>
                     </View>
 
-                    {emergencyContacts.length > 0 ? (
-                        <View style={styles.contactsList}>
-                            {emergencyContacts.map((contact, index) => (
-                                <View key={contact.id} style={[
-                                    styles.contactCard,
-                                    index !== emergencyContacts.length - 1 && styles.contactCardBorder
-                                ]}>
-                                    <View style={styles.contactInfo}>
-                                        <View style={styles.contactHeader}>
+                    {/* Emergency Contacts */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Feather name="phone" size={20} color="#34C759" />
+                            <Text style={styles.sectionTitle}>Emergency Contacts</Text>
+                            <View style={styles.contactBadge}>
+                                <Text style={styles.contactBadgeText}>{emergencyContacts.length}</Text>
+                            </View>
+                        </View>
+
+                        {emergencyContacts.length > 0 ? (
+                            <View style={styles.contactsList}>
+                                {emergencyContacts.map((contact, index) => (
+                                    <View
+                                        key={contact.id}
+                                        style={[
+                                            styles.contactCard,
+                                            index !== emergencyContacts.length - 1 && styles.contactCardBorder,
+                                        ]}
+                                    >
+                                        <View style={styles.contactInfo}>
                                             <Text style={styles.contactName}>{contact.name}</Text>
+                                            <Text style={styles.contactPhone}>{contact.phone}</Text>
                                             {contact.relationship && (
-                                                <Text style={styles.relationship}>{contact.relationship}</Text>
+                                                <Text style={styles.contactRelationship}>{contact.relationship}</Text>
                                             )}
                                         </View>
-                                        <View style={styles.phoneRow}>
-                                            <Feather name="phone" size={14} color="#007AFF" />
-                                            <Text style={styles.contactPhone}>{contact.phone}</Text>
+                                        <View style={styles.contactActions}>
+                                            <TouchableOpacity
+                                                style={styles.actionButton}
+                                                onPress={() => handleEditContact(contact)}
+                                            >
+                                                <Feather name="edit-2" size={16} color="#007AFF" />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, styles.deleteButton]}
+                                                onPress={() => handleDeleteContact(contact.id)}
+                                            >
+                                                <Feather name="trash-2" size={16} color="#FF3B30" />
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
-                                    <View style={styles.contactActions}>
-                                        <TouchableOpacity
-                                            style={styles.actionButton}
-                                            onPress={() => handleEditContact(contact)}
-                                        >
-                                            <Feather name="edit-2" size={16} color="#007AFF" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, styles.deleteButton]}
-                                            onPress={() => handleDeleteContact(contact.id)}
-                                        >
-                                            <Feather name="trash-2" size={16} color="#FF3B30" />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                    ) : (
-                        <Text style={styles.emptyText}>No emergency contacts added</Text>
-                    )}
-
-                    <TouchableOpacity
-                        style={styles.addContactButton}
-                        onPress={() => {
-                            setEditingContactId(null);
-                            setNewContact({ name: '', phone: '', relationship: '' });
-                            setShowAddContact(true);
-                        }}
-                    >
-                        <Feather name="plus" size={18} color="#007AFF" />
-                        <Text style={styles.addContactText}>Add Emergency Contact</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Actions */}
-                <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={[styles.button, styles.saveButton, !hasChanges && styles.disabledButton]}
-                        onPress={handleSave}
-                        disabled={!hasChanges || isSaving}
-                    >
-                        {isSaving ? (
-                            <ActivityIndicator color="white" />
+                                ))}
+                            </View>
                         ) : (
-                            <>
-                                <Feather name="save" size={18} color="white" />
-                                <Text style={styles.buttonText}>
-                                    {hasChanges ? 'Save Changes' : 'No Changes'}
-                                </Text>
-                            </>
+                            <Text style={styles.emptyText}>No emergency contacts added</Text>
                         )}
-                    </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.button, styles.clearButton]}
-                        onPress={handleClearCache}
-                    >
-                        <Feather name="refresh-cw" size={18} color="#007AFF" />
-                        <Text style={[styles.buttonText, styles.clearButtonText]}>
-                            Refresh Data
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+                        <TouchableOpacity
+                            style={styles.addContactButton}
+                            onPress={() => {
+                                setEditingContact(null);
+                                setNewContact({ name: '', phone: '', relationship: '' });
+                                setShowContactModal(true);
+                            }}
+                        >
+                            <Feather name="plus" size={18} color="#007AFF" />
+                            <Text style={styles.addContactText}>Add Emergency Contact</Text>
+                        </TouchableOpacity>
+                    </View>
 
-            {/* Add/Edit Contact Modal */}
+                    {/* Actions */}
+                    <View style={styles.actions}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.saveButton, !hasChanges && styles.disabledButton]}
+                            onPress={handleSave}
+                            disabled={!hasChanges || isSaving}
+                        >
+                            {isSaving ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <Feather name="save" size={18} color="white" />
+                                    <Text style={styles.buttonText}>
+                                        {hasChanges ? 'Save Changes' : 'No Changes'}
+                                    </Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+
+            {/* Contact Modal */}
             <Modal
-                visible={showAddContact}
+                visible={showContactModal}
                 transparent
                 animationType="slide"
-                onRequestClose={() => {
-                    setShowAddContact(false);
-                    setEditingContactId(null);
-                    setNewContact({ name: '', phone: '', relationship: '' });
-                }}
+                onRequestClose={() => setShowContactModal(false)}
             >
                 <SafeAreaView style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => {
-                            setShowAddContact(false);
-                            setEditingContactId(null);
-                            setNewContact({ name: '', phone: '', relationship: '' });
-                        }}>
+                        <TouchableOpacity onPress={() => setShowContactModal(false)}>
                             <Text style={styles.modalCancelText}>Cancel</Text>
                         </TouchableOpacity>
                         <Text style={styles.modalTitle}>
-                            {editingContactId ? 'Edit Contact' : 'New Contact'}
+                            {editingContact ? 'Edit Contact' : 'New Contact'}
                         </Text>
                         <View style={{ width: 60 }} />
                     </View>
@@ -512,7 +568,7 @@ export default function UserInfoScreen() {
                             <TextInput
                                 style={styles.input}
                                 value={newContact.name}
-                                onChangeText={(value) => setNewContact(prev => ({ ...prev, name: value }))}
+                                onChangeText={(text) => setNewContact(prev => ({ ...prev, name: text }))}
                                 placeholder="Enter name"
                                 placeholderTextColor="#C7C7CC"
                             />
@@ -523,12 +579,11 @@ export default function UserInfoScreen() {
                             <TextInput
                                 style={styles.input}
                                 value={newContact.phone}
-                                onChangeText={(value) => setNewContact(prev => ({ ...prev, phone: value }))}
+                                onChangeText={(text) => setNewContact(prev => ({ ...prev, phone: text }))}
                                 placeholder="Enter phone number"
                                 keyboardType="phone-pad"
                                 placeholderTextColor="#C7C7CC"
                             />
-                            <Text style={styles.helperText}>10 digits or with country code</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
@@ -536,7 +591,7 @@ export default function UserInfoScreen() {
                             <TextInput
                                 style={styles.input}
                                 value={newContact.relationship}
-                                onChangeText={(value) => setNewContact(prev => ({ ...prev, relationship: value }))}
+                                onChangeText={(text) => setNewContact(prev => ({ ...prev, relationship: text }))}
                                 placeholder="e.g., Mother, Spouse, Friend"
                                 placeholderTextColor="#C7C7CC"
                             />
@@ -544,14 +599,47 @@ export default function UserInfoScreen() {
                     </ScrollView>
 
                     <View style={styles.modalActions}>
-                        <TouchableOpacity
-                            style={[styles.button, styles.saveButton]}
-                            onPress={handleAddContact}
-                        >
+                        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleAddContact}>
                             <Text style={styles.buttonText}>
-                                {editingContactId ? 'Update Contact' : 'Add Contact'}
+                                {editingContact ? 'Update Contact' : 'Add Contact'}
                             </Text>
                         </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            </Modal>
+
+            {/* Blood Group Picker Modal */}
+            <Modal
+                visible={showBloodGroupPicker}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowBloodGroupPicker(false)}
+            >
+                <SafeAreaView style={styles.pickerModalContainer}>
+                    <View style={styles.pickerModalContent}>
+                        <View style={styles.pickerHeader}>
+                            <Text style={styles.pickerTitle}>Select Blood Group</Text>
+                            <TouchableOpacity onPress={() => setShowBloodGroupPicker(false)}>
+                                <Feather name="x" size={24} color="#666" />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView>
+                            {BLOOD_GROUPS.map((group) => (
+                                <TouchableOpacity
+                                    key={group}
+                                    style={styles.pickerOption}
+                                    onPress={() => {
+                                        setMedicalInfo(prev => ({ ...prev, bloodGroup: group }));
+                                        setShowBloodGroupPicker(false);
+                                    }}
+                                >
+                                    <Text style={styles.pickerOptionText}>{group}</Text>
+                                    {medicalInfo.bloodGroup === group && (
+                                        <Feather name="check" size={20} color="#007AFF" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
                     </View>
                 </SafeAreaView>
             </Modal>
@@ -572,6 +660,11 @@ const styles = StyleSheet.create({
     },
     scrollView: {
         flex: 1,
+    },
+    contactRelationship: {
+        fontSize: 12,
+        color: '#8E8E93',
+        fontStyle: 'italic',
     },
     header: {
         paddingTop: 8,
@@ -643,6 +736,69 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20,
         paddingHorizontal: 20,
+    },
+    syncStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        backgroundColor: '#F0F9FF',
+        marginBottom: 10,
+    },
+
+    pickerModalContainer: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    pickerModalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        maxHeight: '50%',
+    },
+    pickerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E5EA',
+    },
+    pickerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    pickerOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F2F2F7',
+    },
+    pickerOptionText: {
+        fontSize: 16,
+        color: '#000',
+    },
+    pickerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#F2F2F7',
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    pickerButtonText: {
+        fontSize: 16,
+        color: '#000',
+    },
+    placeholderText: {
+        color: '#C7C7CC',
     },
     section: {
         backgroundColor: 'white',

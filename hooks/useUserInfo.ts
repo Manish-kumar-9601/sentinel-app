@@ -1,5 +1,8 @@
 ﻿// hooks/useUserInfo.ts
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import Constants from 'expo-constants';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 interface UserInfo {
     name: string;
@@ -45,18 +48,55 @@ interface SaveResult {
     lastUpdated?: string;
 }
 
-const API_BASE = '/api/userInfo';
-const CACHE_KEY = 'user_info_cache';
+// Get the API base URL based on platform and configuration
+const getApiBaseUrl = () => {
+    // Always check if running locally first (for both web and development)
+    if (typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        console.log('🌍 Window origin:', origin);
+
+        // If running locally, always use local server
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            console.log('🏠 Using local development API server');
+            return `${origin}/api`;
+        }
+    }
+
+    // Get API URL from expo config
+    const configApiUrl = Constants.expoConfig?.extra?.apiUrl;
+
+    if (Platform.OS === 'web') {
+        // For production web, use configured API URL
+        if (configApiUrl) {
+            console.log('☁️ Using configured API URL for web:', configApiUrl);
+            return `${configApiUrl}/api`;
+        }
+
+        console.log('⚠️ Falling back to relative path');
+        return '/api';
+    }
+
+    // For mobile, use configured API URL or relative path
+    if (configApiUrl) {
+        console.log('📱 Using configured API URL for mobile:', configApiUrl);
+        return `${configApiUrl}/api`;
+    }
+
+    console.log('📱 Mobile platform, using relative path');
+    return '/api';
+};
+
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export const useUserInfo = () => {
+    const { token } = useAuth(); // Get token from AuthContext
     const [data, setData] = useState<UserInfoData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastSync, setLastSync] = useState<Date | null>(null);
-    
+
     const cacheRef = useRef<{ data: UserInfoData; timestamp: number } | null>(null);
-    const refreshTimeoutRef = useRef<NodeJS.Timeout>();
+    const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const isMountedRef = useRef(true);
 
     // Cleanup on unmount
@@ -90,8 +130,19 @@ export const useUserInfo = () => {
         console.log('💾 Cached user info');
     }, []);
 
-    // Fetch from API
-    const fetchUserInfo = useCallback(async (forceRefresh = false): Promise<UserInfoData | null> => {
+    // Fetch from API with authentication
+    const fetchUserInfo = useCallback(async (forceRefresh = false): Promise<UserInfoData | null | undefined> => {
+        // Check if token exists
+        if (!token) {
+            const errorMsg = 'Authentication required. Please log in.';
+            console.error('❌ No token available');
+            if (isMountedRef.current) {
+                setError(errorMsg);
+                setLoading(false);
+            }
+            return null;
+        }
+
         try {
             // Check cache first unless force refresh
             if (!forceRefresh) {
@@ -104,26 +155,34 @@ export const useUserInfo = () => {
             }
 
             setLoading(true);
-            console.log('🔄 Fetching user info from API...');
+            const apiBase = getApiBaseUrl();
+            const url = `${apiBase}/user-info+api`;
+            console.log('🔄 Fetching user info from API with auth token...');
+            console.log('🌐 API URL:', url);
+            console.log('🔑 Token exists:', !!token);
 
-            const response = await fetch(`${API_BASE}/get-user-info+api`, {
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`, // Add Bearer token
                 },
             });
+
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response ok:', response.ok);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(
-                    errorData.error || 
-                    errorData.message || 
+                    errorData.error ||
+                    errorData.message ||
                     `Failed to fetch user info (${response.status})`
                 );
             }
 
             const responseData = await response.json();
-            
+
             // Validate response structure
             if (!responseData.userInfo || !responseData.medicalInfo) {
                 throw new Error('Invalid response structure from server');
@@ -147,10 +206,13 @@ export const useUserInfo = () => {
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to fetch user information';
             console.error('❌ Fetch error:', errorMessage);
-            
+
             if (isMountedRef.current) {
                 setError(errorMessage);
-                setData(null);
+                // Don't clear data on error to preserve cached data
+                if (!data) {
+                    setData(null);
+                }
             }
             return null;
         } finally {
@@ -158,22 +220,34 @@ export const useUserInfo = () => {
                 setLoading(false);
             }
         }
-    }, [loadFromCache, saveToCache]);
+    }, [token, loadFromCache, saveToCache, data]);
 
-    // Save user info
+    // Save user info with authentication
     const saveUserInfo = useCallback(async (payload: SavePayload): Promise<SaveResult> => {
+        // Check if token exists
+        if (!token) {
+            const errorMsg = 'Authentication required. Please log in.';
+            console.error('❌ No token available for save');
+            return {
+                success: false,
+                error: errorMsg,
+            };
+        }
+
         try {
-            console.log('💾 Saving user info...');
-            
+            console.log('💾 Saving user info with auth token...');
+
             // Validate payload
             if (!payload.userInfo || !payload.medicalInfo) {
                 throw new Error('Invalid payload: missing required fields');
             }
 
-            const response = await fetch(`${API_BASE}/post-user-info+api`, {
+            const apiBase = getApiBaseUrl();
+            const response = await fetch(`${apiBase}/user-info+api`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`, // Add Bearer token
                 },
                 body: JSON.stringify(payload),
             });
@@ -181,8 +255,8 @@ export const useUserInfo = () => {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(
-                    errorData.error || 
-                    errorData.message || 
+                    errorData.error ||
+                    errorData.message ||
                     `Failed to save user info (${response.status})`
                 );
             }
@@ -204,7 +278,7 @@ export const useUserInfo = () => {
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to save user information';
             console.error('❌ Save error:', errorMessage);
-            
+
             if (isMountedRef.current) {
                 setError(errorMessage);
             }
@@ -214,7 +288,7 @@ export const useUserInfo = () => {
                 error: errorMessage,
             };
         }
-    }, []);
+    }, [token]);
 
     // Main refresh function
     const refresh = useCallback(async (forceRefresh = false) => {
@@ -270,10 +344,17 @@ export const useUserInfo = () => {
         return result;
     }, [saveUserInfo, fetchUserInfo]);
 
-    // Initial load on mount
+    // Initial load on mount or when token changes
     useEffect(() => {
-        fetchUserInfo(false);
-    }, [fetchUserInfo]);
+        if (token) {
+            fetchUserInfo(false);
+        } else {
+            // Clear data if no token
+            setData(null);
+            setError('Authentication required. Please log in.');
+            setLoading(false);
+        }
+    }, [token, fetchUserInfo]);
 
     return {
         data,
