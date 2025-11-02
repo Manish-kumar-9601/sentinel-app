@@ -10,7 +10,7 @@ import Animated, {
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) =>
 {
-    const shadowSpread = useSharedValue(3);
+    const shadowSpread = useSharedValue(2);
 
     const animatedStyle = useAnimatedStyle(() =>
     {
@@ -28,7 +28,7 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
 
     setInterval(() =>
     {
-        shadowSpread.value = withTiming(withTimerValue, { duration: 300 });
+        shadowSpread.value = withTiming(withTimerValue, { duration: 500, easing: Easing.ease });
 
         // Step forward or backward
         withTimerValue += direction;
@@ -36,7 +36,7 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
         // Reverse direction at bounds
         if (withTimerValue >= 4) direction = -1;
         if (withTimerValue <= 0) direction = 1;
-    }, 500);
+    }, 1500);
 
     return (
         <View style={styles.sosCard}>
