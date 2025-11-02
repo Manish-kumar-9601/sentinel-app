@@ -1,7 +1,8 @@
-﻿// hooks/useUserInfo.ts
+﻿// hooks/useUserInfo.ts - UPDATED VERSION
 import { useAuth } from '@/context/AuthContext';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CacheManager, OfflineQueueManager, NetworkStatusManager, CACHE_KEYS, CACHE_EXPIRY } from '@/utils/enhancedDataSync';
 
 interface UserInfo {
     name: string;
@@ -43,9 +44,8 @@ interface SaveResult {
     error?: string;
     message?: string;
     lastUpdated?: string;
+    offline?: boolean;
 }
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export const useUserInfo = () => {
     const { token, user: authUser } = useAuth();
@@ -53,35 +53,86 @@ export const useUserInfo = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastSync, setLastSync] = useState<Date | null>(null);
+    const [isOnline, setIsOnline] = useState(true);
 
-    const cacheRef = useRef<{ data: UserInfoData; timestamp: number } | null>(null);
     const isMountedRef = useRef(true);
     const fetchInProgressRef = useRef(false);
 
+    // Setup network listener
     useEffect(() => {
+        const networkManager = NetworkStatusManager.getInstance();
+
+        // Set initial status
+        setIsOnline(networkManager.getStatus());
+
+        // Subscribe to changes
+        const unsubscribe = networkManager.subscribe((online) => {
+            setIsOnline(online);
+
+            // Auto-refresh when coming back online
+            if (online && data) {
+                console.log('🔄 Back online, refreshing data...');
+                fetchUserInfo(true);
+            }
+        });
+
         return () => {
             isMountedRef.current = false;
+            unsubscribe();
         };
-    }, []);
+    }, [data]);
 
-    const loadFromCache = useCallback(() => {
-        if (cacheRef.current) {
-            const age = Date.now() - cacheRef.current.timestamp;
-            if (age < CACHE_DURATION) {
-                console.log('✅ Loading from cache');
-                return cacheRef.current.data;
+    /**
+     * Load from persistent cache
+     */
+    const loadFromPersistentCache = useCallback(async (): Promise<UserInfoData | null> => {
+        try {
+            // Try to get from persistent cache
+            const cached = await CacheManager.get<UserInfoData>(
+                CACHE_KEYS.USER_INFO,
+                CACHE_EXPIRY.USER_INFO
+            );
+
+            if (cached) {
+                console.log('✅ Loaded user info from persistent cache');
+                return cached;
             }
+
+            // If cache expired but we're offline, try to get stale data
+            if (!isOnline) {
+                const stale = await CacheManager.get<UserInfoData>(
+                    CACHE_KEYS.USER_INFO,
+                    CACHE_EXPIRY.OFFLINE_FALLBACK
+                );
+
+                if (stale) {
+                    console.log('⚠️ Using stale cache (offline mode)');
+                    return stale;
+                }
+            }
+
+            return null;
+        } catch (error) {
+            console.error('❌ Failed to load from cache:', error);
+            return null;
         }
-        return null;
+    }, [isOnline]);
+
+    /**
+     * Save to persistent cache
+     */
+    const saveToPersistentCache = useCallback(async (newData: UserInfoData): Promise<void> => {
+        try {
+            await CacheManager.set(CACHE_KEYS.USER_INFO, newData);
+            console.log('💾 Saved user info to persistent cache');
+        } catch (error) {
+            console.error('❌ Failed to save to cache:', error);
+        }
     }, []);
 
-    const saveToCache = useCallback((newData: UserInfoData) => {
-        cacheRef.current = {
-            data: newData,
-            timestamp: Date.now(),
-        };
-    }, []);
-
+    /**
+     * Fetch user info from API
+     */
     const fetchUserInfo = useCallback(async (forceRefresh = false): Promise<UserInfoData | null> => {
         if (fetchInProgressRef.current && !forceRefresh) {
             console.log('⏳ Fetch in progress, skipping...');
@@ -109,13 +160,29 @@ export const useUserInfo = () => {
         }
 
         try {
+            // Try cache first (unless force refresh)
             if (!forceRefresh) {
-                const cached = loadFromCache();
+                const cached = await loadFromPersistentCache();
                 if (cached && isMountedRef.current) {
                     setData(cached);
                     setError(null);
                     setLoading(false);
                     return cached;
+                }
+            }
+
+            // If offline, use any available cache
+            if (!isOnline) {
+                console.log('📴 Offline mode - using cached data');
+                const cached = await loadFromPersistentCache();
+
+                if (cached && isMountedRef.current) {
+                    setData(cached);
+                    setError('Offline - showing cached data');
+                    setLoading(false);
+                    return cached;
+                } else {
+                    throw new Error('No cached data available in offline mode');
                 }
             }
 
@@ -125,20 +192,15 @@ export const useUserInfo = () => {
                 setError(null);
             }
 
-            // FIXED: Use the same pattern as auth endpoints
             const apiUrl = Constants.expoConfig?.extra?.apiUrl;
             if (!apiUrl) {
                 throw new Error('API URL not configured');
             }
 
-            // Use the same URL pattern as your auth endpoints
             const url = `${apiUrl}/api/user-info`;
 
-            console.log('🔄 Fetching user info...');
-            console.log('🌐 API URL:', apiUrl);
-            console.log('🌐 Full URL:', url);
-            console.log('🔑 Token exists:', !!token);
-            console.log('👤 User:', authUser.email);
+            console.log('🔄 Fetching user info from API...');
+            console.log('🌐 URL:', url);
 
             const response = await fetch(url, {
                 method: 'GET',
@@ -149,39 +211,25 @@ export const useUserInfo = () => {
             });
 
             console.log('📡 Response status:', response.status);
-            console.log('📡 Response ok:', response.ok);
 
             if (!response.ok) {
                 let errorData;
                 try {
                     errorData = await response.json();
                 } catch (e) {
-                    const text = await response.text();
-                    console.error('❌ Response text:', text);
-                    errorData = { error: `HTTP ${response.status}: ${text}` };
+                    errorData = { error: `HTTP ${response.status}` };
                 }
-
-                console.error('❌ Error response:', errorData);
 
                 if (response.status === 401) {
                     throw new Error('Session expired. Please log in again.');
                 } else if (response.status === 404) {
                     throw new Error('User data not found');
                 } else {
-                    throw new Error(
-                        errorData.error ||
-                        errorData.message ||
-                        `Failed to fetch (${response.status})`
-                    );
+                    throw new Error(errorData.error || `Failed to fetch (${response.status})`);
                 }
             }
 
             const responseData = await response.json();
-            console.log('📦 Data received:', {
-                hasUserInfo: !!responseData.userInfo,
-                hasMedicalInfo: !!responseData.medicalInfo,
-                contactsCount: responseData.emergencyContacts?.length || 0
-            });
 
             if (!responseData.userInfo || !responseData.medicalInfo) {
                 throw new Error('Invalid response structure');
@@ -205,11 +253,13 @@ export const useUserInfo = () => {
             };
 
             if (isMountedRef.current) {
-                saveToCache(fetchedData);
+                // Save to persistent cache
+                await saveToPersistentCache(fetchedData);
+
                 setData(fetchedData);
                 setLastSync(new Date());
                 setError(null);
-                console.log('✅ User info loaded successfully');
+                console.log('✅ User info loaded and cached');
             }
 
             return fetchedData;
@@ -217,12 +267,17 @@ export const useUserInfo = () => {
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to fetch user information';
             console.error('❌ Fetch error:', errorMessage);
-            console.error('❌ Error details:', err);
 
             if (isMountedRef.current) {
                 setError(errorMessage);
+
+                // Try to use cached data as fallback
                 if (!data) {
-                    setData(null);
+                    const cached = await loadFromPersistentCache();
+                    if (cached) {
+                        setData(cached);
+                        setError(errorMessage + ' (using cached data)');
+                    }
                 }
             }
             return null;
@@ -232,8 +287,11 @@ export const useUserInfo = () => {
                 setLoading(false);
             }
         }
-    }, [token, authUser, loadFromCache, saveToCache, data]);
+    }, [token, authUser, isOnline, loadFromPersistentCache, saveToPersistentCache, data]);
 
+    /**
+     * Save user info
+     */
     const saveUserInfo = useCallback(async (payload: SavePayload): Promise<SaveResult> => {
         if (!token) {
             return {
@@ -249,7 +307,6 @@ export const useUserInfo = () => {
                 throw new Error('Invalid payload');
             }
 
-            // FIXED: Use the same pattern as auth endpoints
             const apiUrl = Constants.expoConfig?.extra?.apiUrl;
             if (!apiUrl) {
                 throw new Error('API URL not configured');
@@ -257,8 +314,44 @@ export const useUserInfo = () => {
 
             const url = `${apiUrl}/api/user-info`;
 
-            console.log('🌐 Save URL:', url);
+            // If offline, queue the request
+            if (!isOnline) {
+                console.log('📴 Offline - queueing save request');
 
+                const queueManager = OfflineQueueManager.getInstance();
+                await queueManager.add(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                // Update local cache optimistically
+                const optimisticData: UserInfoData = {
+                    userInfo: payload.userInfo,
+                    medicalInfo: payload.medicalInfo,
+                    emergencyContacts: payload.emergencyContacts,
+                    lastUpdated: payload.lastUpdated
+                };
+
+                await saveToPersistentCache(optimisticData);
+
+                if (isMountedRef.current) {
+                    setData(optimisticData);
+                    setError(null);
+                }
+
+                return {
+                    success: true,
+                    message: 'Saved locally. Will sync when online.',
+                    offline: true,
+                    lastUpdated: payload.lastUpdated
+                };
+            }
+
+            // Online - save directly
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -268,30 +361,24 @@ export const useUserInfo = () => {
                 body: JSON.stringify(payload),
             });
 
-            console.log('📡 Save response status:', response.status);
+            console.log('📡 Save response:', response.status);
 
             if (!response.ok) {
                 let errorData;
                 try {
                     errorData = await response.json();
                 } catch (e) {
-                    const text = await response.text();
-                    console.error('❌ Save response text:', text);
-                    errorData = { error: `HTTP ${response.status}: ${text}` };
+                    errorData = { error: `HTTP ${response.status}` };
                 }
 
-                console.error('❌ Save error response:', errorData);
-                throw new Error(
-                    errorData.error ||
-                    errorData.message ||
-                    `Failed to save (${response.status})`
-                );
+                throw new Error(errorData.error || `Failed to save (${response.status})`);
             }
 
             const responseData = await response.json();
 
             if (isMountedRef.current) {
-                cacheRef.current = null;
+                // Clear cache to force refresh
+                await CacheManager.remove(CACHE_KEYS.USER_INFO);
                 setError(null);
                 console.log('✅ Saved successfully');
             }
@@ -300,11 +387,11 @@ export const useUserInfo = () => {
                 success: true,
                 message: responseData.message || 'Saved successfully',
                 lastUpdated: responseData.lastUpdated || new Date().toISOString(),
+                offline: false
             };
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to save';
             console.error('❌ Save error:', errorMessage);
-            console.error('❌ Error details:', err);
 
             if (isMountedRef.current) {
                 setError(errorMessage);
@@ -315,7 +402,7 @@ export const useUserInfo = () => {
                 error: errorMessage,
             };
         }
-    }, [token]);
+    }, [token, isOnline, saveToPersistentCache]);
 
     const refresh = useCallback(async (forceRefresh = false) => {
         if (!isMountedRef.current) return;
@@ -353,24 +440,21 @@ export const useUserInfo = () => {
 
         const result = await saveUserInfo(payload);
 
-        if (result.success && isMountedRef.current) {
-            cacheRef.current = null;
+        if (result.success && isMountedRef.current && !result.offline) {
+            // Refresh from server to ensure sync
             await fetchUserInfo(true);
         }
 
         return result;
     }, [saveUserInfo, fetchUserInfo]);
 
+    // Initial load
     useEffect(() => {
         if (token && authUser) {
-            console.log('🚀 Initial fetch triggered');
-            console.log('👤 User:', authUser.email);
-            console.log('🔑 Has token:', !!token);
+            console.log('🚀 Initial fetch');
             fetchUserInfo(false);
         } else {
-            console.log('⚠️ No token or user');
-            console.log('   Token:', !!token);
-            console.log('   User:', !!authUser);
+            console.log('⚠️ No token/user');
             setData(null);
             setError(token ? 'User session not found' : 'Authentication required');
             setLoading(false);
@@ -382,6 +466,7 @@ export const useUserInfo = () => {
         loading,
         error,
         lastSync,
+        isOnline,
         refresh,
         save,
         fetchUserInfo,

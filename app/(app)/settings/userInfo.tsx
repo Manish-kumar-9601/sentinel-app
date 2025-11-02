@@ -1,6 +1,6 @@
 ﻿import { useAuth } from '@/context/AuthContext';
 import { useUserInfo } from '@/hooks/useUserInfo';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,7 +18,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { SyncStatusBar } from '@/components/SyncStatusBar';
 // Blood group options
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -49,6 +49,7 @@ export default function UserInfoScreen() {
         loading: isLoadingUserInfo,
         error: userInfoError,
         lastSync,
+        isOnline,  
         refresh,
         save
     } = useUserInfo();
@@ -400,6 +401,20 @@ export default function UserInfoScreen() {
                             <Text style={styles.headerTitle}>User & Medical Info</Text>
                         </TouchableOpacity>
                     </View>
+                    <SyncStatusBar
+                        lastSync={lastSync}
+                        onRefresh={() => refresh(true)}
+                    />
+
+                    {/* Show offline warning if needed */}
+                    {!isOnline && (
+                        <View style={styles.offlineWarning}>
+                            <Ionicons name="cloud-offline" size={16} color="#FF9500" />
+                            <Text style={styles.offlineWarningText}>
+                                You're offline. Changes will sync when online.
+                            </Text>
+                        </View>
+                    )}
 
                     {/* Sync Status */}
                     {lastSyncTime && (
@@ -1021,5 +1036,20 @@ const styles = StyleSheet.create({
     modalActions: {
         padding: 20,
         paddingBottom: 30,
+    },
+    offlineWarning: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF3CD',
+        padding: 12,
+        marginHorizontal: 10,
+        marginBottom: 10,
+        borderRadius: 8,
+        gap: 8,
+    },
+    offlineWarningText: {
+        flex: 1,
+        color: '#856404',
+        fontSize: 13,
     },
 });
