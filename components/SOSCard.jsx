@@ -1,47 +1,89 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator, View } from 'react-native';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+} from 'react-native-reanimated';
 
-export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) => (
-    <View style={styles.sosCard}>
-        <TouchableOpacity onPress={onSOSPress} disabled={!isReady} onLongPress={onSOSOptions}>
-            <LinearGradient
-                colors={isReady ? ['#FF6B6B', '#FF4500'] : ['#D3D3D3', '#A9A9A9']}
-                style={styles.sosButton}
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) =>
+{
+    const shadowSpread = useSharedValue(3);
+
+    const animatedStyle = useAnimatedStyle(() =>
+    {
+        return {
+            boxShadow: `0px ${shadowSpread.value * 1.33}px ${shadowSpread.value * 7.5}px ${shadowSpread.value * 0.66}px rgba(255, 149, 149, 1)`,
+            shadowOffset: { width: 0, height: 4 },
+            shadowRadius: 30,
+            shadowOpacity: 1,
+            shadowColor: 'rgba(255, 149, 149, 1)',
+            elevation: shadowSpread.value, // Android fallback
+        };
+    });
+    let withTimerValue = 0;
+    let direction = 1;
+
+    setInterval(() =>
+    {
+        shadowSpread.value = withTiming(withTimerValue, { duration: 300 });
+
+        // Step forward or backward
+        withTimerValue += direction;
+
+        // Reverse direction at bounds
+        if (withTimerValue >= 4) direction = -1;
+        if (withTimerValue <= 0) direction = 1;
+    }, 500);
+
+    return (
+        <View style={styles.sosCard}>
+            <TouchableOpacity
+                onPress={onSOSPress}
+                onLongPress={onSOSOptions}
+                disabled={!isReady}
+
             >
-                <View style={styles.sosButtonInner}>
-                    {buttonText === 'PREPARING...' || buttonText === 'LOCATING...' || buttonText === 'SENDING...' ? (
-                        <ActivityIndicator size="large" color="white" />
-                    ) : (
-                        <>
-                            <Text style={styles.sosText}>SOS</Text>
-                            <Text style={styles.sosSubtext}>{buttonText}</Text>
-                        </>
-                    )}
-                </View>
-            </LinearGradient>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onLocationPress} style={styles.locationContainer}>
-            <View style={styles.locationBox}>
-                <Ionicons
-                    name="location-sharp"
-                    size={20}
-                    color={locationStatus === 'available' ? '#ff4500' : '#999'}
-                />
-                <Text
-                    style={[
-                        styles.locationText,
-                        { color: locationStatus === 'available' ? '#555' : '#999' }
-                    ]}
-                    numberOfLines={1}
+                <AnimatedLinearGradient
+                    colors={isReady ? ['#FF6B6B', '#ff4400ff'] : ['#D3D3D3', '#A9A9A9']}
+                    style={[styles.sosButton, animatedStyle]}
                 >
-                    {locationText}
-                </Text>
-            </View>
-        </TouchableOpacity>
-        <Text style={styles.sosHelpText}>Tap to send • Hold for options</Text>
-    </View>
-);
+                    <View style={styles.sosButtonInner}>
+                        {['PREPARING...', 'LOCATING...', 'SENDING...'].includes(buttonText) ? (
+                            <ActivityIndicator size="large" color="white" />
+                        ) : (
+                            <>
+                                <Text style={styles.sosText}>SOS</Text>
+                                <Text style={styles.sosSubtext}>{buttonText}</Text>
+                            </>
+                        )}
+                    </View>
+                </AnimatedLinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onLocationPress} style={styles.locationContainer}>
+                <View style={styles.locationBox}>
+                    <Ionicons
+                        name="location-sharp"
+                        size={20}
+                        color={locationStatus === 'available' ? '#ff4500' : '#999'}
+                    />
+                    <Text
+                        style={[
+                            styles.locationText,
+                            { color: locationStatus === 'available' ? '#555' : '#999' }
+                        ]}
+                        numberOfLines={1}
+                    >
+                        {locationText}
+                    </Text>
+                </View>
+            </TouchableOpacity>
+            <Text style={styles.sosHelpText}>Tap to send • Hold for options</Text>
+        </View>
+    )
+};
 
 const styles = StyleSheet.create({
     sosCard: {
@@ -57,8 +99,7 @@ const styles = StyleSheet.create({
         borderRadius: 75,
         justifyContent: 'center',
         alignItems: 'center',
-        boxShadow: '0 10px 20px rgba(40, 119, 184, 1)',
-      
+        boxShadow: ' 0px 4px 30px 1px rgba(255, 156, 156, 1)',
     },
     sosButtonInner: {
         width: 130,
