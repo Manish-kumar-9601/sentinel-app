@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
         borderRadius: 75,
         justifyContent: 'center',
         alignItems: 'center',
-        boxShadow: '0 10px 20px rgba(40, 119, 184, 1)',
+        boxShadow: '0 10px 20px rgba(40, 119, 184, 0.5)',
     },
     sosButtonInner: {
         width: 130,
