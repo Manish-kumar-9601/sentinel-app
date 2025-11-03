@@ -1,26 +1,23 @@
-﻿ // /api/user-info+api.ts
+﻿// app/api/user-info+api.ts
 import addCorsHeaders, { AuthUser, withAuth } from '@/utils/middleware';
 
 export async function OPTIONS() {
     return addCorsHeaders(new Response(null, { status: 204 }));
 }
 
-// GET handler
+// GET handler - Fetch user info
 const getHandler = async (request: Request, user: AuthUser) => {
     console.log('=== GET USER INFO START ===');
     console.log('👤 User:', user.email, 'ID:', user.id);
 
     try {
-        // Import modules
-        console.log('📦 Importing modules...');
         const { db } = await import('@/db/client');
         const { users, medicalInfo, emergencyContacts } = await import('@/db/schema');
         const { eq } = await import('drizzle-orm');
-        console.log('✅ Modules imported');
 
         const userId = user.id;
 
-        // Query user
+        // Fetch user data
         console.log('🔄 Querying user...');
         const userData = await db
             .select({
@@ -35,19 +32,11 @@ const getHandler = async (request: Request, user: AuthUser) => {
         console.log('✅ User query done:', userData.length);
 
         if (userData.length === 0) {
-            console.warn('⚠️ User not found, returning defaults');
+            console.warn('⚠️ User not found in database');
             return addCorsHeaders(new Response(
                 JSON.stringify({
-                    userInfo: {
-                        name: user.name || '',
-                        email: user.email || '',
-                        phone: '',
-                    },
-                    medicalInfo: {
-                        bloodGroup: '',
-                        allergies: '',
-                        medications: '',
-                    },
+                    userInfo: { name: user.name || '', email: user.email || '', phone: '' },
+                    medicalInfo: { bloodGroup: '', allergies: '', medications: '' },
                     emergencyContacts: [],
                     lastUpdated: new Date().toISOString(),
                     success: true,
@@ -57,38 +46,26 @@ const getHandler = async (request: Request, user: AuthUser) => {
             ));
         }
 
-        // Query medical info
+        // Fetch medical info
         console.log('🔄 Querying medical info...');
         const medicalData = await db
-            .select({
-                bloodGroup: medicalInfo.bloodGroup,
-                allergies: medicalInfo.allergies,
-                medications: medicalInfo.medications,
-            })
+            .select()
             .from(medicalInfo)
             .where(eq(medicalInfo.userId, userId))
             .limit(1);
 
         console.log('✅ Medical query done:', medicalData.length);
 
-        // Query contacts
+        // Fetch contacts
         console.log('🔄 Querying contacts...');
         const contactsData = await db
-            .select({
-                id: emergencyContacts.id,
-                name: emergencyContacts.name,
-                phone: emergencyContacts.phone,
-                relationship: emergencyContacts.relationship,
-                createdAt: emergencyContacts.createdAt,
-                updatedAt: emergencyContacts.updatedAt,
-            })
+            .select()
             .from(emergencyContacts)
             .where(eq(emergencyContacts.userId, userId))
             .orderBy(emergencyContacts.createdAt);
 
         console.log('✅ Contacts query done:', contactsData.length);
 
-        // Build response
         const response = {
             userInfo: {
                 name: userData[0].name || '',
@@ -140,14 +117,15 @@ const getHandler = async (request: Request, user: AuthUser) => {
     }
 };
 
-// POST handler
+// POST handler - Save user info
 const postHandler = async (request: Request, user: AuthUser) => {
     console.log('=== POST USER INFO START ===');
+    console.log('👤 User:', user.email, 'ID:', user.id);
 
     try {
         const { db } = await import('@/db/client');
         const { users, medicalInfo, emergencyContacts } = await import('@/db/schema');
-        const { eq } = await import('drizzle-orm');
+        const { eq, and } = await import('drizzle-orm');
 
         const body = await request.json();
         const {
@@ -157,8 +135,8 @@ const postHandler = async (request: Request, user: AuthUser) => {
         } = body;
 
         const userId = user.id;
-        console.log('💾 Saving for:', userId);
 
+        // Validation
         if (!userInfoData && !medicalInfoData && !emergencyContactsData) {
             return addCorsHeaders(new Response(
                 JSON.stringify({
@@ -179,9 +157,14 @@ const postHandler = async (request: Request, user: AuthUser) => {
             ));
         }
 
+        // Use transaction for atomicity
+        console.log('🔄 Starting transaction...');
+
         await db.transaction(async (tx) => {
-            // Update user
+            // 1. Update user info
             if (userInfoData) {
+                console.log('💾 Updating user info...');
+
                 const updateData: any = {
                     updatedAt: new Date(),
                 };
@@ -203,35 +186,54 @@ const postHandler = async (request: Request, user: AuthUser) => {
                     .set(updateData)
                     .where(eq(users.id, userId));
 
-                console.log('✅ User updated');
+                console.log('✅ User info updated');
             }
 
-            // Upsert medical
+            // 2. Upsert medical info
             if (medicalInfoData) {
-                await tx
-                    .insert(medicalInfo)
-                    .values({
-                        userId: userId,
-                        bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
-                        allergies: medicalInfoData.allergies?.trim() || null,
-                        medications: medicalInfoData.medications?.trim() || null,
-                        updatedAt: new Date(),
-                    })
-                    .onConflictDoUpdate({
-                        target: medicalInfo.userId,
-                        set: {
-                            bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
-                            allergies: medicalInfoData.allergies?.trim() || null,
-                            medications: medicalInfoData.medications?.trim() || null,
-                            updatedAt: new Date(),
-                        }
-                    });
+                console.log('💾 Upserting medical info...');
 
-                console.log('✅ Medical updated');
+                const medicalData = {
+                    userId: userId,
+                    bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
+                    allergies: medicalInfoData.allergies?.trim() || null,
+                    medications: medicalInfoData.medications?.trim() || null,
+                    updatedAt: new Date(),
+                };
+
+                // Check if medical info exists
+                const existing = await tx
+                    .select({ userId: medicalInfo.userId })
+                    .from(medicalInfo)
+                    .where(eq(medicalInfo.userId, userId))
+                    .limit(1);
+
+                if (existing.length > 0) {
+                    // Update existing
+                    await tx
+                        .update(medicalInfo)
+                        .set({
+                            bloodGroup: medicalData.bloodGroup,
+                            allergies: medicalData.allergies,
+                            medications: medicalData.medications,
+                            updatedAt: medicalData.updatedAt,
+                        })
+                        .where(eq(medicalInfo.userId, userId));
+                } else {
+                    // Insert new
+                    await tx
+                        .insert(medicalInfo)
+                        .values(medicalData);
+                }
+
+                console.log('✅ Medical info updated');
             }
 
-            // Sync contacts
+            // 3. Sync emergency contacts
             if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
+                console.log('💾 Syncing emergency contacts...');
+
+                // Get existing contacts
                 const existingContacts = await tx
                     .select({ id: emergencyContacts.id })
                     .from(emergencyContacts)
@@ -239,51 +241,59 @@ const postHandler = async (request: Request, user: AuthUser) => {
 
                 const existingIds = existingContacts.map(c => c.id);
                 const incomingIds = emergencyContactsData
-                    .filter(c => c.id && !c.id.startsWith('temp_'))
+                    .filter(c => c.id && !c.id.startsWith('temp_') && !c.id.startsWith('contact_'))
                     .map(c => c.id);
 
+                // Delete removed contacts
                 const toDelete = existingIds.filter(id => !incomingIds.includes(id));
 
-                for (const contactId of toDelete) {
-                    await tx
-                        .delete(emergencyContacts)
-                        .where(eq(emergencyContacts.id, contactId));
-                }
-
                 if (toDelete.length > 0) {
+                    for (const contactId of toDelete) {
+                        await tx
+                            .delete(emergencyContacts)
+                            .where(eq(emergencyContacts.id, contactId));
+                    }
                     console.log(`🗑️ Deleted ${toDelete.length} contacts`);
                 }
 
+                // Upsert contacts
                 let added = 0;
                 let updated = 0;
 
                 for (const contact of emergencyContactsData) {
                     if (!contact.name?.trim() || !contact.phone?.trim()) {
+                        console.warn('⚠️ Skipping invalid contact');
                         continue;
                     }
 
-                    const isNew = !contact.id || contact.id.startsWith('temp_');
-                    const contactData = {
-                        id: isNew ? crypto.randomUUID() : contact.id,
-                        userId: userId,
-                        name: contact.name.trim(),
-                        phone: contact.phone.trim(),
-                        relationship: contact.relationship?.trim() || null,
-                        createdAt: contact.createdAt ? new Date(contact.createdAt) : new Date(),
-                        updatedAt: new Date(),
-                    };
+                    const isNew = !contact.id ||
+                        contact.id.startsWith('temp_') ||
+                        contact.id.startsWith('contact_');
 
                     if (isNew) {
-                        await tx.insert(emergencyContacts).values(contactData);
+                        // Insert new contact
+                        const newId = crypto.randomUUID();
+                        await tx
+                            .insert(emergencyContacts)
+                            .values({
+                                id: newId,
+                                userId: userId,
+                                name: contact.name.trim(),
+                                phone: contact.phone.trim(),
+                                relationship: contact.relationship?.trim() || null,
+                                createdAt: new Date(),
+                                updatedAt: new Date(),
+                            });
                         added++;
                     } else {
+                        // Update existing contact
                         await tx
                             .update(emergencyContacts)
                             .set({
-                                name: contactData.name,
-                                phone: contactData.phone,
-                                relationship: contactData.relationship,
-                                updatedAt: contactData.updatedAt,
+                                name: contact.name.trim(),
+                                phone: contact.phone.trim(),
+                                relationship: contact.relationship?.trim() || null,
+                                updatedAt: new Date(),
                             })
                             .where(eq(emergencyContacts.id, contact.id));
                         updated++;
@@ -294,13 +304,13 @@ const postHandler = async (request: Request, user: AuthUser) => {
             }
         });
 
-        console.log('✅ Save complete');
+        console.log('✅ Transaction completed successfully');
         console.log('=== POST USER INFO END ===');
 
         return addCorsHeaders(new Response(
             JSON.stringify({
                 success: true,
-                message: 'Saved successfully',
+                message: 'User information saved successfully',
                 lastUpdated: new Date().toISOString(),
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -311,7 +321,7 @@ const postHandler = async (request: Request, user: AuthUser) => {
         console.error('Stack:', error.stack);
         console.log('=== POST USER INFO END (ERROR) ===');
 
-        let errorMessage = 'Failed to save';
+        let errorMessage = 'Failed to save user information';
         let statusCode = 500;
 
         if (error.message?.includes('foreign key')) {
@@ -320,6 +330,9 @@ const postHandler = async (request: Request, user: AuthUser) => {
         } else if (error.message?.includes('cannot be empty')) {
             errorMessage = error.message;
             statusCode = 400;
+        } else if (error.message?.includes('unique constraint')) {
+            errorMessage = 'Duplicate data detected';
+            statusCode = 409;
         }
 
         return addCorsHeaders(new Response(
@@ -335,3 +348,6 @@ const postHandler = async (request: Request, user: AuthUser) => {
 
 export const GET = withAuth(getHandler);
 export const POST = withAuth(postHandler);
+
+// Export for testing
+export { getHandler, postHandler };

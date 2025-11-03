@@ -92,9 +92,14 @@ class WhatsAppService {
     }
 }
 
-// --- Enhanced SOS Service ---
+// --- Enhanced SOS Service --+-
+interface SOSOptions {
+    includeSMS?: boolean;
+    includeWhatsApp?: boolean;
+}
+
 class SOSService {
-    static async sendEmergencyMessages(contacts, location, options = {}) {
+    static async sendEmergencyMessages(contacts, location, options: SOSOptions = {}) {
         const { includeSMS = true, includeWhatsApp = true } = options;
         const results = { sms: null, whatsapp: null };
 
@@ -105,7 +110,7 @@ class SOSService {
                 const isSmsAvailable = await SMS.isAvailableAsync();
                 if (isSmsAvailable) {
                     const contactNumbers = contacts.map(c => c.phone);
-                    await SMS.sendSMSAsync(contactNumbers, message);
+                    await SMS.s-endSMSAsync(contactNumbers, message);
                     results.sms = { success: true, count: contacts.length };
                 } else {
                     results.sms = { success: false, error: 'SMS not available' };
@@ -738,7 +743,7 @@ export default function HomeScreen() {
     const handleSOSOptions = () => {
         if (!location || emergencyContacts.length === 0) return;
 
-        const options = [
+        const options: Array<{ text: string; style?: 'cancel' | 'default' | 'destructive'; onPress?: () => void | Promise<void> }> = [
             { text: 'Cancel', style: 'cancel' },
             {
                 text: 'SMS Only',

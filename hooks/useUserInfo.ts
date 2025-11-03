@@ -1,4 +1,4 @@
-﻿// hooks/useUserInfo.ts
+﻿// hooks/useUserInfo.ts - IMPROVED VERSION
 import { useAuth } from '@/context/AuthContext';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -6,7 +6,6 @@ import {
     CacheManager,
     NetworkManager,
     OfflineQueueManager,
-    SyncManager,
     SYNC_CONFIG
 } from '@/utils/syncManager';
 
@@ -62,7 +61,8 @@ export const useUserInfo = () => {
     // Refs
     const isMountedRef = useRef(true);
     const fetchInProgressRef = useRef(false);
-    const autoSyncTimeoutRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+    const autoSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const originalDataRef = useRef<UserInfoData | null>(null);
 
     // Initialize network listener
     useEffect(() => {
@@ -70,7 +70,7 @@ export const useUserInfo = () => {
             console.log(`📡 Network status changed: ${online ? 'ONLINE' : 'OFFLINE'}`);
             setIsOnline(online);
 
-            // Auto-sync when coming online
+            // Auto-sync when coming online with changes
             if (online && hasLocalChanges) {
                 console.log('🔄 Came online with local changes, syncing...');
                 syncToServer();
@@ -172,7 +172,8 @@ export const useUserInfo = () => {
                     if (response.status === 401) {
                         throw new Error('Session expired. Please log in again.');
                     }
-                    throw new Error(`HTTP ${response.status}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
                 }
 
                 const responseData = await response.json();
@@ -243,6 +244,7 @@ export const useUserInfo = () => {
                 const cached = await loadFromCache();
                 if (cached) {
                     setData(cached);
+                    originalDataRef.current = cached;
                     setLoading(false);
 
                     // Background refresh if online
@@ -252,6 +254,7 @@ export const useUserInfo = () => {
                                 if (isMountedRef.current && freshData) {
                                     await saveToCache(freshData, true);
                                     setData(freshData);
+                                    originalDataRef.current = freshData;
                                     setLastSync(new Date());
                                 }
                             })
@@ -267,6 +270,7 @@ export const useUserInfo = () => {
                 const cached = await loadFromCache();
                 if (cached) {
                     setData(cached);
+                    originalDataRef.current = cached;
                     setError('Offline - showing cached data');
                 } else {
                     throw new Error('No cached data available offline');
@@ -280,6 +284,7 @@ export const useUserInfo = () => {
             if (fetchedData && isMountedRef.current) {
                 await saveToCache(fetchedData, true);
                 setData(fetchedData);
+                originalDataRef.current = fetchedData;
                 setLastSync(new Date());
                 setError(null);
             }
@@ -296,6 +301,7 @@ export const useUserInfo = () => {
                     const cached = await loadFromCache();
                     if (cached) {
                         setData(cached);
+                        originalDataRef.current = cached;
                         setError(errorMessage + ' (using cached data)');
                     }
                 }
@@ -312,7 +318,8 @@ export const useUserInfo = () => {
      * Sync local changes to server
      */
     const syncToServer = useCallback(async (): Promise<boolean> => {
-        if (!hasLocalChanges || !isOnline || !data) {
+        if (!hasLocalChanges || !isOnline || !data || isSyncing) {
+            console.log('⏭️ Skipping sync:', { hasLocalChanges, isOnline, hasData: !!data, isSyncing });
             return false;
         }
 
@@ -336,22 +343,24 @@ export const useUserInfo = () => {
             });
 
             if (!response.ok) {
-                throw new Error(`Sync failed: HTTP ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Sync failed: HTTP ${response.status}`);
             }
 
             // Mark as synced in cache
             await saveToCache(data, true);
+            originalDataRef.current = data;
             setLastSync(new Date());
             console.log('✅ Synced to server successfully');
             return true;
 
         } catch (error: any) {
-            console.error('❌ Sync to server failed:', error);
+            console.error('❌ Sync to server failed:', error.message);
             return false;
         } finally {
             setIsSyncing(false);
         }
-    }, [hasLocalChanges, isOnline, data, token, saveToCache]);
+    }, [hasLocalChanges, isOnline, data, token, saveToCache, isSyncing]);
 
     /**
      * Save with optimistic update and offline queue
@@ -376,6 +385,9 @@ export const useUserInfo = () => {
         }
 
         try {
+            // Store original data for rollback
+            const rollbackData = data;
+
             // Optimistic update
             const updatedData: UserInfoData = {
                 ...payload,
@@ -383,7 +395,7 @@ export const useUserInfo = () => {
             };
 
             setData(updatedData);
-            await saveToCache(updatedData, false); // Mark as not synced
+            await saveToCache(updatedData, false);
 
             // If offline, queue for later
             if (!isOnline) {
@@ -409,6 +421,8 @@ export const useUserInfo = () => {
                 throw new Error('API URL not configured');
             }
 
+            console.log('💾 Saving to server...');
+
             const response = await fetch(`${apiUrl}/api/user-info`, {
                 method: 'POST',
                 headers: {
@@ -419,11 +433,13 @@ export const useUserInfo = () => {
             });
 
             if (!response.ok) {
-                throw new Error(`Save failed: HTTP ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.details || `Save failed: HTTP ${response.status}`);
             }
 
             // Success: mark as synced
             await saveToCache(updatedData, true);
+            originalDataRef.current = updatedData;
             setLastSync(new Date());
 
             console.log('✅ Saved successfully');
@@ -434,12 +450,13 @@ export const useUserInfo = () => {
             };
 
         } catch (error: any) {
-            console.error('❌ Save error:', error);
+            console.error('❌ Save error:', error.message);
 
-            // Revert optimistic update on error
-            const cached = await loadFromCache();
-            if (cached && isMountedRef.current) {
-                setData(cached);
+            // Revert optimistic update
+            if (originalDataRef.current && isMountedRef.current) {
+                console.log('⏮️ Reverting to original data');
+                setData(originalDataRef.current);
+                await saveToCache(originalDataRef.current, false);
             }
 
             return {
@@ -447,7 +464,7 @@ export const useUserInfo = () => {
                 error: error.message || 'Failed to save',
             };
         }
-    }, [token, isOnline, saveToCache, loadFromCache]);
+    }, [token, isOnline, data, saveToCache]);
 
     /**
      * Refresh function
@@ -465,7 +482,7 @@ export const useUserInfo = () => {
 
             // Setup auto-sync check
             autoSyncTimeoutRef.current = setInterval(() => {
-                if (hasLocalChanges && isOnline) {
+                if (hasLocalChanges && isOnline && !isSyncing) {
                     console.log('⏰ Auto-sync check...');
                     syncToServer();
                 }
@@ -498,3 +515,6 @@ export const useUserInfo = () => {
 };
 
 export default useUserInfo;
+
+// Export types for reuse
+export type { UserInfo, MedicalInfo, EmergencyContact, UserInfoData, SavePayload, SaveResult };
