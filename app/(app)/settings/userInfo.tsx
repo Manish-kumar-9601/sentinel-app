@@ -1,5 +1,5 @@
 ﻿import { useAuth } from '@/context/AuthContext';
-import { useUserInfo } from '@/hooks/useUserInfo';
+import { useUserInfo} from '@/hooks/useUserInfo';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator, View } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet,ActivityIndicator, View } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -28,7 +28,7 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
 
     setInterval(() =>
     {
-        shadowSpread.value = withTiming(withTimerValue, { duration: 500, easing: Easing.ease });
+        shadowSpread.value = withTiming(withTimerValue, { duration: 500});
 
         // Step forward or backward
         withTimerValue += direction;

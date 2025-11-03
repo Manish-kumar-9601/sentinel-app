@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 // Import the app logo
 const sentinelIcon = require('../assets/images/sentinel-icon.png');
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { migrateOldData } from '@/utils/migration';
 
 /**
  * This is the initial splash screen for the application.
@@ -18,6 +19,7 @@ const StartPage = () => {
     const router = useRouter();
 
     useEffect(() => {
+        migrateOldData();
         console.log('user:', user, 'isLoading:', isLoading);
         // This effect runs when the authentication state is determined (isLoading becomes false).
         if (!isLoading) {
@@ -52,7 +54,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',  
+        backgroundColor: '#FFFFFF',
     },
     logo: {
         width: 120,
