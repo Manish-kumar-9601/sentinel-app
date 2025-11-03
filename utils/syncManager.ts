@@ -280,7 +280,7 @@ export class OfflineQueueManager {
     async add(operation: Omit<QueuedOperation, 'id' | 'timestamp' | 'retries'>): Promise<void> {
         const op: QueuedOperation = {
             ...operation,
-            id: `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: `op_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             timestamp: Date.now(),
             retries: 0,
         };

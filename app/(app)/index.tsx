@@ -27,6 +27,7 @@ import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard'
 import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
+import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
 
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
@@ -788,6 +789,7 @@ export default function HomeScreen() {
                 }
             >
                 <Header onProfile={onProfile} />
+                <GlobalSyncStatus />
                 <View style={styles.titleContainer}>
                     <Text style={styles.mainTitle}>{t('home.title')}</Text>
                     <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
