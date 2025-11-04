@@ -148,9 +148,12 @@ export const useUserInfo = () => {
             throw new Error('Authentication required');
         }
 
-        const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-        if (!apiUrl) {
-            throw new Error('API URL not configured');
+        const env = process.env.NODE_ENV
+        console.log('Environment at Auth context:', env);
+        const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+        console.log("apiUrl at Auth context", apiUrl)
+        if (!apiUrl && env === 'production') {
+            console.log('apiUrl not set')
         }
 
         let lastError: Error | null = null;
@@ -328,8 +331,13 @@ export const useUserInfo = () => {
         try {
             console.log('🔄 Syncing local changes to server...');
 
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-            if (!apiUrl || !token) {
+            const env = process.env.NODE_ENV
+            console.log('Environment at Auth context:', env);
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+            console.log("apiUrl at Auth context", apiUrl)
+
+
+            if (!apiUrl || !token && env === 'production') {
                 throw new Error('Cannot sync: missing config or token');
             }
 
@@ -369,7 +377,29 @@ export const useUserInfo = () => {
         if (!token) {
             return { success: false, error: 'Authentication required' };
         }
+        const env = process.env.NODE_ENV
+        console.log('Environment at Auth context:', env);
+        const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+        console.log("apiUrl at Auth context", apiUrl)
+        if (!apiUrl && env === 'production') {
+            console.log('apiUrl not set')
+        }
+        console.log('=== API CONFIGURATION DEBUG ===');
+        console.log('Constants.expoConfig:', Constants.expoConfig ? 'exists' : 'missing');
+        console.log('Constants.expoConfig?.extra:', Constants.expoConfig?.extra ? 'exists' : 'missing');
+        console.log('API URL:', apiUrl);
+        console.log('API URL type:', typeof apiUrl);
+        console.log('Full endpoint:', apiUrl ? `${apiUrl}/api/user-info` : 'NO API URL');
+        console.log('Token exists:', !!token);
+        console.log('Token length:', token?.length || 0);
+        console.log('Token starts with:', token?.substring(0, 20) + '...');
+        console.log('=== END DEBUG ===');
 
+
+        if (!token) {
+            console.error('❌ No token available');
+            return { success: false, error: 'Authentication required' };
+        }
         // Validation
         const errors: string[] = [];
         if (!payload.userInfo?.name?.trim()) errors.push('Name is required');
@@ -416,10 +446,15 @@ export const useUserInfo = () => {
             }
 
             // Online: save to server
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-            if (!apiUrl) {
+
+            const env = process.env.NODE_ENV
+            console.log('Environment at Auth context:', env);
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+            console.log("apiUrl at Auth context", apiUrl)
+            if (!apiUrl && env === 'production') {
                 throw new Error('API URL not configured');
             }
+
 
             console.log('💾 Saving to server...');
 

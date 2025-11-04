@@ -339,8 +339,14 @@ export class OfflineQueueManager {
     }
 
     private async executeOperation(op: QueuedOperation): Promise<boolean> {
-        const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-        if (!apiUrl) return false;
+        const env = process.env.NODE_ENV
+        console.log('Environment at Auth context:', env);
+        const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+        console.log("apiUrl at Auth context", apiUrl)
+        if (!apiUrl && env === 'production') {
+            return false
+        }
+
 
         try {
             const response = await fetch(`${apiUrl}/api/user-info`, {

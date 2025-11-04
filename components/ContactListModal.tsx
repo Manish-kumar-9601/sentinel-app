@@ -1,28 +1,29 @@
 // components/ContactListModal.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-Modal,
-View,
-Text,
-StyleSheet,
-FlatList,
-TouchableOpacity,
-SafeAreaView,
-Alert,
-ActivityIndicator
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SMS from 'expo-sms';
 import * as Location from 'expo-location';
 import PhoneContactsModal from './PhoneContactsModal';
 import {
-CacheManager,
-NetworkManager,
-OfflineQueueManager,
-SYNC_CONFIG
+  CacheManager,
+  NetworkManager,
+  OfflineQueueManager,
+  SYNC_CONFIG
 } from '@/utils/syncManager';
 import { useAuth } from '@/context/AuthContext';
 import Constants from 'expo-constants';
+import { fa } from 'zod/v4/locales';
 
 interface Contact {
   id: string;
@@ -138,8 +139,15 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
     if (!token) return;
 
     try {
-      const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-      if (!apiUrl) return;
+      const env = process.env.NODE_ENV
+      console.log('Environment at Auth context:', env);
+      const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+      console.log("apiUrl at Auth context", apiUrl)
+      if (!apiUrl && env === 'production') {
+        return false;
+      }
+
+
 
       console.log('🌐 Fetching contacts from server...');
 
@@ -199,10 +207,14 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
     try {
       console.log('🔄 Syncing contacts to server...');
 
-      const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-      if (!apiUrl) {
+      const env = process.env.NODE_ENV
+      console.log('Environment at Auth context:', env);
+      const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+      console.log("apiUrl at Auth context", apiUrl)
+      if (!apiUrl && env === 'production') {
         throw new Error('API URL not configured');
       }
+
 
       // Get current user info to preserve other data
       const userInfoResponse = await fetch(`${apiUrl}/api/user-info`, {

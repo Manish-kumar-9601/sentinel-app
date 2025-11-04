@@ -44,10 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (storedToken && storedUser) {
                 console.log('📦 Found stored auth data');
-                
+
                 // Verify token is still valid
                 const isValid = await verifyToken(storedToken);
-                
+
                 if (isValid) {
                     setTokenState(storedToken);
                     setUserState(JSON.parse(storedUser));
@@ -69,8 +69,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const verifyToken = async (tokenToVerify: string): Promise<boolean> => {
         try {
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-            if (!apiUrl) return false;
+            const env = process.env.NODE_ENV
+            console.log('Environment at Auth context:', env);
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+            console.log("apiUrl at Auth context", apiUrl)
+            if (!apiUrl && env === 'production') {
+                return false
+            }
+
+
 
             const response = await fetch(`${apiUrl}/api/auth/session`, {
                 method: 'GET',
@@ -120,8 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (email: string, password: string) => {
         try {
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-            if (!apiUrl) {
+            const env = process.env.NODE_ENV
+            console.log('Environment at Auth context:', env);
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+            console.log("apiUrl at Auth context", apiUrl)
+            if (!apiUrl && env === 'production') {
                 return { success: false, error: 'API URL not configured' };
             }
 
@@ -149,10 +159,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const register = async (name: string, email: string, password: string) => {
         try {
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-            if (!apiUrl) {
+            const env = process.env.NODE_ENV
+            console.log('Environment at Auth context:', env);
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+            console.log("apiUrl at Auth context", apiUrl)
+            if (!apiUrl && env === 'production') {
                 return { success: false, error: 'API URL not configured' };
             }
+
 
             const response = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',
@@ -178,8 +192,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         try {
-            const apiUrl = Constants.expoConfig?.extra?.apiUrl;
-            if (apiUrl && token) {
+            const env = process.env.NODE_ENV
+            console.log('Environment at Auth context:', env);
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+            console.log("apiUrl at Auth context", apiUrl)
+            if (!apiUrl && env === 'production') {
+                return { success: false, error: 'API URL not configured' };
+            }
+
+            if (token) {
                 // Call logout endpoint
                 await fetch(`${apiUrl}/api/auth/logout`, {
                     method: 'POST',

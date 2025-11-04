@@ -1,6 +1,12 @@
 ﻿// db/client.ts
-import { drizzle } from 'drizzle-orm/neon-http';
+// NOTE: Using drizzle-orm/neon-http driver
+// LIMITATIONS:
+// - Does NOT support transactions (db.transaction() will throw error)
+// - Use sequential operations with proper error handling instead
+// - For transaction support, consider switching to drizzle-orm/neon-serverless
+//   or use a connection pooling driver like @neondatabase/serverless with ws
 import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from './schema';
 
 // Validate environment variable

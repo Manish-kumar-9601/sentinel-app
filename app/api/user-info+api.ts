@@ -1,5 +1,8 @@
 ﻿// app/api/user-info+api.ts
+import { db } from '@/db/client';
+import { emergencyContacts, medicalInfo, users } from '@/db/schema';
 import addCorsHeaders, { AuthUser, withAuth } from '@/utils/middleware';
+import { eq } from 'drizzle-orm';
 
 export async function OPTIONS() {
     return addCorsHeaders(new Response(null, { status: 204 }));
@@ -11,10 +14,6 @@ const getHandler = async (request: Request, user: AuthUser) => {
     console.log('👤 User:', user.email, 'ID:', user.id);
 
     try {
-        const { db } = await import('@/db/client');
-        const { users, medicalInfo, emergencyContacts } = await import('@/db/schema');
-        const { eq } = await import('drizzle-orm');
-
         const userId = user.id;
 
         // Fetch user data
@@ -61,8 +60,7 @@ const getHandler = async (request: Request, user: AuthUser) => {
         const contactsData = await db
             .select()
             .from(emergencyContacts)
-            .where(eq(emergencyContacts.userId, userId))
-            .orderBy(emergencyContacts.createdAt);
+            .where(eq(emergencyContacts.userId, userId));
 
         console.log('✅ Contacts query done:', contactsData.length);
 
@@ -123,16 +121,34 @@ const postHandler = async (request: Request, user: AuthUser) => {
     console.log('👤 User:', user.email, 'ID:', user.id);
 
     try {
-        const { db } = await import('@/db/client');
-        const { users, medicalInfo, emergencyContacts } = await import('@/db/schema');
-        const { eq, and } = await import('drizzle-orm');
+        // Parse body with error handling
+        let body;
+        try {
+            body = await request.json();
+            console.log('📦 Request body parsed successfully');
+        } catch (parseError: any) {
+            console.error('❌ Failed to parse request body:', parseError.message);
+            return addCorsHeaders(new Response(
+                JSON.stringify({
+                    error: 'Invalid request body',
+                    details: parseError.message,
+                    success: false,
+                }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            ));
+        }
 
-        const body = await request.json();
         const {
             userInfo: userInfoData,
             medicalInfo: medicalInfoData,
             emergencyContacts: emergencyContactsData
         } = body;
+
+        console.log('📊 Data received:', {
+            hasUserInfo: !!userInfoData,
+            hasMedicalInfo: !!medicalInfoData,
+            contactsCount: emergencyContactsData?.length || 0
+        });
 
         const userId = user.id;
 
@@ -157,154 +173,153 @@ const postHandler = async (request: Request, user: AuthUser) => {
             ));
         }
 
-        // Use transaction for atomicity
-        console.log('🔄 Starting transaction...');
+        // NOTE: neon-http driver does not support transactions
+        // We'll execute operations sequentially with error handling
+        console.log('🔄 Starting sequential operations...');
 
-        await db.transaction(async (tx) => {
-            // 1. Update user info
-            if (userInfoData) {
-                console.log('💾 Updating user info...');
+        // 1. Update user info
+        if (userInfoData) {
+            console.log('💾 Updating user info...');
 
-                const updateData: any = {
-                    updatedAt: new Date(),
-                };
+            const updateData: any = {
+                updatedAt: new Date(),
+            };
 
-                if (userInfoData.name !== undefined) {
-                    const trimmedName = userInfoData.name?.trim();
-                    if (!trimmedName) {
-                        throw new Error('Name cannot be empty');
-                    }
-                    updateData.name = trimmedName;
+            if (userInfoData.name !== undefined) {
+                const trimmedName = userInfoData.name?.trim();
+                if (!trimmedName) {
+                    throw new Error('Name cannot be empty');
                 }
-
-                if (userInfoData.phone !== undefined) {
-                    updateData.phone = userInfoData.phone?.trim() || null;
-                }
-
-                await tx
-                    .update(users)
-                    .set(updateData)
-                    .where(eq(users.id, userId));
-
-                console.log('✅ User info updated');
+                updateData.name = trimmedName;
             }
 
-            // 2. Upsert medical info
-            if (medicalInfoData) {
-                console.log('💾 Upserting medical info...');
+            if (userInfoData.phone !== undefined) {
+                updateData.phone = userInfoData.phone?.trim() || null;
+            }
 
-                const medicalData = {
-                    userId: userId,
-                    bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
-                    allergies: medicalInfoData.allergies?.trim() || null,
-                    medications: medicalInfoData.medications?.trim() || null,
-                    updatedAt: new Date(),
-                };
+            await db
+                .update(users)
+                .set(updateData)
+                .where(eq(users.id, userId));
 
-                // Check if medical info exists
-                const existing = await tx
-                    .select({ userId: medicalInfo.userId })
-                    .from(medicalInfo)
-                    .where(eq(medicalInfo.userId, userId))
-                    .limit(1);
+            console.log('✅ User info updated');
+        }
 
-                if (existing.length > 0) {
-                    // Update existing
-                    await tx
-                        .update(medicalInfo)
-                        .set({
-                            bloodGroup: medicalData.bloodGroup,
-                            allergies: medicalData.allergies,
-                            medications: medicalData.medications,
-                            updatedAt: medicalData.updatedAt,
-                        })
-                        .where(eq(medicalInfo.userId, userId));
+        // 2. Upsert medical info
+        if (medicalInfoData) {
+            console.log('💾 Upserting medical info...');
+
+            const medicalData = {
+                userId: userId,
+                bloodGroup: medicalInfoData.bloodGroup?.trim() || null,
+                allergies: medicalInfoData.allergies?.trim() || null,
+                medications: medicalInfoData.medications?.trim() || null,
+                updatedAt: new Date(),
+            };
+
+            // Check if medical info exists
+            const existing = await db
+                .select({ userId: medicalInfo.userId })
+                .from(medicalInfo)
+                .where(eq(medicalInfo.userId, userId))
+                .limit(1);
+
+            if (existing.length > 0) {
+                // Update existing
+                await db
+                    .update(medicalInfo)
+                    .set({
+                        bloodGroup: medicalData.bloodGroup,
+                        allergies: medicalData.allergies,
+                        medications: medicalData.medications,
+                        updatedAt: medicalData.updatedAt,
+                    })
+                    .where(eq(medicalInfo.userId, userId));
+            } else {
+                // Insert new
+                await db
+                    .insert(medicalInfo)
+                    .values(medicalData);
+            }
+
+            console.log('✅ Medical info updated');
+        }
+
+        // 3. Sync emergency contacts
+        if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
+            console.log('💾 Syncing emergency contacts...');
+
+            // Get existing contacts
+            const existingContacts = await db
+                .select({ id: emergencyContacts.id })
+                .from(emergencyContacts)
+                .where(eq(emergencyContacts.userId, userId));
+
+            const existingIds = existingContacts.map(c => c.id);
+            const incomingIds = emergencyContactsData
+                .filter(c => c.id && !c.id.startsWith('temp_') && !c.id.startsWith('contact_'))
+                .map(c => c.id);
+
+            // Delete removed contacts
+            const toDelete = existingIds.filter(id => !incomingIds.includes(id));
+
+            if (toDelete.length > 0) {
+                for (const contactId of toDelete) {
+                    await db
+                        .delete(emergencyContacts)
+                        .where(eq(emergencyContacts.id, contactId));
+                }
+                console.log(`🗑️ Deleted ${toDelete.length} contacts`);
+            }
+
+            // Upsert contacts
+            let added = 0;
+            let updated = 0;
+
+            for (const contact of emergencyContactsData) {
+                if (!contact.name?.trim() || !contact.phone?.trim()) {
+                    console.warn('⚠️ Skipping invalid contact');
+                    continue;
+                }
+
+                const isNew = !contact.id ||
+                    contact.id.startsWith('temp_') ||
+                    contact.id.startsWith('contact_');
+
+                if (isNew) {
+                    // Generate a proper UUID for new contacts
+                    const newId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    await db
+                        .insert(emergencyContacts)
+                        .values({
+                            id: newId,
+                            userId: userId,
+                            name: contact.name.trim(),
+                            phone: contact.phone.trim(),
+                            relationship: contact.relationship?.trim() || null,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        });
+                    added++;
                 } else {
-                    // Insert new
-                    await tx
-                        .insert(medicalInfo)
-                        .values(medicalData);
+                    // Update existing contact
+                    await db
+                        .update(emergencyContacts)
+                        .set({
+                            name: contact.name.trim(),
+                            phone: contact.phone.trim(),
+                            relationship: contact.relationship?.trim() || null,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(emergencyContacts.id, contact.id));
+                    updated++;
                 }
-
-                console.log('✅ Medical info updated');
             }
 
-            // 3. Sync emergency contacts
-            if (emergencyContactsData && Array.isArray(emergencyContactsData)) {
-                console.log('💾 Syncing emergency contacts...');
+            console.log(`✅ Contacts: ${added} added, ${updated} updated`);
+        }
 
-                // Get existing contacts
-                const existingContacts = await tx
-                    .select({ id: emergencyContacts.id })
-                    .from(emergencyContacts)
-                    .where(eq(emergencyContacts.userId, userId));
-
-                const existingIds = existingContacts.map(c => c.id);
-                const incomingIds = emergencyContactsData
-                    .filter(c => c.id && !c.id.startsWith('temp_') && !c.id.startsWith('contact_'))
-                    .map(c => c.id);
-
-                // Delete removed contacts
-                const toDelete = existingIds.filter(id => !incomingIds.includes(id));
-
-                if (toDelete.length > 0) {
-                    for (const contactId of toDelete) {
-                        await tx
-                            .delete(emergencyContacts)
-                            .where(eq(emergencyContacts.id, contactId));
-                    }
-                    console.log(`🗑️ Deleted ${toDelete.length} contacts`);
-                }
-
-                // Upsert contacts
-                let added = 0;
-                let updated = 0;
-
-                for (const contact of emergencyContactsData) {
-                    if (!contact.name?.trim() || !contact.phone?.trim()) {
-                        console.warn('⚠️ Skipping invalid contact');
-                        continue;
-                    }
-
-                    const isNew = !contact.id ||
-                        contact.id.startsWith('temp_') ||
-                        contact.id.startsWith('contact_');
-
-                    if (isNew) {
-                        // Insert new contact
-                        const newId = crypto.randomUUID();
-                        await tx
-                            .insert(emergencyContacts)
-                            .values({
-                                id: newId,
-                                userId: userId,
-                                name: contact.name.trim(),
-                                phone: contact.phone.trim(),
-                                relationship: contact.relationship?.trim() || null,
-                                createdAt: new Date(),
-                                updatedAt: new Date(),
-                            });
-                        added++;
-                    } else {
-                        // Update existing contact
-                        await tx
-                            .update(emergencyContacts)
-                            .set({
-                                name: contact.name.trim(),
-                                phone: contact.phone.trim(),
-                                relationship: contact.relationship?.trim() || null,
-                                updatedAt: new Date(),
-                            })
-                            .where(eq(emergencyContacts.id, contact.id));
-                        updated++;
-                    }
-                }
-
-                console.log(`✅ Contacts: ${added} added, ${updated} updated`);
-            }
-        });
-
-        console.log('✅ Transaction completed successfully');
+        console.log('✅ All operations completed successfully');
         console.log('=== POST USER INFO END ===');
 
         return addCorsHeaders(new Response(
@@ -348,6 +363,3 @@ const postHandler = async (request: Request, user: AuthUser) => {
 
 export const GET = withAuth(getHandler);
 export const POST = withAuth(postHandler);
-
-// Export for testing
-export { getHandler, postHandler };

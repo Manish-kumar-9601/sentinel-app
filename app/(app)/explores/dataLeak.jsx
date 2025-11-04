@@ -60,7 +60,16 @@ const DataLeakScreen = () =>
     console.log(encodeURIComponent(email.trim()))
     try
     {
-      const apiUrl = (process.env.NODE_ENV == 'development') ? process.env.EXPO_PUBLIC_API_URL : Constants.expoConfig?.extra?.apiUrl;
+      const env = process.env.NODE_ENV
+      console.log('Environment at Auth context:', env);
+      const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+      console.log("apiUrl at Auth context", apiUrl)
+      if (!apiUrl && env === 'production')
+      {
+        throw new Error('API URL not configured');
+      }
+
+
       const response = await fetch(`${apiUrl}/api/dataLeak?email=${encodeURIComponent(email.trim())}&apiKey=${encodeURIComponent(apiKey)}`);
       const data = await response.json();
 
