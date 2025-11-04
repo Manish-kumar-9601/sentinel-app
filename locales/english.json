@@ -32,7 +32,20 @@
     "unavailable": "Location unavailable",
     "checkContact": "Check Contact",
     "explore": "Explore",
-    "fakeCall": "Fake Call"
+    "fakeCall": "Fake Call",
+    "pullToRefresh": "Pull to refresh location and contacts",
+    "noContactsAlertTitle": "No Emergency Contacts",
+    "noContactsAlertMessage": "Please add emergency contacts in the \"My Circle\" screen before using SOS.",
+    "locationRequiredTitle": "Location Required",
+    "locationRequiredMessage": "Getting your location for emergency alerts...",
+    "gettingLocationAlert": "Getting Location",
+    "gettingLocationAlertMessage": "Trying to get your current location...",
+    "sosOptionsTitle": "SOS Options",
+    "sosOptionsMessage": "Choose how to send emergency alerts:",
+    "sosOptionsSms": "SMS Only",
+    "sosOptionsWhatsapp": "WhatsApp Only",
+    "sosOptionsBoth": "Both SMS & WhatsApp",
+    "sosFailedMessage": "Failed to send emergency alerts. Please try again."
   },
   "settings": {
     "title": "Settings",
@@ -96,7 +109,9 @@
       "logout": {
         "label": "Log Out"
       }
-    }
+    },
+    "themeAlertTitle": "Theme",
+    "themeAlertMessage": "Theme selection will be available soon!"
   },
   "emergencies": [
     {
@@ -422,7 +437,11 @@
     "success": "Success!",
     "copied": "Copied!",
     "permissionDenied": "Permission Denied",
-    "validationError": "Validation Error"
+    "validationError": "Validation Error",
+    "openSettings": "Open Settings",
+    "grantPermission": "Grant Permission",
+    "delete": "Delete",
+    "discard": "Discard"
   },
   "login": {
     "welcome": "Welcome Back",
@@ -448,7 +467,8 @@
     "fillFieldsError": "Please fill in all fields.",
     "registrationFailed": "Registration Failed",
     "undefinedUser": "User data is undefined.",
-    "couldNotCreate": "Could not create account."
+    "couldNotCreate": "Could not create account.",
+    "passwordPlaceholder": "Password (min 8 characters)"
   },
   "language": {
     "selectLanguage": "Select Language",
@@ -531,7 +551,28 @@
     "shareSuccess": "Your information has been sent to your emergency contact.",
     "shareFail": "Failed to share information. Please try again.",
     "cacheCleared": "Cache Cleared",
-    "cacheClearedMessage": "Local cache has been cleared."
+    "cacheClearedMessage": "Local cache has been cleared.",
+    "contactNameRequired": "Contact name is required",
+    "deleteContactTitle": "Delete Contact",
+    "deleteContactMessage": "Are you sure you want to remove this emergency contact?",
+    "loadErrorTitle": "Failed to Load",
+    "refreshError": "Failed to refresh data",
+    "offlineWarning": "You're offline. Changes will sync when online.",
+    "namePlaceholder": "Enter your name",
+    "phonePlaceholderExample": "+91 9876543210",
+    "selectBloodGroup": "Select blood group",
+    "noContactsAdded": "No emergency contacts added",
+    "saveChanges": "Save Changes",
+    "noChanges": "No Changes",
+    "editContact": "Edit Contact",
+    "newContact": "New Contact",
+    "enterNamePlaceholder": "Enter name",
+    "phonePlaceholderRequired": "Phone Number *",
+    "enterPhonePlaceholder": "Enter phone number",
+    "relationshipPlaceholder": "Relationship",
+    "relationshipExample": "e.g., Mother, Spouse, Friend",
+    "updateContact": "Update Contact",
+    "selectBloodGroupTitle": "Select Blood Group"
   },
   "webMap": {
     "title": "Emergency Map",
@@ -578,7 +619,8 @@
     "email": "Email:",
     "leakedPassword": "Leaked Password: ",
     "noBreaches": "No Breaches Found!",
-    "safeMessage": "Your email is not in any known public breaches."
+    "safeMessage": "Your email is not in any known public breaches.",
+    "headerTitle": "Data Check"
   },
   "fakeCall": {
     "record": "Record",
@@ -640,7 +682,8 @@
     "guestTitle": "You are a Guest",
     "guestSubtitle": "Log in to save your medical info and sync your emergency contacts.",
     "loginButton": "Log In or Sign Up",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "headerTitle": "Profile"
   },
   "recorder": {
     "loadingPermissions": "Loading permissions...",

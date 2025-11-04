@@ -32,7 +32,27 @@
     "unavailable": "स्थान अनुपलब्ध",
     "checkContact": "संपर्क तपासा",
     "explore": "अन्वेषण करा",
-    "fakeCall": "बनावट कॉल"
+    "fakeCall": "बनावट कॉल",
+    "pullToRefresh": "स्थान आणि संपर्क रीफ्रेश करण्यासाठी खाली खेचा",
+    "noContactsAlertTitle": "आपत्कालीन संपर्क नाहीत",
+    "noContactsAlertMessage": "SOS वापरण्यापूर्वी कृपया \"माझे वर्तुळ\" स्क्रीनमध्ये आपत्कालीन संपर्क जोडा.",
+    "locationRequiredTitle": "स्थान आवश्यक आहे",
+    "locationRequiredMessage": "आपत्कालीन अलर्टसाठी तुमचे स्थान मिळवत आहे...",
+    "gettingLocationAlert": "स्थान मिळवत आहे",
+    "gettingLocationAlertMessage": "तुमचे वर्तमान स्थान मिळवण्याचा प्रयत्न करत आहे...",
+    "sosOptionsTitle": "SOS पर्याय",
+    "sosOptionsMessage": "आपत्कालीन अलर्ट कसे पाठवायचे ते निवडा:",
+    "sosOptionsSms": "फक्त SMS",
+    "sosOptionsWhatsapp": "फक्त WhatsApp",
+    "sosOptionsBoth": "SMS आणि WhatsApp दोन्ही",
+    "sosFailedMessage": "आपत्कालीन अलर्ट पाठवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+    "whatsappNotAvailable": "WhatsApp उपलब्ध नाही",
+    "locationServicesDisabledAlert": "स्थान सेवा अक्षम आहेत.",
+    "enableLocationServicesPrompt": "कृपया त्या डिव्हाइस सेटिंग्जमध्ये सक्षम करा.",
+    "locationPermissionCheckIn": "चेक-इन संदेशांसाठी स्थान प्रवेश आवश्यक आहे.",
+    "locationPermissionNeededAlert": "स्थान परवानगी आवश्यक आहे",
+    "locationPermissionAlertMessage": "आपत्कालीन अलर्टसाठी स्थान परवानगी आवश्यक आहे.",
+    "grantLocationPrompt": "तुम्ही स्थान परवानगी देऊ इच्छिता का?"
   },
   "settings": {
     "title": "सेटिंग्ज",
@@ -96,7 +116,10 @@
       "logout": {
         "label": "लॉग आउट"
       }
-    }
+    },
+    "headerTitle": "वापरकर्ता आणि वैद्यकीय माहिती",
+    "themeAlertTitle": "थीम",
+    "themeAlertMessage": "थीम निवड लवकरच उपलब्ध होईल!"
   },
   "emergencies": [
     {
@@ -422,7 +445,11 @@
     "success": "यशस्वी!",
     "copied": "कॉपी केले!",
     "permissionDenied": "परवानगी नाकारली",
-    "validationError": "प्रमाणीकरण त्रुटी"
+    "validationError": "प्रमाणीकरण त्रुटी",
+    "openSettings": "सेटिंग्ज उघडा",
+    "grantPermission": "परवानगी द्या",
+    "delete": "हटवा",
+    "discard": "खारिज करा"
   },
   "login": {
     "welcome": "पुन्हा स्वागत आहे",
@@ -448,13 +475,15 @@
     "fillFieldsError": "कृपया सर्व फील्ड भरा.",
     "registrationFailed": "नोंदणी अयशस्वी",
     "undefinedUser": "वापरकर्ता डेटा अपरिभाषित आहे.",
-    "couldNotCreate": "खाते तयार केले जाऊ शकले नाही."
+    "couldNotCreate": "खाते तयार केले जाऊ शकले नाही.",
+    "passwordPlaceholder": "पासवर्ड (किमान ८ अक्षरे)"
   },
   "language": {
     "selectLanguage": "भाषा निवडा",
     "languageChanged": "भाषा बदलली",
     "restartMessage": "नवीन भाषा लागू करण्यासाठी ॲप आता पुन्हा सुरू होईल.",
-    "languageError": "निवडलेली भाषा लागू केली जाऊ शकली नाही."
+    "languageError": "निवडलेली भाषा लागू केली जाऊ शकली नाही.",
+    "headerTitle": "भाषा"
   },
   "myCircle": {
     "title": "माझे संपर्क वर्तुळ",
@@ -531,7 +560,35 @@
     "shareSuccess": "तुमची माहिती तुमच्या आपत्कालीन संपर्काला पाठवली आहे.",
     "shareFail": "माहिती शेअर करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
     "cacheCleared": "कॅशे साफ केले",
-    "cacheClearedMessage": "स्थानिक कॅशे साफ केले आहे."
+    "cacheClearedMessage": "स्थानिक कॅशे साफ केले आहे.",
+    "contactNameRequired": "संपर्क नाव आवश्यक आहे",
+    "invalidPhoneFormat": "अवैध फोन नंबर स्वरूप",
+    "saveFailTitle": "जतन अयशस्वी",
+    "deleteContactTitle": "संपर्क हटवा",
+    "deleteContactMessage": "तुम्ही हा आपत्कालीन संपर्क नक्की हटवू इच्छिता?",
+    "loadErrorTitle": "लोड अयशस्वी",
+    "offlineWarning": "तुम्ही ऑफलाइन आहात. ऑनलाइन आल्यावर बदल सिंक होतील.",
+    "labelFullName": "पूर्ण नाव *",
+    "namePlaceholder": "तुमचे नाव प्रविष्ट करा",
+    "labelEmail": "ईमेल पत्ता",
+    "labelPhone": "फोन नंबर",
+    "phonePlaceholderExample": "+९१ ९८७६५४३२१०",
+    "labelBloodGroup": "रक्तगट",
+    "selectBloodGroup": "रक्तगट निवडा",
+    "labelAllergies": "ॲलर्जी",
+    "labelMedications": "सध्याची औषधे",
+    "noContactsAdded": "कोणतेही आपत्कालीन संपर्क जोडलेले नाहीत",
+    "addContact": "आपत्कालीन संपर्क जोडा",
+    "saveChanges": "बदल जतन करा",
+    "noChanges": "बदल नाहीत",
+    "editContact": "संपर्क संपादित करा",
+    "newContact": "नवीन संपर्क",
+    "phonePlaceholderRequired": "फोन नंबर *",
+    "enterPhonePlaceholder": "फोन नंबर प्रविष्ट करा",
+    "relationshipPlaceholder": "नाते",
+    "relationshipExample": "उदा. आई, जोडीदार, मित्र",
+    "updateContact": "संपर्क अद्यतनित करा",
+    "selectBloodGroupTitle": "रक्तगट निवडा"
   },
   "webMap": {
     "title": "आपत्कालीन नकाशा",
@@ -578,7 +635,8 @@
     "email": "ईमेल:",
     "leakedPassword": "लीक झालेला पासवर्ड: ",
     "noBreaches": "कोणतेही उल्लंघन आढळले नाही!",
-    "safeMessage": "तुमचा ईमेल कोणत्याही ज्ञात सार्वजनिक उल्लंघनात नाही."
+    "safeMessage": "तुमचा ईमेल कोणत्याही ज्ञात सार्वजनिक उल्लंघनात नाही.",
+    "headerTitle": "डेटा तपासणी"
   },
   "fakeCall": {
     "record": "रेकॉर्ड",
@@ -640,7 +698,8 @@
     "guestTitle": "तुम्ही एक अतिथी आहात",
     "guestSubtitle": "तुमची वैद्यकीय माहिती जतन करण्यासाठी आणि तुमचे आपत्कालीन संपर्क सिंक करण्यासाठी लॉग इन करा.",
     "loginButton": "लॉग इन किंवा साइन अप करा",
-    "signOut": "साइन आउट"
+    "signOut": "साइन आउट",
+    "headerTitle": "प्रोफाइल"
   },
   "recorder": {
     "loadingPermissions": "परवानग्या लोड होत आहेत...",
