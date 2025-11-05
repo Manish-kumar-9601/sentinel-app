@@ -1,17 +1,19 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Button, SafeAreaView, Platform, Dimensions } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
-import * as MediaLibrary from 'expo-media-library';
-import * as Brightness from 'expo-brightness';
-import { useRouter } from 'expo-router';
-import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Brightness from 'expo-brightness';
+import { CameraType, CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import * as MediaLibrary from 'expo-media-library';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Button, Dimensions, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
 
 const EvidenceRecorderScreen: React.FC = () => {
+  const { t } = useTranslation();
   const router = useRouter();
 
   // Enhanced state for brightness and blackout features
@@ -38,7 +40,7 @@ const EvidenceRecorderScreen: React.FC = () => {
         // Request brightness permissions
         const { status } = await Brightness.requestPermissionsAsync();
         setBrightnessPermission(status === 'granted');
-        
+
         if (status === 'granted') {
           // Store original brightness level
           const currentBrightness = await Brightness.getBrightnessAsync();
@@ -107,7 +109,7 @@ const EvidenceRecorderScreen: React.FC = () => {
   // Enhanced brightness control functions
   const setBrightnessToMinimum = async () => {
     if (!brightnessPermission) return;
-    
+
     try {
       // Set brightness to absolute minimum (0.01 instead of 0 to avoid completely black screen issues)
       await Brightness.setBrightnessAsync(0.01);
@@ -119,7 +121,7 @@ const EvidenceRecorderScreen: React.FC = () => {
 
   const restoreBrightness = async () => {
     if (!brightnessPermission) return;
-    
+
     try {
       // Restore to original brightness or a reasonable default
       const brightnessToRestore = originalBrightness > 0.1 ? originalBrightness : 0.5;
@@ -133,7 +135,7 @@ const EvidenceRecorderScreen: React.FC = () => {
   // Enhanced blackout function with brightness control
   const blackOutScreen = () => {
     'use worklet';
-    
+
     runOnJS(() => {
       setIsScreenBlackedOut(true);
       // Set brightness to minimum after a short delay to ensure UI updates first
@@ -147,7 +149,7 @@ const EvidenceRecorderScreen: React.FC = () => {
   // Enhanced restore function with brightness control
   const restoreScreen = () => {
     'use worklet';
-    
+
     runOnJS(() => {
       setIsScreenBlackedOut(false);
       // Restore brightness after a short delay
@@ -200,13 +202,13 @@ const EvidenceRecorderScreen: React.FC = () => {
         });
         if (recordedVideo && recordedVideo.uri) {
           await MediaLibrary.saveToLibraryAsync(recordedVideo.uri);
-          Alert.alert("Video Saved", "Your evidence has been saved to your photo library.");
+          Alert.alert(t('recorder.videoSaved'), t('recorder.videoSavedMessage'));
         } else {
           throw new Error('No video data received');
         }
       } catch (error) {
         console.error("Error during recording or saving:", error);
-        Alert.alert("Error", "Could not record or save the video: " + (error as Error).message);
+        Alert.alert(t('recorder.error'), t('recorder.recordError') + (error as Error).message);
       } finally {
         setIsRecording(false);
       }
@@ -245,7 +247,7 @@ const EvidenceRecorderScreen: React.FC = () => {
   if (permissionsLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.permissionMessage}>Loading permissions...</Text>
+        <Text style={styles.permissionMessage}>{t('recorder.loadingPermissions')}</Text>
       </View>
     );
   }
@@ -262,7 +264,7 @@ const EvidenceRecorderScreen: React.FC = () => {
             await requestCameraPermission();
             await requestMicrophonePermission();
             await requestMediaLibraryPermission();
-            
+
             // Also request brightness permission
             if (!brightnessPermission) {
               const { status } = await Brightness.requestPermissionsAsync();
@@ -295,7 +297,7 @@ const EvidenceRecorderScreen: React.FC = () => {
                   <Text style={styles.timerText}>{formatTime(recordingDuration)}</Text>
                 </View>
               )}
-              
+
               {/* Brightness warning indicator */}
               {!brightnessPermission && !isScreenBlackedOut && (
                 <View style={styles.brightnessWarning}>
@@ -309,8 +311,8 @@ const EvidenceRecorderScreen: React.FC = () => {
 
             {!isScreenBlackedOut && (
               <View style={styles.bottomControls}>
-                <TouchableOpacity 
-                  style={styles.iconButton} 
+                <TouchableOpacity
+                  style={styles.iconButton}
                   onPress={() => {
                     // Restore brightness before leaving if it was modified
                     if (isScreenBlackedOut && brightnessPermission) {
@@ -329,20 +331,20 @@ const EvidenceRecorderScreen: React.FC = () => {
                   <View style={isRecording ? styles.stopIcon : styles.recordIcon} />
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.iconButton} 
-                  onPress={toggleCameraType} 
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={toggleCameraType}
                   disabled={isRecording}
                 >
-                  <Ionicons 
-                    name="camera-reverse" 
-                    size={35} 
-                    color={isRecording ? "gray" : "white"} 
+                  <Ionicons
+                    name="camera-reverse"
+                    size={35}
+                    color={isRecording ? "gray" : "white"}
                   />
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.screenOffButton} 
+                <TouchableOpacity
+                  style={styles.screenOffButton}
                   onPress={blackOutScreen}
                 >
                   <View style={styles.screenOffContent}>
@@ -368,7 +370,7 @@ const EvidenceRecorderScreen: React.FC = () => {
                   <View style={styles.speaker} />
                   <View style={styles.frontCamera} />
                 </View>
-                
+
                 {/* Main black screen area */}
                 <View style={styles.blackScreen}>
                   {/* Subtle recording indicator - barely visible */}
@@ -377,7 +379,7 @@ const EvidenceRecorderScreen: React.FC = () => {
                       <View style={styles.subtleDot} />
                     </View>
                   )}
-                  
+
                   {/* Restore instructions - very subtle */}
                   <View style={styles.restoreInstructions}>
                     <Text style={styles.subtleText}>
@@ -390,7 +392,7 @@ const EvidenceRecorderScreen: React.FC = () => {
                     )}
                   </View>
                 </View>
-                
+
                 {/* Bottom home indicator (for modern phones) */}
                 <View style={styles.homeIndicator} />
               </View>

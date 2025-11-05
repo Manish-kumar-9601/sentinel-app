@@ -1,8 +1,10 @@
-﻿import { useAuth } from '@/context/AuthContext';
-import { useUserInfo} from '@/hooks/useUserInfo';
+﻿import { SyncStatusBar } from '@/components/SyncStatusBar';
+import { useAuth } from '@/context/AuthContext';
+import { useUserInfo } from '@/hooks/useUserInfo';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -18,7 +20,6 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SyncStatusBar } from '@/components/SyncStatusBar';
 // Blood group options
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -43,13 +44,14 @@ interface EmergencyContact {
 }
 
 export default function UserInfoScreen() {
+    const { t } = useTranslation();
     const { user: authUser, logout } = useAuth();
     const {
         data: userInfoData,
         loading: isLoadingUserInfo,
         error: userInfoError,
         lastSync,
-        isOnline,  
+        isOnline,
         refresh,
         save
     } = useUserInfo();
@@ -180,20 +182,20 @@ export default function UserInfoScreen() {
         const errors: string[] = [];
 
         if (!userInfo.name.trim()) {
-            errors.push('Name is required');
+            errors.push(t('userInfo.nameRequired'));
         }
 
         if (userInfo.phone && !/^\+?\d{10,15}$/.test(userInfo.phone.replace(/[\s()-]/g, ''))) {
-            errors.push('Invalid phone number format');
+            errors.push(t('userInfo.invalidPhone'));
         }
 
         // Validate emergency contacts
         emergencyContacts.forEach((contact, index) => {
             if (!contact.name.trim()) {
-                errors.push(`Contact ${index + 1}: Name is required`);
+                errors.push(t('userInfo.contactNameRequired', { number: index + 1 }));
             }
             if (!contact.phone.trim() || !/^\+?\d{10,15}$/.test(contact.phone.replace(/[\s()-]/g, ''))) {
-                errors.push(`Contact ${index + 1}: Valid phone number required`);
+                errors.push(t('userInfo.contactPhoneRequired', { number: index + 1 }));
             }
         });
 
@@ -206,7 +208,7 @@ export default function UserInfoScreen() {
         // Validate form
         const validationErrors = validateForm();
         if (validationErrors.length > 0) {
-            Alert.alert('Validation Error', validationErrors.join('\n'));
+            Alert.alert(t('userInfo.validationError'), validationErrors.join('\n'));
             return;
         }
 
@@ -253,17 +255,17 @@ export default function UserInfoScreen() {
                 setLastSyncTime(new Date());
 
                 // Show success message
-                Alert.alert('Success', result.message || 'Your information has been saved successfully');
+                Alert.alert(t('userInfo.success'), result.message || t('userInfo.saveSuccess'));
 
                 console.log('✅ User info saved successfully');
             } else {
-                throw new Error(result.error || 'Failed to save user information');
+                throw new Error(result.error || t('userInfo.saveFailed'));
             }
         } catch (err: any) {
             console.error('❌ Error saving user info:', err);
-            const errorMsg = err.message || 'Failed to save user information';
+            const errorMsg = err.message || t('userInfo.saveFailed');
             setError(errorMsg);
-            Alert.alert('Save Failed', errorMsg + '\n\nPlease try again.');
+            Alert.alert(t('userInfo.saveFailed'), errorMsg + '\n\n' + t('userInfo.pleaseRetry'));
         } finally {
             setIsSaving(false);
         }
@@ -272,12 +274,12 @@ export default function UserInfoScreen() {
     const handleAddContact = () => {
         // Validate new contact
         if (!newContact.name.trim()) {
-            Alert.alert('Validation Error', 'Contact name is required');
+            Alert.alert(t('userInfo.validationError'), t('userInfo.contactNameRequired', { number: '' }).replace(':', '').trim());
             return;
         }
 
         if (!newContact.phone.trim() || !/^\+?\d{10,15}$/.test(newContact.phone.replace(/[\s()-]/g, ''))) {
-            Alert.alert('Validation Error', 'Please enter a valid phone number');
+            Alert.alert(t('userInfo.validationError'), t('userInfo.enterValidPhone'));
             return;
         }
 
@@ -317,12 +319,12 @@ export default function UserInfoScreen() {
 
     const handleDeleteContact = (contactId: string) => {
         Alert.alert(
-            'Delete Contact',
-            'Are you sure you want to remove this emergency contact?',
+            t('userInfo.deleteContact'),
+            t('userInfo.deleteContactMessage'),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('userInfo.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('userInfo.delete'),
                     style: 'destructive',
                     onPress: () => {
                         setEmergencyContacts(prev => prev.filter(c => c.id !== contactId));
@@ -338,7 +340,7 @@ export default function UserInfoScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color="#007AFF" />
-                    <Text style={styles.loadingText}>Loading your information...</Text>
+                    <Text style={styles.loadingText}>{t('userInfo.loading')}</Text>
                 </View>
             </SafeAreaView>
         );
@@ -350,16 +352,16 @@ export default function UserInfoScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.centerContainer}>
                     <Feather name="alert-circle" size={64} color="#FF3B30" />
-                    <Text style={styles.errorTitle}>Failed to Load</Text>
+                    <Text style={styles.errorTitle}>{t('userInfo.failedToLoad')}</Text>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={() => refresh(true)}>
-                        <Text style={styles.retryButtonText}>Try Again</Text>
+                        <Text style={styles.retryButtonText}>{t('userInfo.tryAgain')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.retryButton, { backgroundColor: '#FF3B30', marginTop: 10 }]}
                         onPress={logout}
                     >
-                        <Text style={styles.retryButtonText}>Logout</Text>
+                        <Text style={styles.retryButtonText}>{t('userInfo.logout')}</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -385,11 +387,11 @@ export default function UserInfoScreen() {
                             onPress={() => {
                                 if (hasChanges) {
                                     Alert.alert(
-                                        'Unsaved Changes',
-                                        'You have unsaved changes. Do you want to discard them?',
+                                        t('userInfo.unsavedChanges'),
+                                        t('userInfo.unsavedChangesMessage'),
                                         [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+                                            { text: t('userInfo.cancel'), style: 'cancel' },
+                                            { text: t('userInfo.discard'), style: 'destructive', onPress: () => router.back() },
                                         ]
                                     );
                                 } else {
@@ -398,7 +400,7 @@ export default function UserInfoScreen() {
                             }}
                         >
                             <Feather name="chevron-left" size={24} color="#007AFF" />
-                            <Text style={styles.headerTitle}>User & Medical Info</Text>
+                            <Text style={styles.headerTitle}>{t('userInfo.title')}</Text>
                         </TouchableOpacity>
                     </View>
                     <SyncStatusBar
@@ -411,7 +413,7 @@ export default function UserInfoScreen() {
                         <View style={styles.offlineWarning}>
                             <Ionicons name="cloud-offline" size={16} color="#FF9500" />
                             <Text style={styles.offlineWarningText}>
-                                You're offline. Changes will sync when online.
+                                {t('userInfo.offlineWarning')}
                             </Text>
                         </View>
                     )}
@@ -421,7 +423,7 @@ export default function UserInfoScreen() {
                         <View style={styles.syncStatus}>
                             <Feather name="check-circle" size={14} color="#34C759" />
                             <Text style={styles.syncText}>
-                                Last synced: {lastSyncTime.toLocaleTimeString()}
+                                {t('userInfo.lastSynced')}: {lastSyncTime.toLocaleTimeString()}
                             </Text>
                         </View>
                     )}
@@ -438,38 +440,38 @@ export default function UserInfoScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Feather name="user" size={20} color="#007AFF" />
-                            <Text style={styles.sectionTitle}>Personal Information</Text>
+                            <Text style={styles.sectionTitle}>{t('userInfo.personalInfo')}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Full Name *</Text>
+                            <Text style={styles.label}>{t('userInfo.fullName')} *</Text>
                             <TextInput
                                 style={styles.input}
                                 value={userInfo.name}
                                 onChangeText={(text) => setUserInfo(prev => ({ ...prev, name: text }))}
-                                placeholder="Enter your name"
+                                placeholder={t('userInfo.enterName')}
                                 placeholderTextColor="#C7C7CC"
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Email Address</Text>
+                            <Text style={styles.label}>{t('userInfo.email')}</Text>
                             <TextInput
                                 style={[styles.input, styles.disabledInput]}
                                 value={userInfo.email}
                                 editable={false}
                                 placeholderTextColor="#C7C7CC"
                             />
-                            <Text style={styles.helperText}>Email cannot be changed</Text>
+                            <Text style={styles.helperText}>{t('userInfo.emailCannotChange')}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Phone Number</Text>
+                            <Text style={styles.label}>{t('userInfo.phone')}</Text>
                             <TextInput
                                 style={styles.input}
                                 value={userInfo.phone}
                                 onChangeText={(text) => setUserInfo(prev => ({ ...prev, phone: text }))}
-                                placeholder="+91 9876543210"
+                                placeholder={t('userInfo.phonePlaceholder')}
                                 keyboardType="phone-pad"
                                 placeholderTextColor="#C7C7CC"
                             />
@@ -480,29 +482,29 @@ export default function UserInfoScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Feather name="heart" size={20} color="#FF3B30" />
-                            <Text style={styles.sectionTitle}>Medical Information</Text>
+                            <Text style={styles.sectionTitle}>{t('userInfo.medicalInfo')}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Blood Group</Text>
+                            <Text style={styles.label}>{t('userInfo.bloodGroup')}</Text>
                             <TouchableOpacity
                                 style={styles.pickerButton}
                                 onPress={() => setShowBloodGroupPicker(true)}
                             >
                                 <Text style={[styles.pickerButtonText, !medicalInfo.bloodGroup && styles.placeholderText]}>
-                                    {medicalInfo.bloodGroup || 'Select blood group'}
+                                    {medicalInfo.bloodGroup || t('userInfo.selectBloodGroup')}
                                 </Text>
                                 <Feather name="chevron-down" size={20} color="#666" />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Allergies</Text>
+                            <Text style={styles.label}>{t('userInfo.allergies')}</Text>
                             <TextInput
                                 style={[styles.input, styles.multilineInput]}
                                 value={medicalInfo.allergies}
                                 onChangeText={(text) => setMedicalInfo(prev => ({ ...prev, allergies: text }))}
-                                placeholder="e.g., peanuts, shellfish, medications"
+                                placeholder={t('userInfo.allergiesPlaceholder')}
                                 multiline
                                 numberOfLines={3}
                                 placeholderTextColor="#C7C7CC"
@@ -510,12 +512,12 @@ export default function UserInfoScreen() {
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Current Medications</Text>
+                            <Text style={styles.label}>{t('userInfo.medications')}</Text>
                             <TextInput
                                 style={[styles.input, styles.multilineInput]}
                                 value={medicalInfo.medications}
                                 onChangeText={(text) => setMedicalInfo(prev => ({ ...prev, medications: text }))}
-                                placeholder="Include dosages"
+                                placeholder={t('userInfo.medicationsPlaceholder')}
                                 multiline
                                 numberOfLines={3}
                                 placeholderTextColor="#C7C7CC"
@@ -527,7 +529,7 @@ export default function UserInfoScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Feather name="phone" size={20} color="#34C759" />
-                            <Text style={styles.sectionTitle}>Emergency Contacts</Text>
+                            <Text style={styles.sectionTitle}>{t('userInfo.emergencyContacts')}</Text>
                             <View style={styles.contactBadge}>
                                 <Text style={styles.contactBadgeText}>{emergencyContacts.length}</Text>
                             </View>
@@ -568,7 +570,7 @@ export default function UserInfoScreen() {
                                 ))}
                             </View>
                         ) : (
-                            <Text style={styles.emptyText}>No emergency contacts added</Text>
+                            <Text style={styles.emptyText}>{t('userInfo.noContacts')}</Text>
                         )}
 
                         <TouchableOpacity
@@ -580,7 +582,7 @@ export default function UserInfoScreen() {
                             }}
                         >
                             <Feather name="plus" size={18} color="#007AFF" />
-                            <Text style={styles.addContactText}>Add Emergency Contact</Text>
+                            <Text style={styles.addContactText}>{t('userInfo.addContact')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -597,7 +599,7 @@ export default function UserInfoScreen() {
                                 <>
                                     <Feather name="save" size={18} color="white" />
                                     <Text style={styles.buttonText}>
-                                        {hasChanges ? 'Save Changes' : 'No Changes'}
+                                        {hasChanges ? t('userInfo.saveChanges') : t('userInfo.noChanges')}
                                     </Text>
                                 </>
                             )}
@@ -616,45 +618,45 @@ export default function UserInfoScreen() {
                 <SafeAreaView style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <TouchableOpacity onPress={() => setShowContactModal(false)}>
-                            <Text style={styles.modalCancelText}>Cancel</Text>
+                            <Text style={styles.modalCancelText}>{t('userInfo.cancel')}</Text>
                         </TouchableOpacity>
                         <Text style={styles.modalTitle}>
-                            {editingContact ? 'Edit Contact' : 'New Contact'}
+                            {editingContact ? t('userInfo.editContact') : t('userInfo.newContact')}
                         </Text>
                         <View style={{ width: 60 }} />
                     </View>
 
                     <ScrollView style={styles.modalContent}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Full Name *</Text>
+                            <Text style={styles.label}>{t('userInfo.fullName')} *</Text>
                             <TextInput
                                 style={styles.input}
                                 value={newContact.name}
                                 onChangeText={(text) => setNewContact(prev => ({ ...prev, name: text }))}
-                                placeholder="Enter name"
+                                placeholder={t('userInfo.enterName')}
                                 placeholderTextColor="#C7C7CC"
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Phone Number *</Text>
+                            <Text style={styles.label}>{t('userInfo.phone')} *</Text>
                             <TextInput
                                 style={styles.input}
                                 value={newContact.phone}
                                 onChangeText={(text) => setNewContact(prev => ({ ...prev, phone: text }))}
-                                placeholder="Enter phone number"
+                                placeholder={t('userInfo.enterPhone')}
                                 keyboardType="phone-pad"
                                 placeholderTextColor="#C7C7CC"
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Relationship</Text>
+                            <Text style={styles.label}>{t('userInfo.relationship')}</Text>
                             <TextInput
                                 style={styles.input}
                                 value={newContact.relationship}
                                 onChangeText={(text) => setNewContact(prev => ({ ...prev, relationship: text }))}
-                                placeholder="e.g., Mother, Spouse, Friend"
+                                placeholder={t('userInfo.relationshipPlaceholder')}
                                 placeholderTextColor="#C7C7CC"
                             />
                         </View>
@@ -663,7 +665,7 @@ export default function UserInfoScreen() {
                     <View style={styles.modalActions}>
                         <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleAddContact}>
                             <Text style={styles.buttonText}>
-                                {editingContact ? 'Update Contact' : 'Add Contact'}
+                                {editingContact ? t('userInfo.updateContact') : t('userInfo.addContact')}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -680,7 +682,7 @@ export default function UserInfoScreen() {
                 <SafeAreaView style={styles.pickerModalContainer}>
                     <View style={styles.pickerModalContent}>
                         <View style={styles.pickerHeader}>
-                            <Text style={styles.pickerTitle}>Select Blood Group</Text>
+                            <Text style={styles.pickerTitle}>{t('userInfo.selectBloodGroup')}</Text>
                             <TouchableOpacity onPress={() => setShowBloodGroupPicker(false)}>
                                 <Feather name="x" size={24} color="#666" />
                             </TouchableOpacity>

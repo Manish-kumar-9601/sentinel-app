@@ -1,6 +1,7 @@
 ﻿import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -11,11 +12,12 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const RegisterScreen = () => {
+    const { t } = useTranslation();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -25,21 +27,21 @@ const RegisterScreen = () => {
 
     const handleRegister = async () => {
         if (!name || !email || !password) {
-            return Alert.alert('Error', 'Please fill in all fields.');
+            return Alert.alert(t('auth.error'), t('auth.fillAllFields'));
         }
-        
+
         setIsLoading(true);
-        
+
         try {
             const result = await register(name, email, password);
-            
+
             if (result.success) {
                 router.replace('/(app)');
             } else {
-                Alert.alert('Registration Failed', result.error || 'Could not create account.');
+                Alert.alert(t('auth.registrationFailed'), result.error || t('auth.couldNotCreate'));
             }
         } catch (error) {
-            Alert.alert('Error', 'An unexpected error occurred.');
+            Alert.alert(t('auth.error'), t('auth.unexpectedError'));
         } finally {
             setIsLoading(false);
         }
@@ -49,14 +51,14 @@ const RegisterScreen = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
                 <Image source={SentinelIcon} style={styles.logo} />
-                <Text style={styles.title}>Create Account</Text>
-                <Text style={styles.subtitle}>Get started with Sentinel</Text>
+                <Text style={styles.title}>{t('auth.createAccount')}</Text>
+                <Text style={styles.subtitle}>{t('auth.getStarted')}</Text>
 
                 <View style={styles.inputContainer}>
                     <Feather name="user" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="Full Name"
+                        placeholder={t('auth.fullName')}
                         value={name}
                         onChangeText={setName}
                         editable={!isLoading}
@@ -67,7 +69,7 @@ const RegisterScreen = () => {
                     <Feather name="mail" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="Email"
+                        placeholder={t('auth.email')}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -80,7 +82,7 @@ const RegisterScreen = () => {
                     <Feather name="lock" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password (min 8 characters)"
+                        placeholder={t('auth.passwordMin')}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -95,14 +97,14 @@ const RegisterScreen = () => {
                     {isLoading ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text style={styles.buttonText}>Sign Up</Text>
+                        <Text style={styles.buttonText}>{t('auth.signUp')}</Text>
                     )}
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Already have an account?</Text>
+                    <Text style={styles.footerText}>{t('auth.alreadyHaveAccount')}</Text>
                     <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                        <Text style={styles.linkText}> Log In</Text>
+                        <Text style={styles.linkText}> {t('auth.logIn')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

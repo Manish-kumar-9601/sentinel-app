@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
-import
-  {
-
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
-    Alert,
-  } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import * as Updates from 'expo-updates';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import
+{
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -27,7 +26,7 @@ const LANGUAGE_KEY = 'user_language';
 
 const LanguageScreen = () =>
 {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   // Initialize state with the currently active language from i18next
   const [currentLang, setCurrentLang] = useState(i18n.language);
 
@@ -46,14 +45,14 @@ const LanguageScreen = () =>
 
       // 4. Alert the user and offer to restart the app
       Alert.alert(
-        "Language Changed",
-        "The app will now restart to apply the new language.",
+        t('language.languageChanged'),
+        t('language.restartMessage'),
         [{ text: "OK", onPress: () => Updates.reloadAsync() }]
       );
     } catch (error)
     {
       console.error("Failed to save or change language", error);
-      Alert.alert("Error", "Could not apply the selected language.");
+      Alert.alert(t('language.error'), t('language.languageError'));
     }
   };
 
@@ -77,7 +76,7 @@ const LanguageScreen = () =>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
           <Feather name="chevron-left" size={32} color="#007AFF" />
-          <Text style={styles.headerTitle}>Language</Text>
+          <Text style={styles.headerTitle}>{t('language.selectLanguage')}</Text>
         </TouchableOpacity>
 
 

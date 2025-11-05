@@ -1,34 +1,35 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  Animated,
-  SafeAreaView,
-  Linking,
-  AppState,
-  Dimensions,
-} from 'react-native';
-import {
-  useAudioRecorder,
   AudioModule,
   RecordingPresets,
+  useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Brightness from 'expo-brightness';
+import * as FileSystem from 'expo-file-system';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as MediaLibrary from 'expo-media-library';
 import * as Notifications from 'expo-notifications';
-import * as Brightness from 'expo-brightness';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import * as FileSystem from 'expo-file-system';
-import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  Animated,
+  AppState,
+  Dimensions,
+  Linking,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import { useFocusEffect } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,6 +45,7 @@ Notifications.setNotificationHandler({
 
 export const AudioRecorderScreen = () => {
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Audio recording setup
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -81,7 +83,7 @@ export const AudioRecorderScreen = () => {
       try {
         const { status } = await Brightness.requestPermissionsAsync();
         setBrightnessPermission(status === 'granted');
-        
+
         if (status === 'granted') {
           const currentBrightness = await Brightness.getBrightnessAsync();
           setOriginalBrightness(currentBrightness);
@@ -171,13 +173,13 @@ export const AudioRecorderScreen = () => {
       } else {
         console.log('Permissions denied:', { audioRes, mediaLibRes, notificationsRes });
         Alert.alert(
-          "Permissions Required",
-          "Microphone, Media Library, and Notification permissions are required for this app to function properly."
+          t('audioRecorder.permissionsRequired'),
+          t('audioRecorder.permissionsMessage')
         );
       }
     } catch (error) {
       console.error('Permission request error:', error);
-      Alert.alert("Error", "Failed to request permissions. Please try again.");
+      Alert.alert(t('audioRecorder.error'), t('audioRecorder.permissionError'));
     }
     setPermissionsLoading(false);
   };
@@ -185,7 +187,7 @@ export const AudioRecorderScreen = () => {
   // Enhanced brightness control functions
   const setBrightnessToMinimum = async () => {
     if (!brightnessPermission) return;
-    
+
     try {
       await Brightness.setBrightnessAsync(0.01);
       console.log('🌑 Brightness set to minimum');
@@ -196,7 +198,7 @@ export const AudioRecorderScreen = () => {
 
   const restoreBrightness = async () => {
     if (!brightnessPermission) return;
-    
+
     try {
       const brightnessToRestore = originalBrightness > 0.1 ? originalBrightness : 0.5;
       await Brightness.setBrightnessAsync(brightnessToRestore);
@@ -257,7 +259,7 @@ export const AudioRecorderScreen = () => {
       if (appState === 'active' && nextAppState.match(/inactive|background/)) {
         setBackgroundPausedAt(Date.now());
         setDisplayedDuration(recorderState.durationMillis / 1000);
-        
+
         await showNotification(
           'Audio Recording in Background',
           `Recording continues in background${isScreenBlackedOut ? ' (Stealth Mode Active)' : ''}. Tap to return.`,
@@ -270,7 +272,7 @@ export const AudioRecorderScreen = () => {
           setDisplayedDuration(prev => prev + (backgroundDuration / 1000));
           setBackgroundPausedAt(null);
         }
-        
+
         await Notifications.dismissAllNotificationsAsync();
         console.log('Returned to foreground, audio timer display resumed');
       }
@@ -300,7 +302,7 @@ export const AudioRecorderScreen = () => {
   // Enhanced recording functions
   const startRecording = async () => {
     if (!hasPermissions) {
-      Alert.alert("Permissions Required", "Please grant all required permissions first.");
+      Alert.alert(t('audioRecorder.permissionsRequired'), t('audioRecorder.permissionsNeeded'));
       return;
     }
 
@@ -312,7 +314,7 @@ export const AudioRecorderScreen = () => {
       const result = await audioRecorder.record();
 
       const uri = result?.url || result?.uri || result;
-      
+
       setCurrentRecordingUri(uri);
       setRecordingStartTime(Date.now());
       setIsPaused(false);
@@ -321,10 +323,10 @@ export const AudioRecorderScreen = () => {
       setDisplayedDuration(0);
       setBackgroundPausedAt(null);
 
-      const notificationTitle = isScreenBlackedOut ? 'Stealth Audio Recording Active' : 'Audio Recording Active';
-      const notificationBody = isScreenBlackedOut ? 
-        'High-quality audio recording in stealth mode. Screen appears off.' : 
-        'High-quality audio recording in progress. Tap to return to the app.';
+      const notificationTitle = isScreenBlackedOut ? t('audioRecorder.stealthRecordingActive') : t('audioRecorder.audioRecordingActive');
+      const notificationBody = isScreenBlackedOut ?
+        t('audioRecorder.stealthRecordingBody') :
+        t('audioRecorder.audioRecordingBody');
 
       await showNotification(notificationTitle, notificationBody, true);
 
@@ -332,7 +334,7 @@ export const AudioRecorderScreen = () => {
     } catch (error) {
       console.error('Failed to start audio recording:', error);
       await deactivateKeepAwake();
-      Alert.alert("Recording Error", `Could not start recording: ${error.message}`);
+      Alert.alert(t('audioRecorder.recordingError'), t('audioRecorder.couldNotStartRecording') + (error as Error).message);
     }
   };
 
@@ -353,7 +355,7 @@ export const AudioRecorderScreen = () => {
       await Notifications.dismissAllNotificationsAsync();
 
       const uri = result?.url || result?.uri || result;
-      
+
       if (uri && typeof uri === 'string') {
         console.log('Audio recording stopped, URI:', uri);
         await saveRecordingToLibrary(uri);
@@ -363,7 +365,7 @@ export const AudioRecorderScreen = () => {
       }
     } catch (error) {
       console.error("Error stopping/saving audio recording:", error);
-      Alert.alert("Error", `Could not save the recording: ${error.message}`);
+      Alert.alert(t('audioRecorder.error'), t('audioRecorder.couldNotSaveRecording') + (error as Error).message);
     }
   };
 
@@ -390,16 +392,16 @@ export const AudioRecorderScreen = () => {
       const size = fileInfo.size ? (fileInfo.size / (1024 * 1024)).toFixed(2) : 'Unknown';
 
       Alert.alert(
-        'Audio Recording Saved Successfully!',
-        `Duration: ${formatTime(duration)}\nSize: ${size} MB\nSaved to Music folder${isScreenBlackedOut ? '\n(Recorded in Stealth Mode)' : ''}`,
+        t('audioRecorder.audioRecordingSaved'),
+        `${t('audioRecorder.duration')}: ${formatTime(duration)}\n${t('audioRecorder.size')}: ${size} MB\n${t('audioRecorder.savedToMusic')}${isScreenBlackedOut ? '\n(' + t('audioRecorder.recordedInStealth') + ')' : ''}`,
         [{ text: 'OK', style: 'default' }]
       );
 
     } catch (error) {
       console.error('Failed to save audio recording:', error);
       Alert.alert(
-        "Save Error",
-        `Could not save recording to media library: ${error.message}`
+        t('audioRecorder.savingError'),
+        t('audioRecorder.couldNotSaveToLibrary') + (error as Error).message
       );
     }
   };
@@ -426,8 +428,8 @@ export const AudioRecorderScreen = () => {
       setIsPaused(false);
       setLastPauseTime(null);
       const notificationTitle = isScreenBlackedOut ? 'Stealth Recording Resumed' : 'Audio Recording Resumed';
-      const notificationBody = isScreenBlackedOut ? 
-        'Audio recording resumed in stealth mode.' : 
+      const notificationBody = isScreenBlackedOut ?
+        'Audio recording resumed in stealth mode.' :
         'Your audio recording has resumed.';
       await showNotification(notificationTitle, notificationBody, true);
     } catch (error) {
@@ -463,7 +465,7 @@ export const AudioRecorderScreen = () => {
   // Animation logic
   useEffect(() => {
     let animations = [];
-    
+
     if (recorderState.isRecording && !isPaused) {
       const createLoop = (anim, toValue, duration) => Animated.loop(
         Animated.sequence([
@@ -501,7 +503,7 @@ export const AudioRecorderScreen = () => {
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '00:00';
-    
+
     const totalSeconds = Math.floor(seconds);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -515,12 +517,12 @@ export const AudioRecorderScreen = () => {
 
   const handlePermissionReRequest = () => {
     Alert.alert(
-      "Permissions Required",
-      "This app requires microphone, media library, notification, and brightness permissions. You can enable them in your device settings.",
+      t('audioRecorder.permissionsRequired'),
+      t('audioRecorder.permissionsSettings'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('audioRecorder.cancel'), style: "cancel" },
         {
-          text: "Open Settings",
+          text: t('audioRecorder.openSettings'),
           onPress: () => Linking.openSettings()
         }
       ]
@@ -530,13 +532,13 @@ export const AudioRecorderScreen = () => {
   // Timer update effect
   useEffect(() => {
     let interval;
-    
+
     if (recorderState.isRecording && !isPaused && appState === 'active' && !backgroundPausedAt) {
       interval = setInterval(() => {
         setDisplayedDuration(recorderState.durationMillis / 1000);
       }, 100);
     }
-    
+
     return () => {
       if (interval) {
         clearInterval(interval);
@@ -550,7 +552,7 @@ export const AudioRecorderScreen = () => {
       <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.container}>
         <View style={styles.permissionContainer}>
           <MaterialCommunityIcons name="loading" size={50} color="#FF6B6B" />
-          <Text style={styles.permissionMessage}>Initializing audio recorder...</Text>
+          <Text style={styles.permissionMessage}>{t('audioRecorder.initializing')}</Text>
         </View>
       </LinearGradient>
     );
@@ -563,15 +565,15 @@ export const AudioRecorderScreen = () => {
         <SafeAreaView style={styles.permissionContainer}>
           <MaterialCommunityIcons name="microphone-off" size={80} color="#666" />
           <Text style={styles.permissionMessage}>
-            This app requires Microphone, Media Library, Notification, and Brightness permissions for enhanced audio recording with stealth mode.
+            {t('audioRecorder.permissionsDescription')}
           </Text>
           {!brightnessPermission && (
             <Text style={styles.brightnessWarningText}>
-              ⚠️ Brightness control unavailable - stealth mode limited
+              {t('audioRecorder.brightnessWarning')}
             </Text>
           )}
           <TouchableOpacity style={styles.permissionButton} onPress={handlePermissionReRequest}>
-            <Text style={styles.permissionButtonText}>Enable Permissions</Text>
+            <Text style={styles.permissionButtonText}>{t('audioRecorder.enablePermissions')}</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </LinearGradient>
@@ -592,12 +594,12 @@ export const AudioRecorderScreen = () => {
                   onPress={() => {
                     if (recorderState.isRecording) {
                       Alert.alert(
-                        'Recording Active',
-                        'Stop recording before leaving?',
+                        t('audioRecorder.recordingActive'),
+                        t('audioRecorder.stopRecordingBeforeLeaving'),
                         [
-                          { text: 'Cancel', style: 'cancel' },
+                          { text: t('audioRecorder.cancel'), style: 'cancel' },
                           {
-                            text: 'Stop & Exit',
+                            text: t('audioRecorder.stopAndExit'),
                             onPress: async () => {
                               await stopRecording();
                               if (isScreenBlackedOut && brightnessPermission) {
@@ -619,7 +621,7 @@ export const AudioRecorderScreen = () => {
                   <Ionicons name="close" size={28} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Audio Recorder</Text>
-                
+
                 {/* Brightness permission indicator */}
                 {brightnessPermission ? (
                   <View style={styles.brightnessIndicator}>
@@ -658,7 +660,7 @@ export const AudioRecorderScreen = () => {
 
                     {/* Timer Display */}
                     <Text style={[
-                      styles.timerText, 
+                      styles.timerText,
                       isPaused && styles.pausedTimerText
                     ]}>
                       {formatTime(displayedDuration)}
@@ -672,7 +674,7 @@ export const AudioRecorderScreen = () => {
                     <MaterialCommunityIcons name="microphone-outline" size={100} color="#444" />
                     <Text style={styles.readyText}>Ready to Record</Text>
                     <Text style={styles.subText}>High-quality audio with background recording & stealth mode</Text>
-                    
+
                     {/* Brightness status */}
                     {!brightnessPermission && (
                       <View style={styles.brightnessWarning}>
@@ -712,7 +714,7 @@ export const AudioRecorderScreen = () => {
                 </Animated.View>
 
                 <Text style={styles.recordButtonText}>
-                  {isPaused ? 'Tap to Resume' : recorderState.isRecording ? 'Tap to Stop & Save' : 'Tap to Start Recording'}
+                  {isPaused ? t('audioRecorder.tapToResume') : recorderState.isRecording ? t('audioRecorder.tapToStopAndSave') : t('audioRecorder.tapToStartRecording')}
                 </Text>
 
                 {/* Control buttons */}
@@ -724,13 +726,13 @@ export const AudioRecorderScreen = () => {
                       onPress={isPaused ? resumeRecording : pauseRecording}
                     >
                       <Ionicons name={isPaused ? "play" : "pause"} size={24} color="white" />
-                      <Text style={styles.pauseButtonText}>{isPaused ? 'Resume' : 'Pause'}</Text>
+                      <Text style={styles.pauseButtonText}>{isPaused ? t('audioRecorder.resume') : t('audioRecorder.pause')}</Text>
                     </TouchableOpacity>
                   )}
 
                   {/* Stealth Mode Button */}
-                  <TouchableOpacity 
-                    style={styles.stealthButton} 
+                  <TouchableOpacity
+                    style={styles.stealthButton}
                     onPress={blackOutScreen}
                   >
                     <View style={styles.stealthButtonContent}>
@@ -742,7 +744,7 @@ export const AudioRecorderScreen = () => {
                       )}
                     </View>
                     <Text style={styles.stealthButtonText}>
-                      {brightnessPermission ? 'Stealth Mode' : 'Screen Off'}
+                      {brightnessPermission ? t('audioRecorder.stealthMode') : t('audioRecorder.screenOff')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -759,7 +761,7 @@ export const AudioRecorderScreen = () => {
                   <View style={styles.speaker} />
                   <View style={styles.frontCamera} />
                 </View>
-                
+
                 {/* Main black screen area */}
                 <View style={styles.blackScreen}>
                   {/* Subtle recording indicator */}
@@ -767,29 +769,29 @@ export const AudioRecorderScreen = () => {
                     <View style={styles.subtleRecordingIndicator}>
                       <View style={[styles.subtleDot, isPaused && { backgroundColor: '#666' }]} />
                       {!isPaused && (
-                        <Text style={styles.subtleText}>REC</Text>
+                        <Text style={styles.subtleText}>{t('audioRecorder.rec')}</Text>
                       )}
                     </View>
                   )}
-                  
+
                   {/* Restore instructions */}
                   <View style={styles.restoreInstructions}>
                     <Text style={styles.subtleText}>
-                      5 taps or long press to restore
+                      {t('audioRecorder.restoreInstructions')}
                     </Text>
                     {brightnessPermission && (
                       <Text style={styles.subtleText}>
-                        Enhanced stealth mode active
+                        {t('audioRecorder.enhancedStealthActive')}
                       </Text>
                     )}
                     {isPaused && (
                       <Text style={styles.subtleText}>
-                        Recording paused
+                        {t('audioRecorder.recordingPaused')}
                       </Text>
                     )}
                   </View>
                 </View>
-                
+
                 {/* Bottom home indicator */}
                 <View style={styles.homeIndicator} />
               </View>

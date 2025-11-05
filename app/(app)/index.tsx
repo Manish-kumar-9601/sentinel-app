@@ -1,5 +1,5 @@
-﻿import { useModal } from '../../context/ModalContext';
-import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+﻿import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -7,7 +7,6 @@ import * as SMS from 'expo-sms';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    ActivityIndicator,
     Alert,
     AppState,
     Image,
@@ -18,16 +17,16 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
 import BottomNavBar from '../../components/BottomNavBar';
 import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
-import { SOSCard } from '../../components/SOSCard'
-import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
-import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+import { SOSCard } from '../../components/SOSCard';
+import { useModal } from '../../context/ModalContext';
 
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
@@ -110,7 +109,7 @@ class SOSService {
                 const isSmsAvailable = await SMS.isAvailableAsync();
                 if (isSmsAvailable) {
                     const contactNumbers = contacts.map(c => c.phone);
-                    await SMS.s-endSMSAsync(contactNumbers, message);
+                    await SMS.s - endSMSAsync(contactNumbers, message);
                     results.sms = { success: true, count: contacts.length };
                 } else {
                     results.sms = { success: false, error: 'SMS not available' };
@@ -404,7 +403,7 @@ export default function HomeScreen() {
                 await Location.getCurrentPositionAsync({});
 
             } else {
-                Alert.alert("Permission Denied", "Location access is needed for check-in messages.");
+                Alert.alert(t('home.permissionDenied'), t('home.locationAccessNeeded'));
             }
         } catch (error) {
             console.error("Failed to get location", error);
@@ -570,8 +569,8 @@ export default function HomeScreen() {
 
         if (emergencyContacts.length === 0) {
             Alert.alert(
-                'No Emergency Contacts',
-                'Please add emergency contacts in the "My Circle" screen before using SOS.',
+                t('home.noContactsAlertTitle'),
+                t('home.noContactsAlertMessage'),
                 [{ text: 'OK' }]
             );
             return;
@@ -602,8 +601,8 @@ export default function HomeScreen() {
                 return;
             } else {
                 Alert.alert(
-                    'Location Required',
-                    'Getting your location for emergency alerts...',
+                    t('home.locationRequiredTitle'),
+                    t('home.locationRequiredMessage'),
                     [{ text: 'OK' }]
                 );
                 await fetchLocation(true);
@@ -620,7 +619,7 @@ export default function HomeScreen() {
             showSOSResults(results);
         } catch (error) {
             console.error('SOS sending failed:', error);
-            Alert.alert('Error', 'Failed to send emergency alerts. Please try again.');
+            Alert.alert('Error', t('home.sosFailedMessage'));
         } finally {
             setIsSending(false);
         }
@@ -668,7 +667,7 @@ export default function HomeScreen() {
             } else if (!locationServicesEnabled) {
                 openLocationSettings();
             } else {
-                Alert.alert("Getting Location", "Trying to get your current location...");
+                Alert.alert(t('home.gettingLocationAlert'), t('home.gettingLocationAlertMessage'));
                 await fetchLocation(true);
             }
         }
@@ -677,27 +676,27 @@ export default function HomeScreen() {
     // Determine location display text and status
     const getLocationDisplay = () => {
         if (isLoadingLocation) {
-            return { text: 'Getting location...', status: 'loading' };
+            return { text: t('home.gettingLocation'), status: 'loading' };
         }
 
         if (permissionStatus !== 'granted') {
-            return { text: 'Location permission needed', status: 'error' };
+            return { text: t('home.permissionNeeded'), status: 'error' };
         }
 
         if (locationServicesEnabled === false) {
-            return { text: 'Location services disabled', status: 'error' };
+            return { text: t('home.servicesDisabled'), status: 'error' };
         }
 
         if (locationError) {
             switch (locationError) {
                 case 'location_services_disabled':
-                    return { text: 'Turn on location services', status: 'error' };
+                    return { text: t('home.turnOnServices'), status: 'error' };
                 case 'permission_denied':
-                    return { text: 'Location permission denied', status: 'error' };
+                    return { text: t('home.permissionNeeded'), status: 'error' };
                 case 'location_fetch_failed':
-                    return { text: 'Unable to get location', status: 'error' };
+                    return { text: t('home.fetchFailed'), status: 'error' };
                 default:
-                    return { text: 'Location unavailable', status: 'error' };
+                    return { text: t('home.unavailable'), status: 'error' };
             }
         }
 
@@ -708,28 +707,28 @@ export default function HomeScreen() {
             };
         }
 
-        return { text: 'Location unavailable', status: 'error' };
+        return { text: t('home.unavailable'), status: 'error' };
     };
 
     // Determine SOS button state
     const getSosButtonState = () => {
         if (isSending) {
-            return { isReady: false, text: 'SENDING...' };
+            return { isReady: false, text: t('home.sending') };
         }
 
         if (isLoadingLocation) {
-            return { isReady: false, text: 'LOCATING...' };
+            return { isReady: false, text: t('home.locating') };
         }
 
         if (permissionStatus !== 'granted' || !locationServicesEnabled) {
-            return { isReady: false, text: 'SETUP NEEDED' };
+            return { isReady: false, text: t('home.setupNeeded') };
         }
 
         if (!location) {
-            return { isReady: false, text: 'NO LOCATION' };
+            return { isReady: false, text: t('home.noLocation') };
         }
 
-        return { isReady: true, text: 'PRESS TO SEND' };
+        return { isReady: true, text: t('home.pressToSend') };
     };
 
     const onProfile = () => {
@@ -746,23 +745,23 @@ export default function HomeScreen() {
         const options: Array<{ text: string; style?: 'cancel' | 'default' | 'destructive'; onPress?: () => void | Promise<void> }> = [
             { text: 'Cancel', style: 'cancel' },
             {
-                text: 'SMS Only',
+                text: t('home.sosOptionsSms'),
                 onPress: () => sendSOSWithOptions({ includeSMS: true, includeWhatsApp: false })
             }
         ];
 
         if (whatsappAvailable) {
             options.push({
-                text: 'WhatsApp Only',
+                text: t('home.sosOptionsWhatsapp'),
                 onPress: () => sendSOSWithOptions({ includeSMS: false, includeWhatsApp: true })
             });
             options.push({
-                text: 'Both SMS & WhatsApp',
+                text: t('home.sosOptionsBoth'),
                 onPress: () => sendSOSWithOptions({ includeSMS: true, includeWhatsApp: true })
             });
         }
 
-        Alert.alert('SOS Options', 'Choose how to send emergency alerts:', options);
+        Alert.alert(t('home.sosOptionsTitle'), t('home.sosOptionsMessage'), options);
     };
 
     const sendSOSWithOptions = async (options) => {
@@ -772,7 +771,7 @@ export default function HomeScreen() {
             showSOSResults(results);
         } catch (error) {
             console.error('SOS sending failed:', error);
-            Alert.alert('Error', 'Failed to send emergency alerts. Please try again.');
+            Alert.alert('Error', t('home.sosFailedMessage'));
         } finally {
             setIsSending(false);
         }
@@ -788,7 +787,7 @@ export default function HomeScreen() {
                         onRefresh={refreshAppState}
                         colors={['#2876b8', '#6bdfffff']}
                         tintColor="#2876b8"
-                        title="Pull to refresh location and contacts"
+                        title={t('home.pullToRefresh')}
                         titleColor="#666"
                     />
                 }

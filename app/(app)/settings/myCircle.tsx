@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PhoneContactsModal from '../../../components/PhoneContactsModal';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PhoneContactsModal from '../../../components/PhoneContactsModal';
 
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
@@ -19,6 +20,7 @@ const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 export default function MyCircleScreen() {
   const [contacts, setContacts] = useState([]);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
+  const { t } = useTranslation();
 
   // --- Load contacts from storage when the screen opens ---
   useEffect(() => {
@@ -55,12 +57,12 @@ export default function MyCircleScreen() {
   // --- Logic to Remove a Contact ---
   const handleRemoveContact = (contactToRemove) => {
     Alert.alert(
-      'Remove Contact',
-      `Are you sure you want to remove ${contactToRemove.name}?`,
+      t('myCircle.removeTitle'),
+      t('myCircle.removeMessage', { name: contactToRemove.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('myCircle.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('myCircle.remove'),
           onPress: () => {
             setContacts(currentContacts =>
               currentContacts.filter(contact => contact.id !== contactToRemove.id)
@@ -76,7 +78,7 @@ export default function MyCircleScreen() {
   const handleSelectFromPhone = (selectedContact) => {
     // Check if contact already exists in the circle
     if (contacts.some(c => c.id === selectedContact.id)) {
-      Alert.alert("Contact Exists", `${selectedContact.name} is already in your circle.`);
+      Alert.alert(t('myCircle.contactExists'), t('myCircle.contactExistsMessage', { name: selectedContact.name }));
     } else {
       setContacts(currentContacts => [...currentContacts, selectedContact]);
     }
@@ -103,11 +105,11 @@ export default function MyCircleScreen() {
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
           <Feather name="chevron-left" size={32} color="#007AFF" />
-          <Text style={styles.headerTitle}>My Contacts Circle</Text>
+          <Text style={styles.headerTitle}>{t('myCircle.title')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButton} onPress={() => setIsPickerVisible(true)}>
           <Ionicons name="add" size={24} color="white" />
-          <Text style={styles.addButtonText}>Add</Text>
+          <Text style={styles.addButtonText}>{t('myCircle.add')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -120,8 +122,8 @@ export default function MyCircleScreen() {
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Your circle is empty.</Text>
-            <Text style={styles.emptySubtext}>Add contacts from your phone to get started.</Text>
+            <Text style={styles.emptyText}>{t('myCircle.emptyTitle')}</Text>
+            <Text style={styles.emptySubtext}>{t('myCircle.emptySubtitle')}</Text>
           </View>
         }
       />
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: '#F7F8FA'
   },
   header: {
-    flexDirection: 'row',    
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 8,
@@ -180,7 +182,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     boxShadow: '0 2px 5px rgba(0, 0, 0, 1)',
-  
+
   },
   avatar: {
     width: 50,

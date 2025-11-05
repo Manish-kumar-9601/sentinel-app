@@ -1,16 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TouchableOpacity, Text, StyleSheet,ActivityIndicator, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
-    useSharedValue,
     useAnimatedStyle,
+    useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) =>
 {
+    const { t } = useTranslation();
     const shadowSpread = useSharedValue(2);
+
+    // Check if button text indicates loading state
+    const isLoadingState = [
+        t('home.preparing'),
+        t('home.locating'),
+        t('home.sending')
+    ].includes(buttonText);
 
     const animatedStyle = useAnimatedStyle(() =>
     {
@@ -28,7 +37,7 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
 
     setInterval(() =>
     {
-        shadowSpread.value = withTiming(withTimerValue, { duration: 500});
+        shadowSpread.value = withTiming(withTimerValue, { duration: 500 });
 
         // Step forward or backward
         withTimerValue += direction;
@@ -51,11 +60,11 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
                     style={[styles.sosButton, animatedStyle]}
                 >
                     <View style={styles.sosButtonInner}>
-                        {['PREPARING...', 'LOCATING...', 'SENDING...'].includes(buttonText) ? (
+                        {isLoadingState ? (
                             <ActivityIndicator size="large" color="white" />
                         ) : (
                             <>
-                                <Text style={styles.sosText}>SOS</Text>
+                                <Text style={styles.sosText}>{t('home.sos')}</Text>
                                 <Text style={styles.sosSubtext}>{buttonText}</Text>
                             </>
                         )}
@@ -80,7 +89,7 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
                     </Text>
                 </View>
             </TouchableOpacity>
-            <Text style={styles.sosHelpText}>Tap to send • Hold for options</Text>
+            <Text style={styles.sosHelpText}>{t('home.sosHelpText')}</Text>
         </View>
     )
 };

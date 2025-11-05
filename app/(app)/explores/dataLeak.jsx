@@ -1,29 +1,30 @@
 ﻿import { useEffect, useState } from 'react';
 import
 {
-
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   Keyboard,
   ScrollView,
-  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import { Ionicons, Feather } from '@expo/vector-icons';
-import sentinel_detect_icon from '../../..//assets/images/heroIcon.png'
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import sentinel_detect_icon from '../../..//assets/images/heroIcon.png';
 const API_KEY_STORAGE_KEY = '@api_key';
 const DataLeakScreen = () =>
 {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -51,7 +52,7 @@ const DataLeakScreen = () =>
   {
     if (email.trim() === '' || !email.includes('@'))
     {
-      Alert.alert('Invalid Input', 'Please enter a valid email address.');
+      Alert.alert(t('dataLeak.invalidInput'), t('dataLeak.enterValidEmail'));
       return;
     }
     Keyboard.dismiss();
@@ -83,7 +84,7 @@ const DataLeakScreen = () =>
     {
       console.error('Data leak check failed:', error);
 
-      Alert.alert('Scan Failed', error.message);
+      Alert.alert(t('dataLeak.scanFailed'), error.message);
     } finally
     {
       setIsLoading(false);
@@ -98,11 +99,11 @@ const DataLeakScreen = () =>
           <Feather name="alert-triangle" size={24} color="#D93025" />
         </View>
         <View style={styles.resultTextContainer}>
-          <Text style={styles.resultTitle}>Source:{item.source}</Text>
-          <Text style={styles.resultDescription}>Email:{item.email}</Text>
-          {item.details &&
-            <Text style={styles.resultDescription}>Leaked Password: {item.details}</Text>
-          }
+          <Text style={styles.resultTitle}>{t('dataLeak.source')}:{item.source}</Text>
+          <Text style={styles.resultDescription}>{t('dataLeak.email')}:{item.email}</Text>
+          {item.details && (
+            <Text style={styles.resultDescription}>{t('dataLeak.leakedPassword')}: {item.details}</Text>
+          )}
         </View>
       </View>
     );
@@ -113,7 +114,7 @@ const DataLeakScreen = () =>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
           <Feather name="chevron-left" size={32} color="#007AFF" />
-          <Text style={styles.headerTitle}>Data Check</Text>
+          <Text style={styles.headerTitle}>{t('dataLeak.dataCheck')}</Text>
         </TouchableOpacity>
 
 
@@ -127,9 +128,9 @@ const DataLeakScreen = () =>
             contentFit="contain"
             transition={1}
           />
-          <Text style={styles.title}>Data Leak Check</Text>
+          <Text style={styles.title}>{t('dataLeak.title')}</Text>
           <Text style={styles.subtitle}>
-            See if your email has been compromised in a public data breach.
+            {t('dataLeak.subtitle')}
           </Text>
         </View>
 
@@ -138,7 +139,7 @@ const DataLeakScreen = () =>
             <Feather name="mail" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="your.email@example.com"
+              placeholder={t('dataLeak.emailPlaceholder')}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -150,7 +151,7 @@ const DataLeakScreen = () =>
             {isLoading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.checkButtonText}>Scan Now</Text>
+              <Text style={styles.checkButtonText}>{t('dataLeak.scanNow')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -159,7 +160,7 @@ const DataLeakScreen = () =>
           <View style={styles.resultsContainer}>
             {results.found && Array.isArray(results.results) && results.results.length > 0 ? (
               <>
-                <Text style={styles.resultsHeader}>Breaches Found ({results.results.length})</Text>
+                <Text style={styles.resultsHeader}>{t('dataLeak.breachesFound')} ({results.results.length})</Text>
                 <View style={styles.card}>
                   <FlatList
                     data={results.results}
@@ -172,8 +173,8 @@ const DataLeakScreen = () =>
             ) : (
               <View style={styles.safeContainer}>
                 <Feather name="check-circle" size={40} color="#006422" />
-                <Text style={styles.safeText}>No Breaches Found!</Text>
-                <Text style={styles.safeSubtext}>Your email is not in any known public breaches.</Text>
+                <Text style={styles.safeText}>{t('dataLeak.noBreaches')}</Text>
+                <Text style={styles.safeSubtext}>{t('dataLeak.emailSafe')}</Text>
               </View>
             )}
           </View>

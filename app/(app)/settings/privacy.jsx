@@ -1,51 +1,63 @@
 ﻿import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 const privacyScreen = () =>
 {
+  const { t } = useTranslation();
+  const { colors, styles: globalStyles } = useThemedStyles();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.backgroundSecondary,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 8,
+      paddingBottom: 6,
+      paddingHorizontal: 20,
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      marginBottom: 10,
+    },
+    headerPressable: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    comingSoon: {
+      padding: 20,
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+  });
+
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color="#007AFF" />
-          <Text style={styles.headerTitle}>Privacy & Permission</Text>
+          <Feather name="chevron-left" size={32} color={colors.primary} />
+          <Text style={styles.headerTitle}>{t('privacy.title')}</Text>
         </TouchableOpacity>
       </View>
-      <Text style={{ padding: 20, fontSize: 16, color: '#666' }}>
-        Privacy & Permission Settings will be available soon.
+      <Text style={styles.comingSoon}>
+        {t('privacy.comingSoon')}
       </Text>
     </SafeAreaView>
   )
 }
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 6,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    marginBottom: 10,
-  },
-  headerPressable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-});
 
 export default privacyScreen;

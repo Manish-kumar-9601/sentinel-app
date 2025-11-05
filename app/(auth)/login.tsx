@@ -1,25 +1,27 @@
-﻿import React, { useState } from 'react';
+﻿import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-    View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Keyboard,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    Alert,
-    ActivityIndicator,
-    Image,
-    Keyboard,
+    View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
-import SentinelIcon from '../../assets/images/sentinel-icon.png';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import SentinelIcon from '../../assets/images/sentinel-icon.png';
+import { useAuth } from '../../context/AuthContext';
 
 const GUEST_KEY = 'guest_user';
 
 const LoginScreen = () => {
+    const { t } = useTranslation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -28,22 +30,22 @@ const LoginScreen = () => {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            return Alert.alert('Error', 'Please enter both email and password.');
+            return Alert.alert(t('auth.error'), t('auth.enterBothFields'));
         }
-        
+
         Keyboard.dismiss();
         setIsLoading(true);
-        
+
         try {
             const result = await login(email, password);
-            
+
             if (result.success) {
                 router.replace('/(app)');
             } else {
-                Alert.alert('Login Failed', result.error || 'Invalid credentials.');
+                Alert.alert(t('auth.loginFailed'), result.error || t('auth.invalidCredentials'));
             }
         } catch (error) {
-            Alert.alert('Error', 'An unexpected error occurred.');
+            Alert.alert(t('auth.error'), t('auth.unexpectedError'));
         } finally {
             setIsLoading(false);
         }
@@ -58,14 +60,14 @@ const LoginScreen = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
                 <Image source={SentinelIcon} style={styles.logo} />
-                <Text style={styles.title}>Welcome Back</Text>
-                <Text style={styles.subtitle}>Sign in to your account</Text>
+                <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
+                <Text style={styles.subtitle}>{t('auth.signInAccount')}</Text>
 
                 <View style={styles.inputContainer}>
                     <Feather name="mail" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="Email"
+                        placeholder={t('auth.email')}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -78,7 +80,7 @@ const LoginScreen = () => {
                     <Feather name="lock" size={20} color="#999" style={styles.inputIcon} />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password"
+                        placeholder={t('auth.password')}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -93,7 +95,7 @@ const LoginScreen = () => {
                     {isLoading ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text style={styles.buttonText}>Log In</Text>
+                        <Text style={styles.buttonText}>{t('auth.logIn')}</Text>
                     )}
                 </TouchableOpacity>
 
@@ -101,13 +103,13 @@ const LoginScreen = () => {
                     style={[styles.button, styles.guestButton]}
                     onPress={handleContinueAsGuest}
                     disabled={isLoading}>
-                    <Text style={[styles.buttonText, styles.guestButtonText]}>Continue as Guest</Text>
+                    <Text style={[styles.buttonText, styles.guestButtonText]}>{t('auth.continueAsGuest')}</Text>
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Don't have an account?</Text>
+                    <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
                     <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                        <Text style={styles.linkText}> Sign Up</Text>
+                        <Text style={styles.linkText}> {t('auth.signUp')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

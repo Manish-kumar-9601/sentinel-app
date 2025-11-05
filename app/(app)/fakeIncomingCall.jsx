@@ -1,18 +1,19 @@
-﻿import   {useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Vibration, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRouter } from 'expo-router';
-import { useAudioPlayer } from 'expo-audio';
+﻿import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
+import { useNavigation, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Image, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-  useSharedValue,
+  Easing,
   useAnimatedStyle,
+  useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
-  Easing,
 } from 'react-native-reanimated';
 
 // --- Configuration ---
@@ -22,13 +23,15 @@ const FAKE_CALL_RINGTONE_KEY = 'fake_call_ringtone_uri';
 const DEFAULT_CALLER_NAME = 'Nevil Modi BMP Clg';
 const DEFAULT_CALLER_NUMBER = '+91 81606 17183';
 
-const FakeIncomingCallScreen = () => {
-    const navigation = useNavigation();
+const FakeIncomingCallScreen = () =>
+{
+  const { t } = useTranslation();
+  const navigation = useNavigation();
   const router = useRouter();
   const [callerName, setCallerName] = useState(DEFAULT_CALLER_NAME);
   const [callerNumber, setCallerNumber] = useState(DEFAULT_CALLER_NUMBER);
   const [ringtoneSource, setRingtoneSource] = useState(null);
-  
+
   // Create audio player instance
   const player = useAudioPlayer();
 
@@ -36,44 +39,54 @@ const FakeIncomingCallScreen = () => {
   const translateY = useSharedValue(0);
 
   // --- Load settings and prepare ringtone ---
-  useEffect(() => {
+  useEffect(() =>
+  {
     let isMounted = true;
-    
-    const loadSettings = async () => {
-      try {
+
+    const loadSettings = async () =>
+    {
+      try
+      {
         // Load caller settings
         const storedName = await AsyncStorage.getItem(FAKE_CALLER_NAME_KEY);
         if (isMounted && storedName) setCallerName(storedName);
 
         const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
         if (isMounted && storedNumber) setCallerNumber(storedNumber);
-        
+
         // Load ringtone
         let ringtoneUri = require('../../assets/ringtone.mp3');
         const customRingtoneUri = await AsyncStorage.getItem(FAKE_CALL_RINGTONE_KEY);
-        
-        if (customRingtoneUri) {
+
+        if (customRingtoneUri)
+        {
           const fileInfo = await FileSystem.getInfoAsync(customRingtoneUri);
-          if (fileInfo?.exists) {
+          if (fileInfo?.exists)
+          {
             ringtoneUri = customRingtoneUri;
           }
         }
 
-        if (isMounted) {
+        if (isMounted)
+        {
           setRingtoneSource(ringtoneUri);
         }
-      } catch (error) {
+      } catch (error)
+      {
         console.error("Failed to load settings", error);
       }
     };
     loadSettings();
 
-    return () => {
+    return () =>
+    {
       isMounted = false;
     };
   }, []);
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+  useEffect(() =>
+  {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) =>
+    {
       // router.push('/');
       // This runs for ANY back action (button, gesture, etc.)
       console.log('beforeRemove event triggered. Cleaning up...');
@@ -84,28 +97,34 @@ const FakeIncomingCallScreen = () => {
     return unsubscribe;
   }, [navigation]);
   // --- Start ringing when ringtone is loaded ---
-  useEffect(() => {
+  useEffect(() =>
+  {
     if (!ringtoneSource) return;
 
-    const startRinging = async () => {
-      try {
+    const startRinging = async () =>
+    {
+      try
+      {
         // Start vibration
         Vibration.vibrate([500, 1000, 500], true);
 
         // Load and play ringtone
-        if (typeof ringtoneSource === 'string') {
+        if (typeof ringtoneSource === 'string')
+        {
           // Custom ringtone from file system
           player.replace(ringtoneSource);
-        } else {
+        } else
+        {
           // Default ringtone from assets
           player.replace(ringtoneSource);
         }
-        
+
         // Set to loop and play
         player.loop = true;
         player.play();
 
-      } catch (error) {
+      } catch (error)
+      {
         console.error("Failed to start ringing", error);
       }
     };
@@ -123,7 +142,8 @@ const FakeIncomingCallScreen = () => {
     );
 
     // Cleanup function
-    return () => {
+    return () =>
+    {
       //     if (player.playing){
       //   player.pause();
       //   Vibration.cancel();
@@ -134,20 +154,22 @@ const FakeIncomingCallScreen = () => {
   // --- Cleanup on unmount ---
   // useEffect(() => {
   //   return () => {
-     
+
   //       player.pause();
   //       Vibration.cancel();
-      
+
   //   };
   // }, []);
 
-  const onDecline = () => {
+  const onDecline = () =>
+  {
     player.pause();
     Vibration.cancel();
     router.push('/');
   };
 
-  const onAccept = () => {
+  const onAccept = () =>
+  {
     player.pause();
     Vibration.cancel();
     router.push('/fakeCall');
@@ -165,14 +187,14 @@ const FakeIncomingCallScreen = () => {
             <View>
               <Text style={styles.callerName}>{callerName}</Text>
               <Text style={styles.callerNumber}>{callerNumber}</Text>
-              <Text style={styles.callerLocation}>India</Text>
+              <Text style={styles.callerLocation}>{t('fakeCall.location')}</Text>
             </View>
-            <Image 
+            <Image
               source={{ uri: 'https://placehold.co/60x60/FF4500/FFFFFF?text=S' }} // Placeholder image
-              style={styles.avatar} 
+              style={styles.avatar}
             />
           </View>
-          <Text style={styles.callStatus}>Incoming call</Text>
+          <Text style={styles.callStatus}>{t('fakeCall.incomingCall')}</Text>
         </View>
 
         <View style={styles.controlsContainer}>
@@ -189,9 +211,9 @@ const FakeIncomingCallScreen = () => {
               </Animated.View>
             </TouchableOpacity>
           </View>
-          
+
           <TouchableOpacity style={styles.smsButton}>
-            <Text style={styles.smsButtonText}>SMS reply</Text>
+            <Text style={styles.smsButtonText}>{t('fakeCall.smsReply')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -207,7 +229,7 @@ const styles = StyleSheet.create({
     paddingTop: 100,
     paddingBottom: 40,
   },
-  callerInfoContainer: { 
+  callerInfoContainer: {
     paddingHorizontal: 30,
   },
   callerHeader: {
@@ -220,29 +242,29 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 10,
   },
-  callerName: { 
-    fontSize: 38, 
-    color: 'white', 
+  callerName: {
+    fontSize: 38,
+    color: 'white',
     fontWeight: '400',
     marginBottom: 8,
   },
-  callerNumber: { 
-    fontSize: 22, 
-    color: '#ffffffff', 
+  callerNumber: {
+    fontSize: 22,
+    color: '#ffffffff',
     marginBottom: 4,
   },
   callerLocation: {
     fontSize: 18,
     color: '#A9A9A9',
   },
-  callStatus: { 
-    fontSize: 18, 
-    color: '#ffffffff', 
+  callStatus: {
+    fontSize: 18,
+    color: '#ffffffff',
     marginTop: 35,
     textAlign: 'left',
   },
-  controlsContainer: { 
-    alignItems: 'center' 
+  controlsContainer: {
+    alignItems: 'center'
   },
   smsButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -251,14 +273,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginBottom: 0,
   },
-  smsButtonText: { 
-    color: 'white', 
-    fontSize: 16 
+  smsButtonText: {
+    color: 'white',
+    fontSize: 16
   },
-  callActions: { 
-    flexDirection: 'row', 
-    width: '80%', 
-    justifyContent: 'space-between' 
+  callActions: {
+    flexDirection: 'row',
+    width: '80%',
+    justifyContent: 'space-between'
   },
   callButton: {
     width: 70,
@@ -268,10 +290,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   declineButton: {
-      backgroundColor: '#FF3B30', // Red for decline
+    backgroundColor: '#FF3B30', // Red for decline
   },
   acceptButton: {
-      backgroundColor: '#34C759', // Green for accept
+    backgroundColor: '#34C759', // Green for accept
   }
 });
 

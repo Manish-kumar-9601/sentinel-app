@@ -1,56 +1,70 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+﻿import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SMS from 'expo-sms';
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
+import * as SMS from 'expo-sms';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
-const CheckContactScreen = () => {
+const CheckContactScreen = () =>
+{
     const router = useRouter();
+    const { t } = useTranslation();
     const [contacts, setContacts] = useState([]);
     const [location, setLocation] = useState(null);
 
     // Load contacts and current location when the screen opens
-    useEffect(() => {
-        const loadData = async () => {
+    useEffect(() =>
+    {
+        const loadData = async () =>
+        {
             // Load contacts
-            try {
+            try
+            {
                 const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-                if (storedContacts) {
+                if (storedContacts)
+                {
                     setContacts(JSON.parse(storedContacts));
                 }
-            } catch (error) {
+            } catch (error)
+            {
                 console.error("Failed to load contacts for check-in", error);
             }
 
             // Get current location
             const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
+            if (status === 'granted')
+            {
                 const currentLocation = await Location.getCurrentPositionAsync({});
                 setLocation(currentLocation);
-            } else {
-                Alert.alert("Permission Denied", "Location access is needed to send a check-in.");
+            } else
+            {
+                Alert.alert(t('checkContact.permissionDenied'), t('checkContact.locationPermissionMessage'));
             }
         };
         loadData();
     }, []);
 
-    const handleSelectContact = async (contact) => {
-        if (!location) {
-            Alert.alert('Location Not Found', 'Cannot send check-in without your current location.');
+    const handleSelectContact = async (contact) =>
+    {
+        if (!location)
+        {
+            Alert.alert(t('checkContact.locationNotFound'), t('checkContact.noLocationMessage'));
             return;
         }
 
         const isSmsAvailable = await SMS.isAvailableAsync();
-        if (isSmsAvailable) {
-            const message = `Check-in: I'm here and safe. My location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
+        if (isSmsAvailable)
+        {
+            const message = `${t('checkContact.checkInMessage')} ${t('checkContact.myLocation')}: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
             await SMS.sendSMSAsync([contact.phone], message);
             router.back(); // Go back after sending
-        } else {
-            Alert.alert('Error', 'SMS is not available on this device.');
+        } else
+        {
+            Alert.alert(t('checkContact.error'), t('checkContact.smsUnavailable'));
         }
     };
 
@@ -58,7 +72,7 @@ const CheckContactScreen = () => {
         <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalContent}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Select a Contact</Text>
+                    <Text style={styles.title}>{t('checkContact.selectContact')}</Text>
                     <TouchableOpacity onPress={() => router.back()}>
                         <Ionicons name="close-circle" size={30} color="#ccc" />
                     </TouchableOpacity>
@@ -79,8 +93,8 @@ const CheckContactScreen = () => {
                     )}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>No contacts found.</Text>
-                            <Text style={styles.emptySubtext}>Please add contacts in your "My Circle" screen.</Text>
+                            <Text style={styles.emptyText}>{t('checkContact.noContacts')}</Text>
+                            <Text style={styles.emptySubtext}>{t('checkContact.addContactsMessage')}</Text>
                         </View>
                     }
                 />

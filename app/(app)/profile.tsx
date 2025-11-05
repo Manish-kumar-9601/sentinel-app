@@ -1,91 +1,100 @@
-﻿import React from 'react';
+﻿import { Feather, FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link, useRouter } from 'expo-router';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  Alert,
   Image,
 
   ScrollView,
-  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons, Feather, MaterialCommunityIcons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import userProfileImg from '../../assets/images/user-profile-img.png';
 import { useAuth } from '../../context/AuthContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ... (Menu Structure, Quick Actions, etc. remain the same)
 // --- Enhanced Menu Structure ---
-const menuSections = (isLoggedIn) => [
+const menuSections = (isLoggedIn, t) => [
   ...(isLoggedIn ? [{
-    title: 'User & Medical Information',
+    title: t('profile.sections.userMedical.title'),
     items: [
       {
         icon: 'user',
         iconSet: 'Feather',
-        label: 'User Information',
+        label: t('profile.sections.userMedical.userInfo'),
         href: '/settings/userInfo',
-        subtitle: 'Update your personal and medical info',
+        subtitle: t('profile.sections.userMedical.userInfoSubtitle'),
         color: '#FF6B6B'
       },
     ]
   }] : []),
   {
-    title: 'App Settings',
+    title: t('profile.sections.appSettings.title'),
     items: [
       {
         icon: 'settings',
         iconSet: 'Feather',
-        label: 'General Settings',
+        label: t('profile.sections.appSettings.general'),
         href: '/settings',
-        subtitle: 'App preferences & notifications',
+        subtitle: t('profile.sections.appSettings.generalSubtitle'),
         color: '#96CEB4'
+      },
+      {
+        icon: 'moon',
+        iconSet: 'Ionicons',
+        label: t('profile.sections.appSettings.theme'),
+        href: '/settings/theme',
+        subtitle: t('profile.sections.appSettings.themeSubtitle'),
+        color: '#6366F1'
       },
       {
         icon: 'privacy-tip',
         iconSet: 'MaterialIcons',
-        label: 'Privacy & Security',
+        label: t('profile.sections.appSettings.privacy'),
         href: '/settings/privacy',
-        subtitle: 'Data protection & permissions',
+        subtitle: t('profile.sections.appSettings.privacySubtitle'),
         color: '#f9d769ff'
       },
       {
         icon: 'bell',
         iconSet: 'Feather',
-        label: 'Notifications',
+        label: t('profile.sections.appSettings.notifications'),
         href: '/notifications',
-        subtitle: 'Alert preferences',
+        subtitle: t('profile.sections.appSettings.notificationsSubtitle'),
         color: '#DDA0DD'
       },
     ]
   },
   {
-    title: 'Support & Info',
+    title: t('profile.sections.support.title'),
     items: [
       {
         icon: 'help-circle',
         iconSet: 'Feather',
-        label: 'Help & Support',
+        label: t('profile.sections.support.help'),
         href: '/support',
-        subtitle: 'FAQ, guides & contact support',
+        subtitle: t('profile.sections.support.helpSubtitle'),
         color: '#74B9FF'
       },
       {
         icon: 'info',
         iconSet: 'Feather',
-        label: 'About Sentinel',
+        label: t('profile.sections.support.about'),
         href: '/about',
-        subtitle: 'Version info & credits',
+        subtitle: t('profile.sections.support.aboutSubtitle'),
         color: '#A29BFE'
       },
       {
         icon: 'star',
         iconSet: 'Feather',
-        label: 'Rate App',
+        label: t('profile.sections.support.rate'),
         href: '/rate',
-        subtitle: 'Share your experience',
+        subtitle: t('profile.sections.support.rateSubtitle'),
         color: '#fdc458ff'
       },
     ]
@@ -126,90 +135,91 @@ const ProfileRow = ({ icon, iconSet, label, href, subtitle, color, isLast = fals
 const ProfileScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
   console.log('at info scree', user)
   const handleSignOut = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: logout }
+    Alert.alert(t('profile.logoutTitle'), t('profile.logoutMessage'), [
+      { text: t('profile.cancel'), style: "cancel" },
+      { text: t('profile.logout'), style: "destructive", onPress: logout }
     ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
 
-        <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={28} color="#007AFF" />
-          <Text style={styles.headerTitle}>Profile</Text>
-        </TouchableOpacity>
-
-
-      </View>
-      {user ? (
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          style={styles.userInfoSection}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.avatarContainer}>
-            <Image source={userProfileImg} style={styles.avatar} />
-            <View style={styles.onlineIndicator} />
-          </View>
-          <Text style={styles.userName}>{user?.name}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-        </LinearGradient>
-      ) : (
-        <View style={styles.guestContainer}>
-          <Ionicons name="person-circle-outline" size={80} color="#007AFF" />
-          <Text style={styles.guestTitle}>You are a Guest</Text>
-          <Text style={styles.guestSubtitle}>
-            Log in to save your medical info and sync your emergency contacts.
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push('/login')}
-          >
-            <Text style={styles.loginButtonText}>Log In or Sign Up</Text>
+          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+            <Feather name="chevron-left" size={28} color="#007AFF" />
+            <Text style={styles.headerTitle}>{t('profile.title')}</Text>
           </TouchableOpacity>
-        </View>
-      )}
 
-      {menuSections(!!user).map((section, sectionIndex) => (
-        <View key={sectionIndex} style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <View style={styles.menuContainer}>
-            {section.items.map((item, index) => (
-              <ProfileRow
-                key={index}
-                icon={item.icon}
-                iconSet={item.iconSet}
-                label={item.label}
-                href={item.href}
-                subtitle={item.subtitle}
-                color={item.color}
-                isLast={index === section.items.length - 1}
-              />
-            ))}
-          </View>
-        </View>
-      ))}
 
-      {user && (
-        <View style={styles.signOutSection}>
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
+        </View>
+        {user ? (
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            style={styles.userInfoSection}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            <View style={styles.avatarContainer}>
+              <Image source={userProfileImg} style={styles.avatar} />
+              <View style={styles.onlineIndicator} />
+            </View>
+            <Text style={styles.userName}>{user?.name}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+          </LinearGradient>
+        ) : (
+          <View style={styles.guestContainer}>
+            <Ionicons name="person-circle-outline" size={80} color="#007AFF" />
+            <Text style={styles.guestTitle}>{t('profile.guestTitle')}</Text>
+            <Text style={styles.guestSubtitle}>
+              {t('profile.guestSubtitle')}
+            </Text>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => router.push('/login')}
+            >
+              <Text style={styles.loginButtonText}>{t('profile.loginButton')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-    </ScrollView>
+        {menuSections(!!user, t).map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.menuSection}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.menuContainer}>
+              {section.items.map((item, index) => (
+                <ProfileRow
+                  key={index}
+                  icon={item.icon}
+                  iconSet={item.iconSet}
+                  label={item.label}
+                  href={item.href}
+                  subtitle={item.subtitle}
+                  color={item.color}
+                  isLast={index === section.items.length - 1}
+                />
+              ))}
+            </View>
+          </View>
+        ))}
+
+        {user && (
+          <View style={styles.signOutSection}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+            >
+              <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+              <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -320,8 +330,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginHorizontal: 16,
     boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
-  
- 
+
+
   },
   row: {
     flexDirection: 'row',
@@ -365,7 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     paddingVertical: 15,
     boxShadow: '0 5px 8px rgba(0,0,0,0.1)',
-    
+
   },
   signOutText: {
     fontSize: 16,

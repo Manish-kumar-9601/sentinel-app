@@ -1,19 +1,22 @@
-﻿import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, } from 'react-native';
-import { Ionicons, Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { useRouter, usePathname } from 'expo-router';
+﻿import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { usePathname, useRouter } from 'expo-router';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
 import { useModal } from '../context/ModalContext';
+
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
-  { name: 'Home', path: '/', icon: 'home', iconComponent: Ionicons },
-  { name: 'Check Contact', path: '/checkContact', icon: 'people-circle-outline', iconComponent: Ionicons },
-  { name: 'Explore', path: '/explores', icon: 'explore', iconComponent: MaterialIcons },
-  { name: 'Fake Call', path: '/fakeIncomingCall', icon: 'phone-call', iconComponent: Feather },
+  { name: 'home', path: '/', icon: 'home', iconComponent: Ionicons },
+  { name: 'checkContact', path: '/checkContact', icon: 'people-circle-outline', iconComponent: Ionicons },
+  { name: 'explore', path: '/explores', icon: 'explore', iconComponent: MaterialIcons },
+  { name: 'fakeCall', path: '/fakeIncomingCall', icon: 'phone-call', iconComponent: Feather },
 
 ];
 
 const BottomNavBar = () =>
 {
+  const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const { openContactModal } = useModal(); // Get the function from context
@@ -54,7 +57,7 @@ const BottomNavBar = () =>
               color={isActive ? '#3186c3' : '#A9A9A9'}
             />
             <Text style={[styles.navText, { color: isActive ? '#3186c3' : '#A9A9A9' }]}>
-              {item.name}
+              {t(`home.${item.name}`)}
             </Text>
           </TouchableOpacity>
         );
