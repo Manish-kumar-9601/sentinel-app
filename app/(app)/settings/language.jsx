@@ -14,6 +14,8 @@ import
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
+
 const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'हिंदी (Hindi)' },
@@ -27,6 +29,7 @@ const LANGUAGE_KEY = 'user_language';
 const LanguageScreen = () =>
 {
   const { i18n, t } = useTranslation();
+  const { colors } = useThemedStyles();
   // Initialize state with the currently active language from i18next
   const [currentLang, setCurrentLang] = useState(i18n.language);
 
@@ -61,22 +64,22 @@ const LanguageScreen = () =>
     const isSelected = currentLang === item.code;
     return (
       <TouchableOpacity
-        style={styles.row}
+        style={[styles.row, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
         onPress={() => handleSelectLanguage(item.code)}
       >
-        <Text style={[styles.label, isSelected && styles.selectedLabel]}>{item.name}</Text>
-        {isSelected && <Ionicons name="checkmark-circle" size={24} color="#FF4500" />}
+        <Text style={[styles.label, { color: colors.text }, isSelected && { fontWeight: 'bold', color: colors.primary }]}>{item.name}</Text>
+        {isSelected && <Ionicons name="checkmark-circle" size={24} color={colors.primary} />}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color="#007AFF" />
-          <Text style={styles.headerTitle}>{t('language.selectLanguage')}</Text>
+          <Feather name="chevron-left" size={32} color={colors.info} />
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('language.selectLanguage')}</Text>
         </TouchableOpacity>
 
 
@@ -93,15 +96,12 @@ const LanguageScreen = () =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
   },
   header: {
     paddingTop: 8,
     paddingBottom: 6,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     marginBottom: 10,
   },
   headerPressable: {
@@ -119,17 +119,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EFEFF4',
   },
   label: {
     fontSize: 16,
-    color: '#000',
-  },
-  selectedLabel: {
-    fontWeight: 'bold',
-    color: '#FF4500',
   },
 });
 

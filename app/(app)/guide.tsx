@@ -18,18 +18,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import i18n from '../../lib/i18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
+import i18n from '../../lib/i18n';
 SafeAreaView
 // --- Reusable Chat Bubble Component ---
-const ChatBubble = ({ message, isUser }) => (
-  <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-    <Text style={isUser ? styles.userBubbleText : styles.aiBubbleText}>{message}</Text>
-  </View>
-);
+const ChatBubble = ({ message, isUser }) => {
+  const { colors } = useThemedStyles();
+  return (
+    <View style={[styles.bubble, isUser ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.aiBubble, { backgroundColor: colors.backgroundSecondary }]]}>
+      <Text style={[isUser ? [styles.userBubbleText, { color: colors.textInverse }] : [styles.aiBubbleText, { color: colors.text }]]}>{message}</Text>
+    </View>
+  );
+};
 
 // --- AI Help Modal Component ---
 const AiHelpModal = ({ visible, onClose, guideContent }) => {
+  const { colors } = useThemedStyles();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -123,11 +128,11 @@ Never provide strong prescription drugs or complex treatments. If the user descr
     <>
 
       <Modal animationType="slide" visible={visible} onRequestClose={onClose}>
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>AI Emergency Assistant</Text>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>AI Emergency Assistant</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close-circle" size={30} color="#ccc" />
+              <Ionicons name="close-circle" size={30} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
           <FlatList
@@ -138,21 +143,22 @@ Never provide strong prescription drugs or complex treatments. If the user descr
             contentContainerStyle={styles.chatContainer}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
-          {isLoading && <ActivityIndicator style={{ marginVertical: 10 }} size="large" />}
+          {isLoading && <ActivityIndicator style={{ marginVertical: 10 }} size="large" color={colors.primary} />}
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
           >
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, backgroundColor: colors.backgroundSecondary }]}
                 placeholder="Ask for guidance..."
+                placeholderTextColor={colors.textTertiary}
                 value={input}
                 onChangeText={setInput}
                 onSubmitEditing={handleSend} // Allows sending with the return key
               />
-              <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={isLoading}>
-                <Ionicons name="send" size={24} color="white" />
+              <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.info }]} onPress={handleSend} disabled={isLoading}>
+                <Ionicons name="send" size={24} color={colors.textInverse} />
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -164,6 +170,7 @@ Never provide strong prescription drugs or complex treatments. If the user descr
 
 
 const EmergencyGuideScreen = () => {
+  const { colors } = useThemedStyles();
   const { categoryId = 'medical' }: { categoryId: string } = useLocalSearchParams(); // Default to 'medical' for demonstration
   const [isAiModalVisible, setAiModalVisible] = useState(false);
 
@@ -236,10 +243,10 @@ const EmergencyGuideScreen = () => {
 
   if (!content) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Error', headerShown: true }} />
         <View style={styles.content}>
-          <Text>Instructions not found for this category.</Text>
+          <Text style={{ color: colors.text }}>Instructions not found for this category.</Text>
         </View>
       </SafeAreaView>
     );
@@ -247,12 +254,12 @@ const EmergencyGuideScreen = () => {
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={24} color="#007AFF" />
-            <Text style={{ fontSize: 24, fontWeight: 'bold' }} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
+            <Feather name="chevron-left" size={24} color={colors.info} />
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.text }} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
 
           </TouchableOpacity>
 
@@ -263,36 +270,36 @@ const EmergencyGuideScreen = () => {
             marginBottom: 0
           }}  >
 
-            <TouchableOpacity style={styles.aiHelpButton} onPress={() => setAiModalVisible(true)}>
-              <Ionicons name="sparkles" size={16} color="white" />
-              <Text style={styles.aiHelpButtonText}>AI Help</Text>
+            <TouchableOpacity style={[styles.aiHelpButton, { backgroundColor: colors.primary }]} onPress={() => setAiModalVisible(true)}>
+              <Ionicons name="sparkles" size={16} color={colors.textInverse} />
+              <Text style={[styles.aiHelpButtonText, { color: colors.textInverse }]}>AI Help</Text>
             </TouchableOpacity>
           </View>
         </View>
         <ScrollView>
           <View style={styles.content}>
             <View style={styles.titleRow}>
-              <Text style={styles.title}>{content.title}</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{content.title}</Text>
 
             </View>
-            {content.summary && <Text style={styles.summary}>{content.summary}</Text>}
+            {content.summary && <Text style={[styles.summary, { color: colors.textSecondary }]}>{content.summary}</Text>}
 
             {content.instructions.map((item) => (
               <View key={item.step} style={styles.stepContainer}>
-                <Text style={styles.stepTitle}>Step {item.step}: {item.title}</Text>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>Step {item.step}: {item.title}</Text>
                 {item.details.map((detail, index) => (
-                  <Text key={index} style={styles.stepDetail}>• {detail}</Text>
+                  <Text key={index} style={[styles.stepDetail, { color: colors.text }]}>• {detail}</Text>
                 ))}
               </View>
             ))}
           </View>
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={() => handleCall(emergencyNumber)}>
-            <Ionicons name="call" size={24} color="white" />
-            <Text style={styles.primaryButtonText}>{callButtonLabel} ({emergencyNumber})</Text>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.info }]} onPress={() => handleCall(emergencyNumber)}>
+            <Ionicons name="call" size={24} color={colors.textInverse} />
+            <Text style={[styles.primaryButtonText, { color: colors.textInverse }]}>{callButtonLabel} ({emergencyNumber})</Text>
           </TouchableOpacity>
         </View>
 
@@ -310,7 +317,7 @@ const EmergencyGuideScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white', },
+  container: { flex: 1 },
   content: { paddingHorizontal: 20 },
   titleRow: {
     flexDirection: 'row',
@@ -325,9 +332,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 6,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     marginBottom: 10,
   },
   headerPressable: {
@@ -348,19 +353,16 @@ const styles = StyleSheet.create({
   aiHelpButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#5856D6',
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 24,
   },
   aiHelpButtonText: {
-    color: 'white',
     fontWeight: 'bold',
     marginLeft: 8,
   },
   summary: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 24,
     lineHeight: 24,
   },
@@ -374,19 +376,15 @@ const styles = StyleSheet.create({
   },
   stepDetail: {
     fontSize: 16,
-    color: '#333',
     lineHeight: 24,
     marginLeft: 10,
   },
   footer: {
     padding: 15,
     borderTopWidth: 1,
-    borderTopColor: '#ffffffff',
-    backgroundColor: 'white'
   },
   secondaryButton: {
     flexDirection: 'row',
-    backgroundColor: '#007AFF',
     borderRadius: 15,
     padding: 16,
     alignItems: 'center',
@@ -394,34 +392,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   secondaryButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
   },
   primaryButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF3B30',
     borderRadius: 15,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonText: {
-    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 10,
   },
   // --- AI Modal Styles ---
-  modalContainer: { flex: 1, backgroundColor: 'white' },
+  modalContainer: { flex: 1 },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
   chatContainer: {
@@ -435,34 +429,28 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   userBubble: {
-    backgroundColor: '#007AFF',
     alignSelf: 'flex-end',
   },
   aiBubble: {
-    backgroundColor: '#E5E5EA',
     alignSelf: 'flex-start',
   },
-  userBubbleText: { color: 'white', fontSize: 16 },
-  aiBubbleText: { color: 'black', fontSize: 16 },
+  userBubbleText: { fontSize: 16 },
+  aiBubbleText: { fontSize: 16 },
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
     alignItems: 'center',
-    backgroundColor: 'white'
   },
   input: {
     flex: 1,
     height: 40,
-    backgroundColor: '#F2F2F7',
     borderRadius: 20,
     paddingHorizontal: 15,
     fontSize: 16,
   },
   sendButton: {
     marginLeft: 10,
-    backgroundColor: '#007AFF',
     width: 40,
     height: 40,
     borderRadius: 20,

@@ -1,18 +1,18 @@
 ﻿import { useEffect, useState } from 'react';
 import
-{
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Keyboard,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+  {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Keyboard,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+  } from 'react-native';
 
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,10 +21,12 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import sentinel_detect_icon from '../../..//assets/images/heroIcon.png';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 const API_KEY_STORAGE_KEY = '@api_key';
 const DataLeakScreen = () =>
 {
   const { t } = useTranslation();
+  const { colors } = useThemedStyles();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -94,27 +96,27 @@ const DataLeakScreen = () =>
   {
     console.log('renderResult', item)
     return (
-      <View style={styles.resultItem}>
-        <View style={styles.resultIconContainer}>
-          <Feather name="alert-triangle" size={24} color="#D93025" />
+      <View style={[styles.resultItem, { borderBottomColor: colors.border }]}>
+        <View style={[styles.resultIconContainer, { backgroundColor: colors.errorLight }]}>
+          <Feather name="alert-triangle" size={24} color={colors.error} />
         </View>
         <View style={styles.resultTextContainer}>
-          <Text style={styles.resultTitle}>{t('dataLeak.source')}:{item.source}</Text>
-          <Text style={styles.resultDescription}>{t('dataLeak.email')}:{item.email}</Text>
+          <Text style={[styles.resultTitle, { color: colors.text }]}>{t('dataLeak.source')}:{item.source}</Text>
+          <Text style={[styles.resultDescription, { color: colors.textSecondary }]}>{t('dataLeak.email')}:{item.email}</Text>
           {item.details && (
-            <Text style={styles.resultDescription}>{t('dataLeak.leakedPassword')}: {item.details}</Text>
+            <Text style={[styles.resultDescription, { color: colors.textSecondary }]}>{t('dataLeak.leakedPassword')}: {item.details}</Text>
           )}
         </View>
       </View>
     );
   }
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color="#007AFF" />
-          <Text style={styles.headerTitle}>{t('dataLeak.dataCheck')}</Text>
+          <Feather name="chevron-left" size={32} color={colors.info} />
+          <Text style={[styles.headerTitle, { color: colors.info }]}>{t('dataLeak.dataCheck')}</Text>
         </TouchableOpacity>
 
 
@@ -128,18 +130,19 @@ const DataLeakScreen = () =>
             contentFit="contain"
             transition={1}
           />
-          <Text style={styles.title}>{t('dataLeak.title')}</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.text }]}>{t('dataLeak.title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {t('dataLeak.subtitle')}
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.inputRow}>
-            <Feather name="mail" size={20} color="#999" style={styles.inputIcon} />
+        <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+          <View style={[styles.inputRow, { backgroundColor: colors.backgroundSecondary }]}>
+            <Feather name="mail" size={20} color={colors.textTertiary} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text }]}
               placeholder={t('dataLeak.emailPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -147,11 +150,11 @@ const DataLeakScreen = () =>
               autoCorrect={false}
             />
           </View>
-          <TouchableOpacity style={styles.checkButton} onPress={handleCheck} disabled={isLoading}>
+          <TouchableOpacity style={[styles.checkButton, { backgroundColor: colors.info }]} onPress={handleCheck} disabled={isLoading}>
             {isLoading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color={colors.textInverse} />
             ) : (
-              <Text style={styles.checkButtonText}>{t('dataLeak.scanNow')}</Text>
+              <Text style={[styles.checkButtonText, { color: colors.textInverse }]}>{t('dataLeak.scanNow')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -160,8 +163,8 @@ const DataLeakScreen = () =>
           <View style={styles.resultsContainer}>
             {results.found && Array.isArray(results.results) && results.results.length > 0 ? (
               <>
-                <Text style={styles.resultsHeader}>{t('dataLeak.breachesFound')} ({results.results.length})</Text>
-                <View style={styles.card}>
+                <Text style={[styles.resultsHeader, { color: colors.text }]}>{t('dataLeak.breachesFound')} ({results.results.length})</Text>
+                <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
                   <FlatList
                     data={results.results}
                     renderItem={renderResultItem}
@@ -171,10 +174,10 @@ const DataLeakScreen = () =>
                 </View>
               </>
             ) : (
-              <View style={styles.safeContainer}>
-                <Feather name="check-circle" size={40} color="#006422" />
-                <Text style={styles.safeText}>{t('dataLeak.noBreaches')}</Text>
-                <Text style={styles.safeSubtext}>{t('dataLeak.emailSafe')}</Text>
+              <View style={[styles.safeContainer, { backgroundColor: colors.successLight }]}>
+                <Feather name="check-circle" size={40} color={colors.success} />
+                <Text style={[styles.safeText, { color: colors.success }]}>{t('dataLeak.noBreaches')}</Text>
+                <Text style={[styles.safeSubtext, { color: colors.textSecondary }]}>{t('dataLeak.emailSafe')}</Text>
               </View>
             )}
           </View>
@@ -185,7 +188,7 @@ const DataLeakScreen = () =>
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
+  container: { flex: 1 },
   scrollContainer: { padding: 5 },
   heroIconImage: {
     width: 80,
@@ -200,9 +203,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 6,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     marginBottom: 10,
   },
   headerPressable: {
@@ -215,12 +216,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   title: { fontSize: 28, fontWeight: 'bold', marginTop: 16, textAlign: 'center' },
-  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 8, paddingHorizontal: 20 },
+  subtitle: { fontSize: 16, textAlign: 'center', marginTop: 8, paddingHorizontal: 20 },
   card: {
-    backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -229,7 +228,6 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     paddingHorizontal: 15,
   },
@@ -242,14 +240,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   checkButton: {
-    backgroundColor: '#3186c3',
     height: 50,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
   },
-  checkButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  checkButtonText: { fontSize: 18, fontWeight: 'bold' },
   resultsContainer: { marginTop: 30 },
   resultsHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, paddingHorizontal: 10 },
   resultItem: {
@@ -257,21 +254,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EFEFF4',
   },
   resultIconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFEBEA',
     justifyContent: 'center',
     alignItems: 'center',
   },
   resultTextContainer: { flex: 1, marginLeft: 15 },
   resultTitle: { fontSize: 16, fontWeight: 'bold' },
-  resultDescription: { fontSize: 15, color: '#2e2e2eff', marginTop: 4 },
+  resultDescription: { fontSize: 15, marginTop: 4 },
   safeContainer: {
-    backgroundColor: '#E5F9ED',
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',
@@ -279,12 +273,10 @@ const styles = StyleSheet.create({
   safeText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#006422',
     marginTop: 10,
   },
   safeSubtext: {
     fontSize: 14,
-    color: '#006422',
     marginTop: 4,
     textAlign: 'center',
   },

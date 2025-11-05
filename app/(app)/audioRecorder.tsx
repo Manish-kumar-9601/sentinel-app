@@ -30,6 +30,7 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,6 +47,7 @@ Notifications.setNotificationHandler({
 export const AudioRecorderScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
+  const { colors } = useThemedStyles();
 
   // Audio recording setup
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -549,10 +551,10 @@ export const AudioRecorderScreen = () => {
   // Loading screen
   if (permissionsLoading) {
     return (
-      <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.container}>
+      <LinearGradient colors={[colors.backgroundSecondary, colors.backgroundTertiary, colors.backgroundSecondary]} style={styles.container}>
         <View style={styles.permissionContainer}>
-          <MaterialCommunityIcons name="loading" size={50} color="#FF6B6B" />
-          <Text style={styles.permissionMessage}>{t('audioRecorder.initializing')}</Text>
+          <MaterialCommunityIcons name="loading" size={50} color={colors.primary} />
+          <Text style={[styles.permissionMessage, { color: colors.text }]}>{t('audioRecorder.initializing')}</Text>
         </View>
       </LinearGradient>
     );
@@ -561,19 +563,19 @@ export const AudioRecorderScreen = () => {
   // Permission denied screen
   if (!hasPermissions) {
     return (
-      <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.container}>
+      <LinearGradient colors={[colors.backgroundSecondary, colors.backgroundTertiary, colors.backgroundSecondary]} style={styles.container}>
         <SafeAreaView style={styles.permissionContainer}>
-          <MaterialCommunityIcons name="microphone-off" size={80} color="#666" />
-          <Text style={styles.permissionMessage}>
+          <MaterialCommunityIcons name="microphone-off" size={80} color={colors.textSecondary} />
+          <Text style={[styles.permissionMessage, { color: colors.text }]}>
             {t('audioRecorder.permissionsDescription')}
           </Text>
           {!brightnessPermission && (
-            <Text style={styles.brightnessWarningText}>
+            <Text style={[styles.brightnessWarningText, { color: colors.warning }]}>
               {t('audioRecorder.brightnessWarning')}
             </Text>
           )}
-          <TouchableOpacity style={styles.permissionButton} onPress={handlePermissionReRequest}>
-            <Text style={styles.permissionButtonText}>{t('audioRecorder.enablePermissions')}</Text>
+          <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={handlePermissionReRequest}>
+            <Text style={[styles.permissionButtonText, { color: colors.textInverse }]}>{t('audioRecorder.enablePermissions')}</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </LinearGradient>
@@ -584,7 +586,7 @@ export const AudioRecorderScreen = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GestureDetector gesture={combinedGesture}>
-        <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.container}>
+        <LinearGradient colors={[colors.backgroundSecondary, colors.backgroundTertiary, colors.backgroundSecondary]} style={styles.container}>
           <SafeAreaView style={styles.controlsContainer}>
             {/* Header */}
             {!isScreenBlackedOut && (
@@ -618,14 +620,14 @@ export const AudioRecorderScreen = () => {
                     }
                   }}
                 >
-                  <Ionicons name="close" size={28} color="white" />
+                  <Ionicons name="close" size={28} color={colors.textInverse} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Audio Recorder</Text>
+                <Text style={[styles.headerTitle, { color: colors.textInverse }]}>Audio Recorder</Text>
 
                 {/* Brightness permission indicator */}
                 {brightnessPermission ? (
                   <View style={styles.brightnessIndicator}>
-                    <Ionicons name="sunny" size={20} color="#FFA500" />
+                    <Ionicons name="sunny" size={20} color={colors.warning} />
                   </View>
                 ) : (
                   <View style={styles.placeholder} />
@@ -641,8 +643,8 @@ export const AudioRecorderScreen = () => {
                     {/* Background Recording Indicator */}
                     {appState !== 'active' && (
                       <View style={styles.backgroundIndicator}>
-                        <MaterialCommunityIcons name="cellphone-link" size={24} color="#FF6B6B" />
-                        <Text style={styles.backgroundText}>Recording in Background</Text>
+                        <MaterialCommunityIcons name="cellphone-link" size={24} color={colors.primary} />
+                        <Text style={[styles.backgroundText, { color: colors.primary }]}>Recording in Background</Text>
                       </View>
                     )}
 
@@ -652,7 +654,7 @@ export const AudioRecorderScreen = () => {
                         <Animated.View key={index} style={[
                           styles.waveBar, {
                             transform: [{ scaleY: isPaused ? 0.3 : anim }],
-                            backgroundColor: isPaused ? '#666' : '#FF6B6B',
+                            backgroundColor: isPaused ? colors.textSecondary : colors.primary,
                           },
                         ]} />
                       ))}
@@ -661,25 +663,26 @@ export const AudioRecorderScreen = () => {
                     {/* Timer Display */}
                     <Text style={[
                       styles.timerText,
-                      isPaused && styles.pausedTimerText
+                      { color: colors.textInverse },
+                      isPaused && { color: colors.textSecondary }
                     ]}>
                       {formatTime(displayedDuration)}
                     </Text>
 
                     {/* Pause Indicator */}
-                    {isPaused && <Text style={styles.pausedText}>PAUSED</Text>}
+                    {isPaused && <Text style={[styles.pausedText, { color: colors.textSecondary }]}>PAUSED</Text>}
                   </View>
                 ) : (
                   <View style={styles.microphoneContainer}>
-                    <MaterialCommunityIcons name="microphone-outline" size={100} color="#444" />
-                    <Text style={styles.readyText}>Ready to Record</Text>
-                    <Text style={styles.subText}>High-quality audio with background recording & stealth mode</Text>
+                    <MaterialCommunityIcons name="microphone-outline" size={100} color={colors.textSecondary} />
+                    <Text style={[styles.readyText, { color: colors.textInverse }]}>Ready to Record</Text>
+                    <Text style={[styles.subText, { color: colors.textSecondary }]}>High-quality audio with background recording & stealth mode</Text>
 
                     {/* Brightness status */}
                     {!brightnessPermission && (
-                      <View style={styles.brightnessWarning}>
-                        <Ionicons name="warning" size={16} color="#FFA500" />
-                        <Text style={styles.brightnessWarningText}>
+                      <View style={[styles.brightnessWarning, { backgroundColor: 'rgba(255, 165, 0, 0.2)', borderColor: 'rgba(255, 165, 0, 0.3)' }]}>
+                        <Ionicons name="warning" size={16} color={colors.warning} />
+                        <Text style={[styles.brightnessWarningText, { color: colors.warning }]}>
                           Limited stealth mode - brightness control unavailable
                         </Text>
                       </View>
@@ -725,8 +728,8 @@ export const AudioRecorderScreen = () => {
                       style={styles.pauseButton}
                       onPress={isPaused ? resumeRecording : pauseRecording}
                     >
-                      <Ionicons name={isPaused ? "play" : "pause"} size={24} color="white" />
-                      <Text style={styles.pauseButtonText}>{isPaused ? t('audioRecorder.resume') : t('audioRecorder.pause')}</Text>
+                      <Ionicons name={isPaused ? "play" : "pause"} size={24} color={colors.textInverse} />
+                      <Text style={[styles.pauseButtonText, { color: colors.textInverse }]}>{isPaused ? t('audioRecorder.resume') : t('audioRecorder.pause')}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -736,14 +739,14 @@ export const AudioRecorderScreen = () => {
                     onPress={blackOutScreen}
                   >
                     <View style={styles.stealthButtonContent}>
-                      <Ionicons name="moon" size={24} color="white" />
+                      <Ionicons name="moon" size={24} color={colors.textInverse} />
                       {brightnessPermission && (
                         <View style={styles.brightnessIcon}>
-                          <Ionicons name="sunny" size={12} color="#FFA500" />
+                          <Ionicons name="sunny" size={12} color={colors.warning} />
                         </View>
                       )}
                     </View>
-                    <Text style={styles.stealthButtonText}>
+                    <Text style={[styles.stealthButtonText, { color: colors.textInverse }]}>
                       {brightnessPermission ? t('audioRecorder.stealthMode') : t('audioRecorder.screenOff')}
                     </Text>
                   </TouchableOpacity>
@@ -767,20 +770,20 @@ export const AudioRecorderScreen = () => {
                   {/* Subtle recording indicator */}
                   {recorderState.isRecording && (
                     <View style={styles.subtleRecordingIndicator}>
-                      <View style={[styles.subtleDot, isPaused && { backgroundColor: '#666' }]} />
+                      <View style={[styles.subtleDot, { backgroundColor: isPaused ? colors.textSecondary : colors.error }]} />
                       {!isPaused && (
-                        <Text style={styles.subtleText}>{t('audioRecorder.rec')}</Text>
+                        <Text style={[styles.subtleText, { color: colors.textTertiary }]}>{t('audioRecorder.rec')}</Text>
                       )}
                     </View>
                   )}
 
                   {/* Restore instructions */}
                   <View style={styles.restoreInstructions}>
-                    <Text style={styles.subtleText}>
+                    <Text style={[styles.subtleText, { color: colors.textTertiary }]}>
                       {t('audioRecorder.restoreInstructions')}
                     </Text>
                     {brightnessPermission && (
-                      <Text style={styles.subtleText}>
+                      <Text style={[styles.subtleText, { color: colors.textTertiary }]}>
                         {t('audioRecorder.enhancedStealthActive')}
                       </Text>
                     )}
@@ -822,25 +825,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 20,
     fontSize: 16,
-    color: 'white',
     lineHeight: 24,
   },
   brightnessWarningText: {
     textAlign: 'center',
     paddingVertical: 10,
     fontSize: 14,
-    color: '#FFA500',
     lineHeight: 20,
   },
   permissionButton: {
-    backgroundColor: '#FF6B6B',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
     marginTop: 20,
   },
   permissionButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },

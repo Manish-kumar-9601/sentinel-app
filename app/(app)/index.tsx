@@ -27,6 +27,7 @@ import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
 import { useModal } from '../../context/ModalContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 // --- Configuration ---
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
@@ -207,7 +208,7 @@ class LocationService {
 }
 
 // --- UI Components ---
-const Header = ({ onProfile }) => (
+const Header = ({ onProfile, colors }) => (
     <View style={styles.header}>
         <View>
             <Image
@@ -217,7 +218,7 @@ const Header = ({ onProfile }) => (
         </View>
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
-                <FontAwesome5 name="user-circle" size={30} color="#333" />
+                <FontAwesome5 name="user-circle" size={30} color={colors.text} />
             </TouchableOpacity>
         </View>
     </View>
@@ -225,6 +226,7 @@ const Header = ({ onProfile }) => (
 
 
 export default function HomeScreen() {
+    const { colors } = useThemedStyles();
     const [location, setLocation] = useState(null);
     const [locationError, setLocationError] = useState(null);
     const [isSending, setIsSending] = useState(false);
@@ -778,25 +780,25 @@ export default function HomeScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={refreshAppState}
-                        colors={['#2876b8', '#6bdfffff']}
-                        tintColor="#2876b8"
+                        colors={[colors.primary, colors.primaryLight]}
+                        tintColor={colors.primary}
                         title={t('home.pullToRefresh')}
-                        titleColor="#666"
+                        titleColor={colors.textSecondary}
                     />
                 }
             >
-                <Header onProfile={onProfile} />
+                <Header onProfile={onProfile} colors={colors} />
                 <GlobalSyncStatus />
                 <View style={styles.titleContainer}>
-                    <Text style={styles.mainTitle}>{t('home.title')}</Text>
-                    <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
+                    <Text style={[styles.mainTitle, { color: colors.text }]}>{t('home.title')}</Text>
+                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('home.subtitle')}</Text>
                 </View>
                 <SOSCard
                     onSOSPress={handleSOSPress}
@@ -824,7 +826,6 @@ const styles = StyleSheet.create({
     container: {
         paddingTop: 0,
         flex: 1,
-        backgroundColor: '#ffffffff',
     },
     scrollContent: {
         paddingBottom: 50,
@@ -836,7 +837,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingTop: 0,
         paddingBottom: 0,
-        borderBottomColor: '#000000ff',
     },
 
     headerIcons: {
@@ -850,17 +850,14 @@ const styles = StyleSheet.create({
     mainTitle: {
         fontSize: 26,
         fontWeight: 'bold',
-        color: '#1E1E1E',
     },
     subtitle: {
         fontSize: 14,
-        color: '#777',
         marginTop: 10,
         lineHeight: 20,
     },
     sosHelpText: {
         fontSize: 12,
-        color: '#999',
         marginTop: 8,
         textAlign: 'center',
         fontStyle: 'italic',
@@ -872,7 +869,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#1E1E1E',
     },
     categoriesGrid: {
         flexDirection: 'row',
@@ -896,16 +892,13 @@ const styles = StyleSheet.create({
     categoryText: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#333',
     },
     navBar: {
         height: 45,
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        backgroundColor: 'white',
         borderTopWidth: 0,
-        borderTopColor: '#e8e8e8',
     },
     navItem: {
         alignItems: 'center',

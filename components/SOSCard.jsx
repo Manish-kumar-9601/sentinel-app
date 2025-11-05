@@ -7,11 +7,13 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) =>
 {
     const { t } = useTranslation();
+    const { colors } = useThemedStyles();
     const shadowSpread = useSharedValue(2);
 
     // Check if button text indicates loading state
@@ -24,11 +26,11 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
     const animatedStyle = useAnimatedStyle(() =>
     {
         return {
-            boxShadow: `0px ${shadowSpread.value * 1.33}px ${shadowSpread.value * 7.5}px ${shadowSpread.value * 0.66}px rgba(255, 149, 149, 1)`,
+            boxShadow: `0px ${shadowSpread.value * 1.33}px ${shadowSpread.value * 7.5}px ${shadowSpread.value * 0.66}px ${colors.errorLight}`,
             shadowOffset: { width: 0, height: 4 },
             shadowRadius: 30,
             shadowOpacity: 1,
-            shadowColor: 'rgba(255, 149, 149, 1)',
+            shadowColor: colors.errorLight,
             elevation: shadowSpread.value, // Android fallback
         };
     });
@@ -48,7 +50,7 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
     }, 1500);
 
     return (
-        <View style={styles.sosCard}>
+        <View style={[styles.sosCard, { backgroundColor: colors.card }]}>
             <TouchableOpacity
                 onPress={onSOSPress}
                 onLongPress={onSOSOptions}
@@ -56,32 +58,32 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
 
             >
                 <AnimatedLinearGradient
-                    colors={isReady ? ['#FF6B6B', '#ff4400ff'] : ['#D3D3D3', '#A9A9A9']}
+                    colors={isReady ? [colors.error, colors.primary] : [colors.disabled, colors.disabledDark]}
                     style={[styles.sosButton, animatedStyle]}
                 >
                     <View style={styles.sosButtonInner}>
                         {isLoadingState ? (
-                            <ActivityIndicator size="large" color="white" />
+                            <ActivityIndicator size="large" color={colors.textInverse} />
                         ) : (
                             <>
-                                <Text style={styles.sosText}>{t('home.sos')}</Text>
-                                <Text style={styles.sosSubtext}>{buttonText}</Text>
+                                <Text style={[styles.sosText, { color: colors.textInverse }]}>{t('home.sos')}</Text>
+                                <Text style={[styles.sosSubtext, { color: colors.textInverse }]}>{buttonText}</Text>
                             </>
                         )}
                     </View>
                 </AnimatedLinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onLocationPress} style={styles.locationContainer}>
+            <TouchableOpacity onPress={onLocationPress} style={[styles.locationContainer, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
                 <View style={styles.locationBox}>
                     <Ionicons
                         name="location-sharp"
                         size={20}
-                        color={locationStatus === 'available' ? '#ff4500' : '#999'}
+                        color={locationStatus === 'available' ? colors.primary : colors.textTertiary}
                     />
                     <Text
                         style={[
                             styles.locationText,
-                            { color: locationStatus === 'available' ? '#555' : '#999' }
+                            { color: locationStatus === 'available' ? colors.textSecondary : colors.textTertiary }
                         ]}
                         numberOfLines={1}
                     >
@@ -89,14 +91,13 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
                     </Text>
                 </View>
             </TouchableOpacity>
-            <Text style={styles.sosHelpText}>{t('home.sosHelpText')}</Text>
+            <Text style={[styles.sosHelpText, { color: colors.textTertiary }]}>{t('home.sosHelpText')}</Text>
         </View>
     )
 };
 
 const styles = StyleSheet.create({
     sosCard: {
-        backgroundColor: 'white',
         borderRadius: 20,
         marginTop: 20,
         padding: 0,
@@ -120,17 +121,14 @@ const styles = StyleSheet.create({
     },
     sosText: {
         fontSize: 36,
-        color: 'white',
         fontWeight: 'bold',
     },
     sosSubtext: {
         fontSize: 12,
-        color: 'white',
         marginTop: 2,
     },
     sosHelpText: {
         fontSize: 12,
-        color: '#999',
         marginTop: 8,
         textAlign: 'center',
         fontStyle: 'italic',
@@ -142,7 +140,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         padding: 15,
         boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-        backgroundColor: 'white',
         borderRadius: 20,
         marginBottom: 10
     },
@@ -153,7 +150,6 @@ const styles = StyleSheet.create({
     },
     locationText: {
         fontSize: 14,
-        color: '#555',
         flexShrink: 1,
     },
 });

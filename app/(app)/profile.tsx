@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import userProfileImg from '../../assets/images/user-profile-img.png';
 import { useAuth } from '../../context/AuthContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 // ... (Menu Structure, Quick Actions, etc. remain the same)
 // --- Enhanced Menu Structure ---
@@ -103,6 +104,7 @@ const menuSections = (isLoggedIn, t) => [
 
 // --- Enhanced Profile Row Component ---
 const ProfileRow = ({ icon, iconSet, label, href, subtitle, color, isLast = false }) => {
+  const { colors } = useThemedStyles();
   const getIconComponent = () => {
     switch (iconSet) {
       case 'MaterialCommunity': return MaterialCommunityIcons;
@@ -117,15 +119,15 @@ const ProfileRow = ({ icon, iconSet, label, href, subtitle, color, isLast = fals
 
   return (
     <Link href={href} asChild>
-      <TouchableOpacity style={styles.row}>
+      <TouchableOpacity style={[styles.row, { borderBottomColor: colors.border }]}>
         <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
           <IconComponent name={icon} size={20} color={color} />
         </View>
         <View style={styles.rowContent}>
-          <Text style={styles.rowLabel}>{label}</Text>
-          <Text style={styles.rowSubtitle}>{subtitle}</Text>
+          <Text style={[styles.rowLabel, { color: colors.text }]}>{label}</Text>
+          <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={22} color="#C7C7CC" style={{ opacity: 0.6 }} />
+        <Ionicons name="chevron-forward" size={22} color={colors.textTertiary} style={{ opacity: 0.6 }} />
       </TouchableOpacity>
     </Link>
   );
@@ -136,6 +138,7 @@ const ProfileScreen = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { t } = useTranslation();
+  const { colors } = useThemedStyles();
 
   console.log('at info scree', user)
   const handleSignOut = () => {
@@ -146,51 +149,51 @@ const ProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={28} color="#007AFF" />
-            <Text style={styles.headerTitle}>{t('profile.title')}</Text>
+            <Feather name="chevron-left" size={28} color={colors.info} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
           </TouchableOpacity>
 
 
         </View>
         {user ? (
           <LinearGradient
-            colors={['#667eea', '#764ba2']}
+            colors={[colors.primary, colors.primaryDark]}
             style={styles.userInfoSection}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.avatarContainer}>
               <Image source={userProfileImg} style={styles.avatar} />
-              <View style={styles.onlineIndicator} />
+              <View style={[styles.onlineIndicator, { backgroundColor: colors.success }]} />
             </View>
-            <Text style={styles.userName}>{user?.name}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
+            <Text style={[styles.userName, { color: colors.textInverse }]}>{user?.name}</Text>
+            <Text style={[styles.userEmail, { color: colors.textInverse }]}>{user?.email}</Text>
           </LinearGradient>
         ) : (
-          <View style={styles.guestContainer}>
-            <Ionicons name="person-circle-outline" size={80} color="#007AFF" />
-            <Text style={styles.guestTitle}>{t('profile.guestTitle')}</Text>
-            <Text style={styles.guestSubtitle}>
+          <View style={[styles.guestContainer, { backgroundColor: colors.card }]}>
+            <Ionicons name="person-circle-outline" size={80} color={colors.info} />
+            <Text style={[styles.guestTitle, { color: colors.text }]}>{t('profile.guestTitle')}</Text>
+            <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
               {t('profile.guestSubtitle')}
             </Text>
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, { backgroundColor: colors.info }]}
               onPress={() => router.push('/login')}
             >
-              <Text style={styles.loginButtonText}>{t('profile.loginButton')}</Text>
+              <Text style={[styles.loginButtonText, { color: colors.textInverse }]}>{t('profile.loginButton')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {menuSections(!!user, t).map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.menuContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{section.title}</Text>
+            <View style={[styles.menuContainer, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
               {section.items.map((item, index) => (
                 <ProfileRow
                   key={index}
@@ -210,11 +213,11 @@ const ProfileScreen = () => {
         {user && (
           <View style={styles.signOutSection}>
             <TouchableOpacity
-              style={styles.signOutButton}
+              style={[styles.signOutButton, { backgroundColor: colors.card, shadowColor: colors.shadow }]}
               onPress={handleSignOut}
             >
-              <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-              <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
+              <Ionicons name="log-out-outline" size={20} color={colors.error} />
+              <Text style={[styles.signOutText, { color: colors.error }]}>{t('profile.signOut')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -227,15 +230,12 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffffff',
   },
   header: {
     paddingTop: 8,
     paddingBottom: 6,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     // marginBottom: 10,
   },
   headerPressable: {
@@ -250,7 +250,6 @@ const styles = StyleSheet.create({
   guestContainer: {
     alignItems: 'center',
     padding: 30,
-    backgroundColor: 'white',
     margin: 16,
     borderRadius: 15,
   },
@@ -261,19 +260,16 @@ const styles = StyleSheet.create({
   },
   guestSubtitle: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     marginTop: 5,
     marginBottom: 20,
   },
   loginButton: {
-    backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
   },
   loginButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -301,24 +297,20 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#00C851',
     borderWidth: 3,
     borderColor: 'white',
   },
   userName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
     marginBottom: 5,
   },
   userEmail: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
     marginBottom: 15,
     paddingHorizontal: 16
   },
@@ -326,7 +318,6 @@ const styles = StyleSheet.create({
     paddingTop: 25,
   },
   menuContainer: {
-    backgroundColor: 'white',
     borderRadius: 15,
     marginHorizontal: 16,
     boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
@@ -339,7 +330,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
   },
   iconContainer: {
     width: 40,
@@ -355,11 +345,9 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
   },
   rowSubtitle: {
     fontSize: 14,
-    color: '#666',
     marginTop: 2,
   },
   signOutSection: {
@@ -371,7 +359,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'white',
     borderRadius: 15,
     paddingVertical: 15,
     boxShadow: '0 5px 8px rgba(0,0,0,0.1)',
@@ -380,7 +367,6 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF3B30',
     marginLeft: 10,
   },
 });

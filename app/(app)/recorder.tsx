@@ -9,11 +9,13 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Dimensions, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 const { width, height } = Dimensions.get('window');
 
 const EvidenceRecorderScreen: React.FC = () => {
   const { t } = useTranslation();
+  const { colors } = useThemedStyles();
   const router = useRouter();
 
   // Enhanced state for brightness and blackout features
@@ -246,16 +248,16 @@ const EvidenceRecorderScreen: React.FC = () => {
 
   if (permissionsLoading) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.permissionMessage}>{t('recorder.loadingPermissions')}</Text>
+      <View style={[styles.container, { backgroundColor: '#000000' }]}>
+        <Text style={[styles.permissionMessage, { color: colors.textInverse }]}>{t('recorder.loadingPermissions')}</Text>
       </View>
     );
   }
 
   if (permissionsMissing) {
     return (
-      <SafeAreaView style={styles.permissionContainer}>
-        <Text style={styles.permissionMessage}>
+      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: '#000000' }]}>
+        <Text style={[styles.permissionMessage, { color: colors.textInverse }]}>
           We need access to your camera, microphone, and media library to record evidence.
           {!brightnessPermission && '\n\nBrightness control is optional but recommended for stealth mode.'}
         </Text>
@@ -280,7 +282,7 @@ const EvidenceRecorderScreen: React.FC = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GestureDetector gesture={combinedGesture}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: '#000000' }]}>
           <CameraView
             style={styles.camera}
             facing={cameraType}
@@ -292,17 +294,17 @@ const EvidenceRecorderScreen: React.FC = () => {
           <View style={styles.controlsContainer}>
             <View style={styles.topControls}>
               {isRecording && !isScreenBlackedOut && (
-                <View style={styles.recordingIndicator}>
-                  <View style={styles.recordingDot} />
-                  <Text style={styles.timerText}>{formatTime(recordingDuration)}</Text>
+                <View style={[styles.recordingIndicator, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+                  <View style={[styles.recordingDot, { backgroundColor: colors.error }]} />
+                  <Text style={[styles.timerText, { color: colors.textInverse }]}>{formatTime(recordingDuration)}</Text>
                 </View>
               )}
 
               {/* Brightness warning indicator */}
               {!brightnessPermission && !isScreenBlackedOut && (
-                <View style={styles.brightnessWarning}>
-                  <Ionicons name="warning" size={16} color="#FFA500" />
-                  <Text style={styles.brightnessWarningText}>
+                <View style={[styles.brightnessWarning, { backgroundColor: 'rgba(255, 165, 0, 0.2)', borderColor: 'rgba(255, 165, 0, 0.3)' }]}>
+                  <Ionicons name="warning" size={16} color={colors.warning} />
+                  <Text style={[styles.brightnessWarningText, { color: colors.warning }]}>
                     Brightness control unavailable
                   </Text>
                 </View>
@@ -310,9 +312,9 @@ const EvidenceRecorderScreen: React.FC = () => {
             </View>
 
             {!isScreenBlackedOut && (
-              <View style={styles.bottomControls}>
+              <View style={[styles.bottomControls, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
                 <TouchableOpacity
-                  style={styles.iconButton}
+                  style={[styles.iconButton, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
                   onPress={() => {
                     // Restore brightness before leaving if it was modified
                     if (isScreenBlackedOut && brightnessPermission) {
@@ -321,37 +323,44 @@ const EvidenceRecorderScreen: React.FC = () => {
                     router.back();
                   }}
                 >
-                  <Ionicons name="close" size={35} color="white" />
+                  <Ionicons name="close" size={35} color={colors.textInverse} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.recordButton, isRecording && styles.recordingActive]}
+                  style={[
+                    styles.recordButton,
+                    { backgroundColor: colors.textInverse, borderColor: colors.textInverse },
+                    isRecording && { borderColor: colors.error }
+                  ]}
                   onPress={handleRecordButtonPress}
                 >
-                  <View style={isRecording ? styles.stopIcon : styles.recordIcon} />
+                  <View style={[
+                    isRecording ? styles.stopIcon : styles.recordIcon,
+                    { backgroundColor: colors.error }
+                  ]} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.iconButton}
+                  style={[styles.iconButton, { backgroundColor: 'rgba(0,0,0,0.3)' }]}
                   onPress={toggleCameraType}
                   disabled={isRecording}
                 >
                   <Ionicons
                     name="camera-reverse"
                     size={35}
-                    color={isRecording ? "gray" : "white"}
+                    color={isRecording ? colors.textSecondary : colors.textInverse}
                   />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.screenOffButton}
+                  style={[styles.screenOffButton, { backgroundColor: 'rgba(0,0,0,0.7)' }]}
                   onPress={blackOutScreen}
                 >
                   <View style={styles.screenOffContent}>
-                    <Ionicons name="moon" size={24} color="white" />
+                    <Ionicons name="moon" size={24} color={colors.textInverse} />
                     {brightnessPermission && (
                       <View style={styles.brightnessIcon}>
-                        <Ionicons name="sunny" size={12} color="#FFA500" />
+                        <Ionicons name="sunny" size={12} color={colors.warning} />
                       </View>
                     )}
                   </View>
@@ -407,7 +416,6 @@ const EvidenceRecorderScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
     justifyContent: 'center'
   },
   camera: {
@@ -427,13 +435,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: 'black',
   },
   permissionMessage: {
     textAlign: 'center',
     paddingBottom: 20,
     fontSize: 16,
-    color: 'white',
     lineHeight: 22,
   },
   topControls: {
@@ -443,7 +449,6 @@ const styles = StyleSheet.create({
   recordingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
@@ -453,26 +458,21 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: 'red',
     marginRight: 8,
   },
   timerText: {
-    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
   brightnessWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 165, 0, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: 'rgba(255, 165, 0, 0.3)',
   },
   brightnessWarningText: {
-    color: '#FFA500',
     fontSize: 12,
     marginLeft: 6,
   },
@@ -481,38 +481,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingBottom: 40,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     paddingTop: 20,
   },
   recordButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: 'white',
   },
   recordingActive: {
-    borderColor: 'red',
   },
   recordIcon: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'red',
   },
   stopIcon: {
     width: 30,
     height: 30,
-    backgroundColor: 'red',
     borderRadius: 5,
   },
   iconButton: {
     padding: 10,
     borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   screenOffButton: {
     padding: 12,

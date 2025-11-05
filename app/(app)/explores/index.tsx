@@ -1,35 +1,35 @@
-﻿import React from 'react';
-import {
-
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { Ionicons, Feather } from '@expo/vector-icons';
+﻿import { Feather, Ionicons } from '@expo/vector-icons';
 import { Link, router } from 'expo-router';
-import i18n from '../../../lib/i18n';
+import React from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 // --- Reusable UI Component for a feature card ---
 const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => {
+  const { colors } = useThemedStyles();
   const content = (
 
     <TouchableOpacity
-      style={[styles.card, comingSoon && styles.comingSoonCard]}
+      style={[styles.card, { backgroundColor: colors.card }, comingSoon && styles.comingSoonCard]}
       onPress={comingSoon ? () => Alert.alert("Coming Soon!", "This feature is under development.") : undefined}
       disabled={comingSoon}
     >
-      <View style={styles.iconContainer}>
-        <Feather name={icon} size={28} color="#3186c3" />
+      <View style={[styles.iconContainer, { backgroundColor: colors.infoLight }]}>
+        <Feather name={icon} size={28} color={colors.info} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.cardDescription}>{description}</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={24} color="#C7C7CC" />
+      <Ionicons name="chevron-forward" size={24} color={colors.textTertiary} />
     </TouchableOpacity>
 
 
@@ -43,14 +43,15 @@ const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => 
 };
 
 export default function ExploreScreen() {
+  const { colors } = useThemedStyles();
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <ScrollView>
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={32} color="#007AFF" />
-            <Text style={styles.headerTitle}>Explore</Text>
+            <Feather name="chevron-left" size={32} color={colors.info} />
+            <Text style={[styles.headerTitle, { color: colors.info }]}>Explore</Text>
           </TouchableOpacity>
 
 
@@ -91,15 +92,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingBottom: 26,
-    backgroundColor: '#F2F2F7',
   },
   header: {
     paddingTop: 8,
     paddingBottom: 6,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     // marginBottom: 10,
   },
   headerPressable: {
@@ -113,7 +111,6 @@ const styles = StyleSheet.create({
   },
   card: {
     marginTop: 0,
-    backgroundColor: 'white',
     borderRadius: 12,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -121,7 +118,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     boxShadow: '0 3px 8px rgba(0,0,0,1)',
-  
+
   },
   comingSoonCard: {
     opacity: 0.6,
@@ -130,7 +127,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#e6f8ffff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -141,11 +137,9 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
   },
   cardDescription: {
     fontSize: 14,
-    color: '#6e6e73',
     marginTop: 4,
   },
 });

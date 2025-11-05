@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
 import { useModal } from '../context/ModalContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 const BottomNavBar = () =>
 {
   const { t } = useTranslation();
+  const { colors } = useThemedStyles();
   const router = useRouter();
   const pathname = usePathname();
   const { openContactModal } = useModal(); // Get the function from context
@@ -40,7 +42,7 @@ const BottomNavBar = () =>
   };
 
   return (
-    < View style={styles.navBar}>
+    < View style={[styles.navBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
       {NAV_ITEMS.map((item) =>
       {
         const isActive = pathname === item.path;
@@ -54,9 +56,9 @@ const BottomNavBar = () =>
             <IconComponent
               name={item.icon}
               size={28}
-              color={isActive ? '#3186c3' : '#A9A9A9'}
+              color={isActive ? colors.info : colors.textTertiary}
             />
-            <Text style={[styles.navText, { color: isActive ? '#3186c3' : '#A9A9A9' }]}>
+            <Text style={[styles.navText, { color: isActive ? colors.info : colors.textTertiary }]}>
               {t(`home.${item.name}`)}
             </Text>
           </TouchableOpacity>
@@ -76,9 +78,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: 'white',
     borderTopWidth: 0,
-    borderTopColor: '#e8e8e8',
   },
   navItem: {
     alignItems: 'center',

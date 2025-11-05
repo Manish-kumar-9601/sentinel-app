@@ -2,8 +2,9 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
-  const EmergencyCategory = ({ icon, name, color, iconSet, onPress }) =>
+const EmergencyCategory = ({ icon, name, color, iconSet, onPress, textColor }) =>
 {
     const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : (iconSet === 'MaterialIcons') ? MaterialIcons : FontAwesome5;
     const IconSize = iconSet === 'MaterialCommunity' || iconSet === 'MaterialIcons' ? 36 : 28;
@@ -12,7 +13,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
             <View style={[styles.iconContainer, { backgroundColor: color }]}>
                 <IconComponent name={icon} size={IconSize} color="white" />
             </View>
-            <Text style={styles.categoryText}>{name}</Text>
+            <Text style={[styles.categoryText, { color: textColor }]}>{name}</Text>
         </TouchableOpacity>
     );
 };
@@ -33,6 +34,7 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
 {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors } = useThemedStyles();
 
     const categories = CATEGORY_CONFIG.map(cat => ({
         ...cat,
@@ -55,7 +57,7 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
 
     return (
         <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>{t('home.emergencyGridTitle')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.emergencyGridTitle')}</Text>
             <View style={styles.categoriesGrid}>
                 {categories.map((cat) => (
                     <EmergencyCategory
@@ -64,6 +66,7 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
                         name={cat.name}
                         color={cat.color}
                         iconSet={cat.iconSet}
+                        textColor={colors.text}
                         onPress={() => handlePress(cat)}
                     />
                 ))}
@@ -79,7 +82,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#1E1E1E',
     },
     categoriesGrid: {
         flexDirection: 'row',
@@ -103,7 +105,6 @@ const styles = StyleSheet.create({
     categoryText: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#333',
     },
 
 });

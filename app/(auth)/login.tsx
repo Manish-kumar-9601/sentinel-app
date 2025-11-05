@@ -17,11 +17,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 const GUEST_KEY = 'guest_user';
 
 const LoginScreen = () => {
     const { t } = useTranslation();
+    const { colors } = useThemedStyles();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -57,17 +59,18 @@ const LoginScreen = () => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <View style={styles.content}>
                 <Image source={SentinelIcon} style={styles.logo} />
-                <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
-                <Text style={styles.subtitle}>{t('auth.signInAccount')}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t('auth.welcomeBack')}</Text>
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('auth.signInAccount')}</Text>
 
-                <View style={styles.inputContainer}>
-                    <Feather name="mail" size={20} color="#999" style={styles.inputIcon} />
+                <View style={[styles.inputContainer, { backgroundColor: colors.inputBackground }]}>
+                    <Feather name="mail" size={20} color={colors.textTertiary} style={styles.inputIcon} />
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: colors.text }]}
                         placeholder={t('auth.email')}
+                        placeholderTextColor={colors.textTertiary}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -76,11 +79,12 @@ const LoginScreen = () => {
                     />
                 </View>
 
-                <View style={styles.inputContainer}>
-                    <Feather name="lock" size={20} color="#999" style={styles.inputIcon} />
+                <View style={[styles.inputContainer, { backgroundColor: colors.inputBackground }]}>
+                    <Feather name="lock" size={20} color={colors.textTertiary} style={styles.inputIcon} />
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: colors.text }]}
                         placeholder={t('auth.password')}
+                        placeholderTextColor={colors.textTertiary}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
@@ -89,27 +93,27 @@ const LoginScreen = () => {
                 </View>
 
                 <TouchableOpacity
-                    style={styles.button}
+                    style={[styles.button, { backgroundColor: colors.info }]}
                     onPress={handleLogin}
                     disabled={isLoading}>
                     {isLoading ? (
-                        <ActivityIndicator color="white" />
+                        <ActivityIndicator color={colors.textInverse} />
                     ) : (
-                        <Text style={styles.buttonText}>{t('auth.logIn')}</Text>
+                        <Text style={[styles.buttonText, { color: colors.textInverse }]}>{t('auth.logIn')}</Text>
                     )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.button, styles.guestButton]}
+                    style={[styles.button, styles.guestButton, { backgroundColor: colors.backgroundSecondary }]}
                     onPress={handleContinueAsGuest}
                     disabled={isLoading}>
-                    <Text style={[styles.buttonText, styles.guestButtonText]}>{t('auth.continueAsGuest')}</Text>
+                    <Text style={[styles.buttonText, styles.guestButtonText, { color: colors.text }]}>{t('auth.continueAsGuest')}</Text>
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
+                    <Text style={[styles.footerText, { color: colors.textSecondary }]}>{t('auth.noAccount')}</Text>
                     <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                        <Text style={styles.linkText}> {t('auth.signUp')}</Text>
+                        <Text style={[styles.linkText, { color: colors.info }]}> {t('auth.signUp')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -120,7 +124,6 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         justifyContent: 'center',
     },
     content: {
@@ -140,14 +143,12 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 16,
-        color: '#666',
         textAlign: 'center',
         marginBottom: 30,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F2F2F7',
         borderRadius: 10,
         marginBottom: 15,
     },
@@ -160,7 +161,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     button: {
-        backgroundColor: '#007AFF',
         borderRadius: 10,
         height: 50,
         justifyContent: 'center',
@@ -168,16 +168,13 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     buttonText: {
-        color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
     },
     guestButton: {
-        backgroundColor: '#E5E5EA',
         marginTop: 15,
     },
     guestButtonText: {
-        color: '#000',
     },
     footer: {
         flexDirection: 'row',
@@ -186,11 +183,9 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 16,
-        color: '#666',
     },
     linkText: {
         fontSize: 16,
-        color: '#007AFF',
         fontWeight: 'bold',
     },
 });

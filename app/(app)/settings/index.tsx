@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Keyboard,  
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Keyboard,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Link, Stack, useRouter } from 'expo-router';
@@ -41,11 +41,11 @@ export default function SettingsScreen() {
   const [fakeCallerNumber, setFakeCallerNumber] = useState('');
   const [ringtoneName, setRingtoneName] = useState('Default');
   const [theme, setTheme] = useState('Light'); // Placeholder state
-    const { i18n } = useTranslation();
+  const { i18n } = useTranslation();
   // Initialize state with the currently active language from i18next
-   
+
   const [language, setLanguage] = useState(i18n.language);
-const {t} =useTranslation()
+  const { t } = useTranslation()
   // --- Load saved settings ---
   useEffect(() => {
     const loadSettings = async () => {
@@ -83,29 +83,29 @@ const {t} =useTranslation()
 
   const handleSetRingtone = async () => {
     try {
-        const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            const asset = result.assets[0];
-            const safeName = asset.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-            const permanentUri = `${FileSystem.documentDirectory}custom_ringtone_${safeName}`;
-            await FileSystem.copyAsync({ from: asset.uri, to: permanentUri });
-            await AsyncStorage.setItem(FAKE_CALL_RINGTONE_KEY, permanentUri);
-            setRingtoneName(asset.name);
-            Alert.alert('Ringtone Set!', `Your fake call will now use "${asset.name}".`);
-        }
+      const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const safeName = asset.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const permanentUri = `${FileSystem.documentDirectory}custom_ringtone_${safeName}`;
+        await FileSystem.copyAsync({ from: asset.uri, to: permanentUri });
+        await AsyncStorage.setItem(FAKE_CALL_RINGTONE_KEY, permanentUri);
+        setRingtoneName(asset.name);
+        Alert.alert('Ringtone Set!', `Your fake call will now use "${asset.name}".`);
+      }
     } catch (error) {
-        console.error('Error picking ringtone:', error);
-        Alert.alert('Error', 'Could not set the ringtone.');
+      console.error('Error picking ringtone:', error);
+      Alert.alert('Error', 'Could not set the ringtone.');
     }
   };
 
   const handleSignOut = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Log Out", style: "destructive", onPress: () => router.replace('/(auth)/login') }
+      { text: "Cancel", style: "cancel" },
+      { text: "Log Out", style: "destructive", onPress: () => router.replace('/(auth)/login') }
     ]);
   };
-  
+
   const getLanguageName = (code) => {
     switch (code) {
       case 'hi': return 'हिंदी';
@@ -120,16 +120,16 @@ const {t} =useTranslation()
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-            <View style={styles.header}>
+        <View style={styles.header}>
 
-                          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-                              <Feather name="chevron-left" size={32} color="#007AFF" />
-                              <Text style={styles.headerTitle}>User & Medical Info</Text>
-                          </TouchableOpacity>
-      
-                      
-                      </View>
-      
+          <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+            <Feather name="chevron-left" size={32} color="#007AFF" />
+            <Text style={styles.headerTitle}>User & Medical Info</Text>
+          </TouchableOpacity>
+
+
+        </View>
+
 
         {/* --- My Circle Section --- */}
         <View style={styles.section}>
@@ -183,17 +183,11 @@ const {t} =useTranslation()
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App</Text>
           <View style={styles.card}>
-             <SettingsRow
-                onPress={() => Alert.alert("Theme", "Theme selection will be available soon!")}
-                icon="sun"
-                label="Theme"
-                description={theme}
-            />
-             <SettingsRow
-                href="settings/language"
-                icon="globe"
-                label="Language"
-                description={getLanguageName(language)}
+            <SettingsRow
+              href="settings/language"
+              icon="globe"
+              label="Language"
+              description={getLanguageName(language)}
             />
           </View>
         </View>
@@ -208,16 +202,16 @@ const {t} =useTranslation()
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7',paddingTop:20 },
+  container: { flex: 1, backgroundColor: '#F2F2F7', paddingTop: 20 },
   header: {
-        paddingTop:8,
-        paddingBottom: 6,
-        paddingHorizontal: 20,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
-        marginBottom: 10,
-    },
+    paddingTop: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    marginBottom: 10,
+  },
   headerPressable: {
     flexDirection: 'row',
     alignItems: 'center',

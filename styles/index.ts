@@ -17,7 +17,7 @@ export { darkColors, lightColors, ThemeProvider, useTheme } from '../context/The
 export {
     borderRadius, createBadgeStyles, createButtonStyles, createCardStyles, createContainerStyles, createDividerStyles,
     createGlobalStyles, createHeaderStyles, createInputStyles, createListStyles,
-    createModalStyles, s, fontSize,
+    createModalStyles, fontSize,
     fontWeight, layout, shadows, spacing
 } from './globalStyles';
 

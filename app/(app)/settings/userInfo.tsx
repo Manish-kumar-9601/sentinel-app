@@ -1,5 +1,6 @@
 ﻿import { SyncStatusBar } from '@/components/SyncStatusBar';
 import { useAuth } from '@/context/AuthContext';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useUserInfo } from '@/hooks/useUserInfo';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -46,6 +47,7 @@ interface EmergencyContact {
 export default function UserInfoScreen() {
     const { t } = useTranslation();
     const { user: authUser, logout } = useAuth();
+    const { colors } = useThemedStyles();
     const {
         data: userInfoData,
         loading: isLoadingUserInfo,
@@ -337,10 +339,10 @@ export default function UserInfoScreen() {
     // Loading state
     if (isLoadingUserInfo && !isInitialized) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#007AFF" />
-                    <Text style={styles.loadingText}>{t('userInfo.loading')}</Text>
+                    <ActivityIndicator size="large" color={colors.info} />
+                    <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('userInfo.loading')}</Text>
                 </View>
             </SafeAreaView>
         );
@@ -349,19 +351,19 @@ export default function UserInfoScreen() {
     // Error state (only if no data and there's an error)
     if (error && !isInitialized && !userInfoData) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.centerContainer}>
-                    <Feather name="alert-circle" size={64} color="#FF3B30" />
-                    <Text style={styles.errorTitle}>{t('userInfo.failedToLoad')}</Text>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={() => refresh(true)}>
-                        <Text style={styles.retryButtonText}>{t('userInfo.tryAgain')}</Text>
+                    <Feather name="alert-circle" size={64} color={colors.error} />
+                    <Text style={[styles.errorTitle, { color: colors.text }]}>{t('userInfo.failedToLoad')}</Text>
+                    <Text style={[styles.errorText, { color: colors.textSecondary }]}>{error}</Text>
+                    <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.info }]} onPress={() => refresh(true)}>
+                        <Text style={[styles.retryButtonText, { color: colors.textInverse }]}>{t('userInfo.tryAgain')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.retryButton, { backgroundColor: '#FF3B30', marginTop: 10 }]}
+                        style={[styles.retryButton, { backgroundColor: colors.error, marginTop: 10 }]}
                         onPress={logout}
                     >
-                        <Text style={styles.retryButtonText}>{t('userInfo.logout')}</Text>
+                        <Text style={[styles.retryButtonText, { color: colors.textInverse }]}>{t('userInfo.logout')}</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -369,7 +371,7 @@ export default function UserInfoScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
@@ -381,7 +383,7 @@ export default function UserInfoScreen() {
                     }
                 >
                     {/* Header */}
-                    <View style={styles.header}>
+                    <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
                         <TouchableOpacity
                             style={styles.headerPressable}
                             onPress={() => {
@@ -399,8 +401,8 @@ export default function UserInfoScreen() {
                                 }
                             }}
                         >
-                            <Feather name="chevron-left" size={24} color="#007AFF" />
-                            <Text style={styles.headerTitle}>{t('userInfo.title')}</Text>
+                            <Feather name="chevron-left" size={24} color={colors.info} />
+                            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('userInfo.title')}</Text>
                         </TouchableOpacity>
                     </View>
                     <SyncStatusBar
@@ -410,9 +412,9 @@ export default function UserInfoScreen() {
 
                     {/* Show offline warning if needed */}
                     {!isOnline && (
-                        <View style={styles.offlineWarning}>
-                            <Ionicons name="cloud-offline" size={16} color="#FF9500" />
-                            <Text style={styles.offlineWarningText}>
+                        <View style={[styles.offlineWarning, { backgroundColor: colors.warningLight }]}>
+                            <Ionicons name="cloud-offline" size={16} color={colors.warning} />
+                            <Text style={[styles.offlineWarningText, { color: colors.warning }]}>
                                 {t('userInfo.offlineWarning')}
                             </Text>
                         </View>
@@ -420,9 +422,9 @@ export default function UserInfoScreen() {
 
                     {/* Sync Status */}
                     {lastSyncTime && (
-                        <View style={styles.syncStatus}>
-                            <Feather name="check-circle" size={14} color="#34C759" />
-                            <Text style={styles.syncText}>
+                        <View style={[styles.syncStatus, { backgroundColor: colors.successLight }]}>
+                            <Feather name="check-circle" size={14} color={colors.success} />
+                            <Text style={[styles.syncText, { color: colors.success }]}>
                                 {t('userInfo.lastSynced')}: {lastSyncTime.toLocaleTimeString()}
                             </Text>
                         </View>
@@ -430,50 +432,50 @@ export default function UserInfoScreen() {
 
                     {/* Error Banner */}
                     {error && (
-                        <View style={styles.errorBanner}>
-                            <Feather name="alert-triangle" size={16} color="#FF3B30" />
-                            <Text style={styles.errorBannerText}>{error}</Text>
+                        <View style={[styles.errorBanner, { backgroundColor: colors.errorLight }]}>
+                            <Feather name="alert-triangle" size={16} color={colors.error} />
+                            <Text style={[styles.errorBannerText, { color: colors.error }]}>{error}</Text>
                         </View>
                     )}
 
                     {/* Personal Information */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Feather name="user" size={20} color="#007AFF" />
-                            <Text style={styles.sectionTitle}>{t('userInfo.personalInfo')}</Text>
+                            <Feather name="user" size={20} color={colors.info} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('userInfo.personalInfo')}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.fullName')} *</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.fullName')} *</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={userInfo.name}
                                 onChangeText={(text) => setUserInfo(prev => ({ ...prev, name: text }))}
                                 placeholder={t('userInfo.enterName')}
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.email')}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.email')}</Text>
                             <TextInput
-                                style={[styles.input, styles.disabledInput]}
+                                style={[styles.input, styles.disabledInput, { backgroundColor: colors.backgroundTertiary, color: colors.textTertiary, borderColor: colors.border }]}
                                 value={userInfo.email}
                                 editable={false}
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
-                            <Text style={styles.helperText}>{t('userInfo.emailCannotChange')}</Text>
+                            <Text style={[styles.helperText, { color: colors.textTertiary }]}>{t('userInfo.emailCannotChange')}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.phone')}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.phone')}</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={userInfo.phone}
                                 onChangeText={(text) => setUserInfo(prev => ({ ...prev, phone: text }))}
                                 placeholder={t('userInfo.phonePlaceholder')}
                                 keyboardType="phone-pad"
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
                     </View>
@@ -481,46 +483,46 @@ export default function UserInfoScreen() {
                     {/* Medical Information */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Feather name="heart" size={20} color="#FF3B30" />
-                            <Text style={styles.sectionTitle}>{t('userInfo.medicalInfo')}</Text>
+                            <Feather name="heart" size={20} color={colors.error} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('userInfo.medicalInfo')}</Text>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.bloodGroup')}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.bloodGroup')}</Text>
                             <TouchableOpacity
-                                style={styles.pickerButton}
+                                style={[styles.pickerButton, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}
                                 onPress={() => setShowBloodGroupPicker(true)}
                             >
-                                <Text style={[styles.pickerButtonText, !medicalInfo.bloodGroup && styles.placeholderText]}>
+                                <Text style={[styles.pickerButtonText, { color: colors.text }, !medicalInfo.bloodGroup && [styles.placeholderText, { color: colors.inputPlaceholder }]]}>
                                     {medicalInfo.bloodGroup || t('userInfo.selectBloodGroup')}
                                 </Text>
-                                <Feather name="chevron-down" size={20} color="#666" />
+                                <Feather name="chevron-down" size={20} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.allergies')}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.allergies')}</Text>
                             <TextInput
-                                style={[styles.input, styles.multilineInput]}
+                                style={[styles.input, styles.multilineInput, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={medicalInfo.allergies}
                                 onChangeText={(text) => setMedicalInfo(prev => ({ ...prev, allergies: text }))}
                                 placeholder={t('userInfo.allergiesPlaceholder')}
                                 multiline
                                 numberOfLines={3}
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.medications')}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.medications')}</Text>
                             <TextInput
-                                style={[styles.input, styles.multilineInput]}
+                                style={[styles.input, styles.multilineInput, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={medicalInfo.medications}
                                 onChangeText={(text) => setMedicalInfo(prev => ({ ...prev, medications: text }))}
                                 placeholder={t('userInfo.medicationsPlaceholder')}
                                 multiline
                                 numberOfLines={3}
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
                     </View>
@@ -528,10 +530,10 @@ export default function UserInfoScreen() {
                     {/* Emergency Contacts */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Feather name="phone" size={20} color="#34C759" />
-                            <Text style={styles.sectionTitle}>{t('userInfo.emergencyContacts')}</Text>
-                            <View style={styles.contactBadge}>
-                                <Text style={styles.contactBadgeText}>{emergencyContacts.length}</Text>
+                            <Feather name="phone" size={20} color={colors.success} />
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('userInfo.emergencyContacts')}</Text>
+                            <View style={[styles.contactBadge, { backgroundColor: colors.infoLight }]}>
+                                <Text style={[styles.contactBadgeText, { color: colors.info }]}>{emergencyContacts.length}</Text>
                             </View>
                         </View>
 
@@ -542,63 +544,64 @@ export default function UserInfoScreen() {
                                         key={contact.id}
                                         style={[
                                             styles.contactCard,
+                                            { backgroundColor: colors.card, borderBottomColor: colors.border },
                                             index !== emergencyContacts.length - 1 && styles.contactCardBorder,
                                         ]}
                                     >
                                         <View style={styles.contactInfo}>
-                                            <Text style={styles.contactName}>{contact.name}</Text>
-                                            <Text style={styles.contactPhone}>{contact.phone}</Text>
+                                            <Text style={[styles.contactName, { color: colors.text }]}>{contact.name}</Text>
+                                            <Text style={[styles.contactPhone, { color: colors.textSecondary }]}>{contact.phone}</Text>
                                             {contact.relationship && (
-                                                <Text style={styles.contactRelationship}>{contact.relationship}</Text>
+                                                <Text style={[styles.contactRelationship, { color: colors.textTertiary }]}>{contact.relationship}</Text>
                                             )}
                                         </View>
                                         <View style={styles.contactActions}>
                                             <TouchableOpacity
-                                                style={styles.actionButton}
+                                                style={[styles.actionButton, { backgroundColor: colors.infoLight }]}
                                                 onPress={() => handleEditContact(contact)}
                                             >
-                                                <Feather name="edit-2" size={16} color="#007AFF" />
+                                                <Feather name="edit-2" size={16} color={colors.info} />
                                             </TouchableOpacity>
                                             <TouchableOpacity
-                                                style={[styles.actionButton, styles.deleteButton]}
+                                                style={[styles.actionButton, styles.deleteButton, { backgroundColor: colors.errorLight }]}
                                                 onPress={() => handleDeleteContact(contact.id)}
                                             >
-                                                <Feather name="trash-2" size={16} color="#FF3B30" />
+                                                <Feather name="trash-2" size={16} color={colors.error} />
                                             </TouchableOpacity>
                                         </View>
                                     </View>
                                 ))}
                             </View>
                         ) : (
-                            <Text style={styles.emptyText}>{t('userInfo.noContacts')}</Text>
+                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('userInfo.noContacts')}</Text>
                         )}
 
                         <TouchableOpacity
-                            style={styles.addContactButton}
+                            style={[styles.addContactButton, { backgroundColor: colors.infoLight, borderColor: colors.info }]}
                             onPress={() => {
                                 setEditingContact(null);
                                 setNewContact({ name: '', phone: '', relationship: '' });
                                 setShowContactModal(true);
                             }}
                         >
-                            <Feather name="plus" size={18} color="#007AFF" />
-                            <Text style={styles.addContactText}>{t('userInfo.addContact')}</Text>
+                            <Feather name="plus" size={18} color={colors.info} />
+                            <Text style={[styles.addContactText, { color: colors.info }]}>{t('userInfo.addContact')}</Text>
                         </TouchableOpacity>
                     </View>
 
                     {/* Actions */}
                     <View style={styles.actions}>
                         <TouchableOpacity
-                            style={[styles.button, styles.saveButton, !hasChanges && styles.disabledButton]}
+                            style={[styles.button, styles.saveButton, { backgroundColor: colors.info }, !hasChanges && [styles.disabledButton, { backgroundColor: colors.backgroundTertiary }]]}
                             onPress={handleSave}
                             disabled={!hasChanges || isSaving}
                         >
                             {isSaving ? (
-                                <ActivityIndicator color="white" />
+                                <ActivityIndicator color={colors.textInverse} />
                             ) : (
                                 <>
-                                    <Feather name="save" size={18} color="white" />
-                                    <Text style={styles.buttonText}>
+                                    <Feather name="save" size={18} color={colors.textInverse} />
+                                    <Text style={[styles.buttonText, { color: colors.textInverse }]}>
                                         {hasChanges ? t('userInfo.saveChanges') : t('userInfo.noChanges')}
                                     </Text>
                                 </>
@@ -615,12 +618,12 @@ export default function UserInfoScreen() {
                 animationType="slide"
                 onRequestClose={() => setShowContactModal(false)}
             >
-                <SafeAreaView style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
+                <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+                    <View style={[styles.modalHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
                         <TouchableOpacity onPress={() => setShowContactModal(false)}>
-                            <Text style={styles.modalCancelText}>{t('userInfo.cancel')}</Text>
+                            <Text style={[styles.modalCancelText, { color: colors.info }]}>{t('userInfo.cancel')}</Text>
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>
                             {editingContact ? t('userInfo.editContact') : t('userInfo.newContact')}
                         </Text>
                         <View style={{ width: 60 }} />
@@ -628,43 +631,43 @@ export default function UserInfoScreen() {
 
                     <ScrollView style={styles.modalContent}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.fullName')} *</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.fullName')} *</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={newContact.name}
                                 onChangeText={(text) => setNewContact(prev => ({ ...prev, name: text }))}
                                 placeholder={t('userInfo.enterName')}
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.phone')} *</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.phone')} *</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={newContact.phone}
                                 onChangeText={(text) => setNewContact(prev => ({ ...prev, phone: text }))}
                                 placeholder={t('userInfo.enterPhone')}
                                 keyboardType="phone-pad"
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>{t('userInfo.relationship')}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('userInfo.relationship')}</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                 value={newContact.relationship}
                                 onChangeText={(text) => setNewContact(prev => ({ ...prev, relationship: text }))}
                                 placeholder={t('userInfo.relationshipPlaceholder')}
-                                placeholderTextColor="#C7C7CC"
+                                placeholderTextColor={colors.inputPlaceholder}
                             />
                         </View>
                     </ScrollView>
 
                     <View style={styles.modalActions}>
-                        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleAddContact}>
-                            <Text style={styles.buttonText}>
+                        <TouchableOpacity style={[styles.button, styles.saveButton, { backgroundColor: colors.info }]} onPress={handleAddContact}>
+                            <Text style={[styles.buttonText, { color: colors.textInverse }]}>
                                 {editingContact ? t('userInfo.updateContact') : t('userInfo.addContact')}
                             </Text>
                         </TouchableOpacity>
@@ -679,27 +682,27 @@ export default function UserInfoScreen() {
                 animationType="slide"
                 onRequestClose={() => setShowBloodGroupPicker(false)}
             >
-                <SafeAreaView style={styles.pickerModalContainer}>
-                    <View style={styles.pickerModalContent}>
-                        <View style={styles.pickerHeader}>
-                            <Text style={styles.pickerTitle}>{t('userInfo.selectBloodGroup')}</Text>
+                <SafeAreaView style={[styles.pickerModalContainer, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <View style={[styles.pickerModalContent, { backgroundColor: colors.background }]}>
+                        <View style={[styles.pickerHeader, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.pickerTitle, { color: colors.text }]}>{t('userInfo.selectBloodGroup')}</Text>
                             <TouchableOpacity onPress={() => setShowBloodGroupPicker(false)}>
-                                <Feather name="x" size={24} color="#666" />
+                                <Feather name="x" size={24} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView>
                             {BLOOD_GROUPS.map((group) => (
                                 <TouchableOpacity
                                     key={group}
-                                    style={styles.pickerOption}
+                                    style={[styles.pickerOption, { borderBottomColor: colors.border }]}
                                     onPress={() => {
                                         setMedicalInfo(prev => ({ ...prev, bloodGroup: group }));
                                         setShowBloodGroupPicker(false);
                                     }}
                                 >
-                                    <Text style={styles.pickerOptionText}>{group}</Text>
+                                    <Text style={[styles.pickerOptionText, { color: colors.text }]}>{group}</Text>
                                     {medicalInfo.bloodGroup === group && (
-                                        <Feather name="check" size={20} color="#007AFF" />
+                                        <Feather name="check" size={20} color={colors.info} />
                                     )}
                                 </TouchableOpacity>
                             ))}
@@ -714,7 +717,6 @@ export default function UserInfoScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F7',
     },
     centerContainer: {
         flex: 1,
@@ -727,16 +729,13 @@ const styles = StyleSheet.create({
     },
     contactRelationship: {
         fontSize: 12,
-        color: '#8E8E93',
         fontStyle: 'italic',
     },
     header: {
         paddingTop: 8,
         paddingBottom: 6,
         paddingHorizontal: 20,
-        backgroundColor: 'white',
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
         marginBottom: 10,
     },
     headerPressable: {
@@ -747,22 +746,18 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#000',
     },
     syncText: {
         fontSize: 12,
-        color: '#34C759',
         marginLeft: 6,
     },
     loadingText: {
         marginTop: 10,
         fontSize: 16,
-        color: '#8E8E93',
     },
     errorBanner: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFE5E5',
         padding: 12,
         margin: 15,
         borderRadius: 8,
@@ -770,7 +765,6 @@ const styles = StyleSheet.create({
     },
     errorBannerText: {
         flex: 1,
-        color: '#FF3B30',
         fontSize: 14,
     },
     errorTitle: {
@@ -781,7 +775,6 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 14,
-        color: '#8E8E93',
         textAlign: 'center',
         marginBottom: 20,
         paddingHorizontal: 20,
@@ -791,16 +784,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 8,
-        backgroundColor: '#F0F9FF',
         marginBottom: 10,
     },
     pickerModalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     pickerModalContent: {
-        backgroundColor: 'white',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         maxHeight: '50%',
@@ -811,12 +801,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
     },
     pickerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#000',
     },
     pickerOption: {
         flexDirection: 'row',
@@ -824,31 +812,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
     },
     pickerOptionText: {
         fontSize: 16,
-        color: '#000',
     },
     pickerButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#F2F2F7',
         borderRadius: 10,
         padding: 12,
         borderWidth: 1,
-        borderColor: 'transparent',
     },
     pickerButtonText: {
         fontSize: 16,
-        color: '#000',
     },
     placeholderText: {
-        color: '#C7C7CC',
     },
     section: {
-        backgroundColor: 'white',
         padding: 20,
         marginTop: 15,
         borderRadius: 12,
@@ -863,11 +844,9 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#000',
         flex: 1,
     },
     contactBadge: {
-        backgroundColor: '#34C759',
         borderRadius: 12,
         width: 28,
         height: 28,
@@ -875,7 +854,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     contactBadgeText: {
-        color: 'white',
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -886,15 +864,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         marginBottom: 8,
-        color: '#000',
     },
     input: {
-        backgroundColor: '#F2F2F7',
         borderRadius: 10,
         padding: 12,
         fontSize: 16,
         borderWidth: 1,
-        borderColor: 'transparent',
     },
     multilineInput: {
         height: 80,
@@ -905,7 +880,6 @@ const styles = StyleSheet.create({
     },
     helperText: {
         fontSize: 12,
-        color: '#8E8E93',
         marginTop: 5,
     },
     contactsList: {
@@ -919,7 +893,6 @@ const styles = StyleSheet.create({
     },
     contactCardBorder: {
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
     },
     contactInfo: {
         flex: 1,
@@ -927,11 +900,9 @@ const styles = StyleSheet.create({
     contactName: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#000',
     },
     contactPhone: {
         fontSize: 14,
-        color: '#007AFF',
         marginTop: 4,
     },
     contactActions: {
@@ -941,14 +912,11 @@ const styles = StyleSheet.create({
     actionButton: {
         padding: 8,
         borderRadius: 6,
-        backgroundColor: '#F2F2F7',
     },
     deleteButton: {
-        backgroundColor: '#FFE5E5',
     },
     emptyText: {
         fontSize: 14,
-        color: '#8E8E93',
         textAlign: 'center',
         paddingVertical: 20,
     },
@@ -958,17 +926,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 12,
         paddingHorizontal: 16,
-        backgroundColor: '#E5F1FF',
         borderRadius: 10,
         gap: 8,
         borderWidth: 1,
-        borderColor: '#007AFF',
         borderStyle: 'dashed',
     },
     addContactText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#007AFF',
     },
     actions: {
         padding: 20,
@@ -985,31 +950,26 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     saveButton: {
-        backgroundColor: '#007AFF',
     },
     disabledButton: {
         opacity: 0.5,
     },
     buttonText: {
-        color: 'white',
         fontSize: 16,
         fontWeight: '600',
     },
     retryButton: {
-        backgroundColor: '#007AFF',
         paddingHorizontal: 30,
         paddingVertical: 12,
         borderRadius: 10,
         marginTop: 10,
     },
     retryButtonText: {
-        color: 'white',
         fontSize: 16,
         fontWeight: '600',
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: '#F2F2F7',
     },
     modalHeader: {
         flexDirection: 'row',
@@ -1017,19 +977,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 12,
-        backgroundColor: 'white',
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
     },
     modalCancelText: {
         fontSize: 16,
-        color: '#007AFF',
         fontWeight: '500',
     },
     modalTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#000',
     },
     modalContent: {
         flex: 1,
@@ -1042,7 +998,6 @@ const styles = StyleSheet.create({
     offlineWarning: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF3CD',
         padding: 12,
         marginHorizontal: 10,
         marginBottom: 10,
@@ -1051,7 +1006,6 @@ const styles = StyleSheet.create({
     },
     offlineWarningText: {
         flex: 1,
-        color: '#856404',
         fontSize: 13,
     },
 });

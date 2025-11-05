@@ -6,6 +6,7 @@ import * as SMS from 'expo-sms';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
@@ -13,6 +14,7 @@ const CheckContactScreen = () =>
 {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors } = useThemedStyles();
     const [contacts, setContacts] = useState([]);
     const [location, setLocation] = useState(null);
 
@@ -69,32 +71,32 @@ const CheckContactScreen = () =>
     };
 
     return (
-        <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalContent}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.backgroundSecondary }]}>
+            <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>{t('checkContact.selectContact')}</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>{t('checkContact.selectContact')}</Text>
                     <TouchableOpacity onPress={() => router.back()}>
-                        <Ionicons name="close-circle" size={30} color="#ccc" />
+                        <Ionicons name="close-circle" size={30} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </View>
                 <FlatList
                     data={contacts}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.contactItem} onPress={() => handleSelectContact(item)}>
-                            <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+                        <TouchableOpacity style={[styles.contactItem, { borderBottomColor: colors.border }]} onPress={() => handleSelectContact(item)}>
+                            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                                <Text style={[styles.avatarText, { color: colors.textInverse }]}>{item.name.charAt(0)}</Text>
                             </View>
                             <View>
-                                <Text style={styles.contactName}>{item.name}</Text>
-                                <Text style={styles.contactPhone}>{item.phone}</Text>
+                                <Text style={[styles.contactName, { color: colors.text }]}>{item.name}</Text>
+                                <Text style={[styles.contactPhone, { color: colors.textSecondary }]}>{item.phone}</Text>
                             </View>
                         </TouchableOpacity>
                     )}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>{t('checkContact.noContacts')}</Text>
-                            <Text style={styles.emptySubtext}>{t('checkContact.addContactsMessage')}</Text>
+                            <Text style={[styles.emptyText, { color: colors.text }]}>{t('checkContact.noContacts')}</Text>
+                            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>{t('checkContact.addContactsMessage')}</Text>
                         </View>
                     }
                 />
@@ -104,15 +106,15 @@ const CheckContactScreen = () =>
 };
 
 const styles = StyleSheet.create({
-    modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#F7F8FA' },
-    modalContent: { flex: 1, backgroundColor: 'white', padding: 20 },
+    modalContainer: { flex: 1, justifyContent: 'flex-end' },
+    modalContent: { flex: 1, padding: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     title: { fontSize: 22, fontWeight: 'bold' },
-    contactItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FF4500', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-    avatarText: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+    contactItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1 },
+    avatar: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    avatarText: { fontSize: 20, fontWeight: 'bold' },
     contactName: { fontSize: 18, fontWeight: '500' },
-    contactPhone: { fontSize: 14, color: '#666', marginTop: 2 },
+    contactPhone: { fontSize: 14, marginTop: 2 },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -122,11 +124,9 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#333'
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#777',
         marginTop: 8,
         textAlign: 'center',
     }

@@ -1,29 +1,29 @@
 // components/ContactListModal.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
-  Alert,
-  ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as SMS from 'expo-sms';
-import * as Location from 'expo-location';
-import PhoneContactsModal from './PhoneContactsModal';
+import { useAuth } from '@/context/AuthContext';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
 import {
   CacheManager,
   NetworkManager,
   OfflineQueueManager,
   SYNC_CONFIG
 } from '@/utils/syncManager';
-import { useAuth } from '@/context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { fa } from 'zod/v4/locales';
+import * as Location from 'expo-location';
+import * as SMS from 'expo-sms';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import PhoneContactsModal from './PhoneContactsModal';
 
 interface Contact {
   id: string;
@@ -46,6 +46,7 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
   refreshAppState
 }) => {
   const { token } = useAuth();
+  const { colors } = useThemedStyles();
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -522,16 +523,16 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
       </View>
       <View style={styles.contactInfo}>
         <View style={styles.contactHeader}>
-          <Text style={styles.contactName}>{item.name}</Text>
+          <Text style={[styles.contactName, { color: colors.text }]}>{item.name}</Text>
           {!item.synced && (
             <View style={styles.unsyncedBadge}>
-              <Ionicons name="cloud-offline" size={12} color="#FF9500" />
+              <Ionicons name="cloud-offline" size={12} color={colors.warning} />
             </View>
           )}
         </View>
-        <Text style={styles.contactPhone}>{item.phone}</Text>
+        <Text style={[styles.contactPhone, { color: colors.textSecondary }]}>{item.phone}</Text>
         {item.relationship && (
-          <Text style={styles.contactRelationship}>{item.relationship}</Text>
+          <Text style={[styles.contactRelationship, { color: colors.textSecondary }]}>{item.relationship}</Text>
         )}
       </View>
       {isManageMode && (
@@ -540,11 +541,11 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
           style={styles.removeButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="trash-bin" size={20} color="#FF6B6B" />
+          <Ionicons name="trash-bin" size={20} color={colors.primary} />
         </TouchableOpacity>
       )}
       {!isManageMode && (
-        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
       )}
     </TouchableOpacity>
   );
@@ -557,17 +558,17 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
         visible={visible}
         onRequestClose={onClose}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>
+              <Text style={[styles.title, { color: colors.text }]}>
                 {isManageMode ? 'Manage Contacts' : 'Emergency Contacts'}
               </Text>
               <View style={styles.headerButtons}>
                 {/* Sync button */}
                 <TouchableOpacity
-                  style={[styles.headerButton, isSyncing && styles.syncingButton]}
+                  style={[styles.headerButton, { backgroundColor: colors.backgroundSecondary }, isSyncing && [styles.syncingButton, { backgroundColor: colors.infoLight }]]}
                   onPress={handleManualSync}
                   disabled={isSyncing || !isOnline}
                   activeOpacity={0.7}
@@ -575,28 +576,28 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
                   <Ionicons
                     name={isSyncing ? 'sync' : 'cloud'}
                     size={18}
-                    color={isSyncing ? '#007AFF' : isOnline ? '#666' : '#ccc'}
+                    color={isSyncing ? colors.info : isOnline ? colors.textSecondary : colors.textTertiary}
                   />
                 </TouchableOpacity>
 
                 {/* Manage mode toggle */}
                 {contacts.length > 0 && (
                   <TouchableOpacity
-                    style={[styles.headerButton, isManageMode && styles.headerButtonActive]}
+                    style={[styles.headerButton, { backgroundColor: colors.backgroundSecondary }, isManageMode && [styles.headerButtonActive, { backgroundColor: colors.info }]]}
                     onPress={() => setIsManageMode(!isManageMode)}
                     activeOpacity={0.7}
                   >
                     <Ionicons
                       name={isManageMode ? 'checkmark' : 'settings'}
                       size={18}
-                      color={isManageMode ? '#fff' : '#666'}
+                      color={isManageMode ? colors.textInverse : colors.textSecondary}
                     />
                   </TouchableOpacity>
                 )}
 
                 {/* Close button */}
                 <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
-                  <Ionicons name="close-circle" size={28} color="#ccc" />
+                  <Ionicons name="close-circle" size={28} color={colors.textTertiary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -604,13 +605,13 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
             {/* Status bar */}
             <View style={styles.statusBar}>
               <View style={styles.statusLeft}>
-                <Text style={styles.contactCount}>
+                <Text style={[styles.contactCount, { color: colors.textSecondary }]}>
                   {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
                 </Text>
                 {hasLocalChanges && (
                   <View style={styles.unsyncedIndicator}>
-                    <Ionicons name="cloud-offline" size={14} color="#FF9500" />
-                    <Text style={styles.unsyncedText}>Unsynced</Text>
+                    <Ionicons name="cloud-offline" size={14} color={colors.warning} />
+                    <Text style={[styles.unsyncedText, { color: colors.warning }]}>Unsynced</Text>
                   </View>
                 )}
               </View>
@@ -622,7 +623,7 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
               )}
 
               {lastSyncTime && isOnline && (
-                <Text style={styles.syncText}>
+                <Text style={[styles.syncText, { color: colors.textTertiary }]}>
                   Synced {lastSyncTime.toLocaleTimeString()}
                 </Text>
               )}
@@ -635,16 +636,16 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
                 onPress={() => setIsPhonePickerVisible(true)}
                 activeOpacity={0.8}
               >
-                <Ionicons name="add-circle" size={24} color="#007AFF" />
-                <Text style={styles.addContactText}>Add Emergency Contact</Text>
+                <Ionicons name="add-circle" size={24} color={colors.info} />
+                <Text style={[styles.addContactText, { color: colors.info }]}>Add Emergency Contact</Text>
               </TouchableOpacity>
             )}
 
             {/* Contacts list */}
             {isLoading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={styles.loadingText}>Loading contacts...</Text>
+                <ActivityIndicator size="large" color={colors.info} />
+                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading contacts...</Text>
               </View>
             ) : (
               <FlatList
@@ -654,8 +655,8 @@ const ContactListModal: React.FC<ContactListModalProps> = ({
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
-                    <Ionicons name="people-outline" size={64} color="#ccc" />
-                    <Text style={styles.emptyText}>No emergency contacts</Text>
+                    <Ionicons name="people-outline" size={64} color={colors.textTertiary} />
+                    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No emergency contacts</Text>
                     <Text style={styles.emptySubtext}>
                       {isManageMode
                         ? 'Add contacts from your phone to get started'
@@ -701,10 +702,8 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
-    backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -720,7 +719,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     flex: 1,
-    color: '#333',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -731,15 +729,12 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerButtonActive: {
-    backgroundColor: '#007AFF',
   },
   syncingButton: {
-    backgroundColor: '#E3F2FD',
   },
   statusBar: {
     flexDirection: 'row',
@@ -747,7 +742,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#F8F9FA',
     borderRadius: 8,
     marginBottom: 12,
   },
@@ -758,7 +752,6 @@ const styles = StyleSheet.create({
   },
   contactCount: {
     fontSize: 13,
-    color: '#666',
     fontWeight: '500',
   },
   unsyncedIndicator: {
@@ -768,38 +761,31 @@ const styles = StyleSheet.create({
   },
   unsyncedText: {
     fontSize: 11,
-    color: '#FF9500',
     fontWeight: '500',
   },
   offlineBadge: {
-    backgroundColor: '#FF9500',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   offlineText: {
-    color: 'white',
     fontSize: 11,
     fontWeight: 'bold',
   },
   syncText: {
     fontSize: 12,
-    color: '#666',
   },
   addContactButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F8FF',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
   },
   addContactText: {
     marginLeft: 12,
     fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   contactItem: {
@@ -808,19 +794,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   avatarText: {
-    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -836,19 +819,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
-    color: '#333',
   },
   unsyncedBadge: {
     marginLeft: 6,
   },
   contactPhone: {
     fontSize: 14,
-    color: '#666',
     marginTop: 1,
   },
   contactRelationship: {
     fontSize: 12,
-    color: '#999',
     marginTop: 2,
     fontStyle: 'italic',
   },
@@ -863,7 +843,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#666',
   },
   emptyContainer: {
     flex: 1,
@@ -874,25 +853,21 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
     textAlign: 'center',
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   addFirstContactButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 22,
   },
   addFirstContactButtonText: {
-    color: 'white',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -900,11 +875,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
   footerText: {
     fontSize: 12,
-    color: '#666',
     textAlign: 'center',
     fontStyle: 'italic',
   },
