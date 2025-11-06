@@ -1,34 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Keyboard,
-} from 'react-native';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import { Link, Stack, useRouter } from 'expo-router';
+import { Feather, Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import i18n from '../../../lib/i18n';
+import { Link, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
+import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { API_Storing } from '../../../components/APIStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { API_Storing } from '../../../components/APIStore';
 // --- Configuration ---
 const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
 const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
 const FAKE_CALL_RINGTONE_KEY = 'fake_call_ringtone_uri';
-
 // --- Reusable UI Component for a settings link ---
-const SettingsRow = ({ icon, label, description, onPress, href }) => {
+const SettingsRow = ({ icon, label, description, onPress, href }: { icon: ComponentProps<typeof Feather>['name']; label: string; description?: string; onPress?: () => void; href?: string }) => {
+  const { colors } = useTheme();
   const content = (
-    <TouchableOpacity style={styles.row} onPress={onPress}>
-      <View style={[styles.iconContainer, { backgroundColor: '#E8E8E8' }]}>
-        <Feather name={icon} size={20} color="#333" />
+    <TouchableOpacity style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth, backgroundColor: colors.card, borderBottomColor: colors.border
+    }} onPress={onPress}>
+      <View style={[styles.iconContainer, { backgroundColor: colors.backgroundSecondary }]}>
+        <Feather name={icon} size={20} color={colors.text} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.label}>{label}</Text>
-        {description && <Text style={styles.description} numberOfLines={1}>{description}</Text>}
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        {description && <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={1}>{description}</Text>}
       </View>
-      <Ionicons name="chevron-forward" size={22} color="#C7C7CC" />
+      <Ionicons name="chevron-forward" size={22} color={colors.textTertiary} />
     </TouchableOpacity>
   );
 
@@ -40,8 +54,9 @@ export default function SettingsScreen() {
   const [fakeCallerName, setFakeCallerName] = useState('');
   const [fakeCallerNumber, setFakeCallerNumber] = useState('');
   const [ringtoneName, setRingtoneName] = useState('Default');
-  const [theme, setTheme] = useState('Light'); // Placeholder state
+
   const { i18n } = useTranslation();
+  const { themeMode, setThemeMode, activeTheme, colors } = useTheme();
   // Initialize state with the currently active language from i18next
 
   const [language, setLanguage] = useState(i18n.language);
@@ -118,13 +133,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <ScrollView>
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={32} color="#007AFF" />
-            <Text style={styles.headerTitle}>User & Medical Info</Text>
+            <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>User & Medical Info</Text>
           </TouchableOpacity>
 
 
@@ -133,8 +148,8 @@ export default function SettingsScreen() {
 
         {/* --- My Circle Section --- */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Circle</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>My Circle</Text>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingsRow
               href="settings/myCircle"
               icon="users"
@@ -146,22 +161,24 @@ export default function SettingsScreen() {
 
         {/* --- Fake Call Section --- */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fake Call</Text>
-          <View style={styles.card}>
-            <View style={styles.inputRow}>
-              <Feather name="user" size={20} color="#999" />
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Fake Call</Text>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <View style={[styles.inputRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+              <Feather name="user" size={20} color={colors.textTertiary} />
               <TextInput
                 placeholder="Caller Name (e.g., Mom)"
-                style={styles.input}
+                placeholderTextColor={colors.inputPlaceholder}
+                style={[styles.input, { color: colors.text }]}
                 value={fakeCallerName}
                 onChangeText={setFakeCallerName}
               />
             </View>
-            <View style={styles.inputRow}>
-              <Feather name="phone" size={20} color="#999" />
+            <View style={[styles.inputRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+              <Feather name="phone" size={20} color={colors.textTertiary} />
               <TextInput
                 placeholder="Caller Number"
-                style={styles.input}
+                placeholderTextColor={colors.inputPlaceholder}
+                style={[styles.input, { color: colors.text }]}
                 value={fakeCallerNumber}
                 onChangeText={setFakeCallerNumber}
                 keyboardType="phone-pad"
@@ -174,15 +191,15 @@ export default function SettingsScreen() {
               description={ringtoneName}
             />
           </View>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveSettings}>
-            <Text style={styles.saveButtonText}>Save Fake Call Settings</Text>
+          <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.info }]} onPress={handleSaveSettings}>
+            <Text style={[styles.saveButtonText, { color: colors.textInverse }]}>Save Fake Call Settings</Text>
           </TouchableOpacity>
         </View>
         <API_Storing />
         {/* --- App Settings Section --- */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>App</Text>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingsRow
               href="settings/language"
               icon="globe"
@@ -193,8 +210,8 @@ export default function SettingsScreen() {
         </View>
 
         {/* --- Sign Out Button --- */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.card }]} onPress={handleSignOut}>
+          <Text style={[styles.logoutButtonText, { color: colors.error }]}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -202,14 +219,12 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7', paddingTop: 20 },
+  container: { flex: 1, paddingTop: 20 },
   header: {
     paddingTop: 8,
     paddingBottom: 6,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     marginBottom: 10,
   },
   headerPressable: {
@@ -228,13 +243,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6D6D72',
     textTransform: 'uppercase',
     marginBottom: 8,
     paddingLeft: 12,
   },
   card: {
-    backgroundColor: 'white',
     borderRadius: 10,
     overflow: 'hidden',
   },
@@ -243,9 +256,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: 'white',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EFEFF4',
   },
   iconContainer: {
     width: 36,
@@ -260,49 +271,40 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: '#000',
   },
   description: {
     fontSize: 13,
-    color: '#6e6e73',
     marginTop: 2,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: 'white',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EFEFF4',
   },
   input: {
     flex: 1,
     height: 50,
     fontSize: 16,
-    color: '#333',
     marginLeft: 12,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',
     marginTop: 16,
   },
   saveButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
   logoutButton: {
-    backgroundColor: 'white',
     borderRadius: 10,
     margin: 16,
     padding: 14,
     alignItems: 'center',
   },
   logoutButtonText: {
-    color: '#FF3B30',
     fontSize: 16,
     fontWeight: '600',
   },

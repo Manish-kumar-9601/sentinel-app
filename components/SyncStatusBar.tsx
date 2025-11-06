@@ -1,7 +1,9 @@
-﻿import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+﻿import { useTheme } from '@/context/ThemeContext';
 import { syncService } from '@/utils/syncManager';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 interface SyncStatusBarProps {
     lastSync?: Date | null;
     onRefresh?: () => void;
@@ -9,6 +11,7 @@ interface SyncStatusBarProps {
 
 export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefresh }) => {
     const [state, setState] = useState(syncService.sync.getState());
+    const { colors } = useTheme();
 
     useEffect(() => {
         const unsubscribe = syncService.sync.subscribe(setState);
@@ -26,10 +29,10 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
     };
 
     const getStatusColor = (): string => {
-        if (!state.isOnline) return '#FF9500';
-        if (state.isSyncing) return '#007AFF';
-        if (state.pendingOperations > 0) return '#FF9500';
-        return '#34C759';
+        if (!state.isOnline) return colors.warning;
+        if (state.isSyncing) return colors.info;
+        if (state.pendingOperations > 0) return colors.warning;
+        return colors.success;
     };
 
     const getStatusIcon = (): string => {
@@ -40,14 +43,21 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
     };
 
     const getStatusText = (): string => {
-        if (!state.isOnline ) return 'Offline';
+        if (!state.isOnline) return 'Offline';
         if (state.isSyncing) return 'Syncing...';
         if (state.pendingOperations > 0) return `${state.pendingOperations} pending`;
         return 'Synced';
     };
 
+    const getBackgroundColor = (): string => {
+        if (!state.isOnline) return colors.warningLight;
+        if (state.isSyncing) return colors.infoLight;
+        if (state.pendingOperations > 0) return colors.warningLight;
+        return colors.successLight;
+    };
+
     return (
-        <View style={[styles.container, { backgroundColor: getStatusColor() + '15' }]}>
+        <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
             <View style={styles.leftSection}>
                 {state.isSyncing ? (
                     <ActivityIndicator size="small" color={getStatusColor()} />
@@ -61,11 +71,11 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
 
             <View style={styles.rightSection}>
                 {lastSync && (
-                    <Text style={styles.lastSyncText}>{formatLastSync(lastSync)}</Text>
+                    <Text style={[styles.lastSyncText, { color: colors.textSecondary }]}>{formatLastSync(lastSync)}</Text>
                 )}
                 {onRefresh && (
                     <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-                        <Ionicons name="refresh" size={16} color="#666" />
+                        <Ionicons name="refresh" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -100,7 +110,6 @@ const styles = StyleSheet.create({
     },
     lastSyncText: {
         fontSize: 12,
-        color: '#666',
     },
     refreshButton: {
         padding: 4,

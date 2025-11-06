@@ -1,17 +1,16 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import { useTheme } from '@/context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import
 {
-  SafeAreaView,
-  View,
-  TextInput,
+  Alert,
   Button,
   StyleSheet,
   Text,
-  StatusBar,
-  Alert,
-  TouchableOpacity
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define a key for storing the API Key.
 const API_KEY_STORAGE_KEY = '@api_key';
@@ -25,6 +24,7 @@ export const API_Storing = () =>
   // State for providing feedback to the user
   const [message, setMessage] = useState('');
   const [toggle, setToggle] = useState(false);
+  const { colors } = useTheme();
 
   // useEffect hook to load the API Key from AsyncStorage when the component mounts
   useEffect(() =>
@@ -103,20 +103,21 @@ export const API_Storing = () =>
   }
   return (
     <View style={{ flex: 1, }}>
-      <TouchableOpacity style={styles.buttonContainer} onPress={onPressToggle}>
-        <Text style={styles.buttonText}>Save API Key</Text>
+      <TouchableOpacity style={[styles.buttonContainer, { backgroundColor: colors.info }]} onPress={onPressToggle}>
+        <Text style={[styles.buttonText, { color: colors.textInverse }]}>Save API Key</Text>
       </TouchableOpacity>
       <View style={{
         display: toggle ? 'flex' : 'none', flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f4f4f8',
+        backgroundColor: colors.backgroundSecondary,
         padding: 20,
       }}>
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
             placeholder="Enter your API Key here"
+            placeholderTextColor={colors.inputPlaceholder}
             value={apiKeyInput}
             onChangeText={setApiKeyInput}
             autoCapitalize="none"
@@ -129,19 +130,19 @@ export const API_Storing = () =>
           marginVertical: 0,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#1a89ffff',
+          backgroundColor: colors.info,
           boxShadow: '0 5px 8px rgba(0,0,0,0.2)',
         }} onPress={saveApiKey}>
-          <Text style={styles.buttonText}>Save API Key to Device</Text>
+          <Text style={[styles.buttonText, { color: colors.textInverse }]}>Save API Key to Device</Text>
         </TouchableOpacity>
 
 
-        <View style={styles.displayContainer}>
-          <Text style={styles.subTitle}>Currently Stored API Key:</Text>
-          <Text style={styles.apiKeyText}>
+        <View style={[styles.displayContainer, { backgroundColor: colors.card }]}>
+          <Text style={[styles.subTitle, { color: colors.textSecondary }]}>Currently Stored API Key:</Text>
+          <Text style={[styles.apiKeyText, { color: colors.info }]}>
             {storedApiKey ? storedApiKey : 'None'}
           </Text>
-          <Text style={styles.messageText}>{message}</Text>
+          <Text style={[styles.messageText, { color: colors.success }]}>{message}</Text>
         </View>
 
         {/* Add a button to clear the API Key for testing purposes */}
@@ -151,7 +152,7 @@ export const API_Storing = () =>
 
               title="Clear Stored API Key"
               onPress={clearApiKey}
-              color="#FF3B30"
+              color={colors.error}
             />
           </View>
         ) : null}
@@ -166,14 +167,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f4f4f8',
     padding: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#333',
   },
   inputContainer: {
     width: '100%',
@@ -181,11 +180,9 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 15,
-    backgroundColor: '#fff',
     fontSize: 16,
     width: '100%',
   },
@@ -193,7 +190,6 @@ const styles = StyleSheet.create({
     marginTop: 40,
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff',
     borderRadius: 8,
     width: '100%',
     boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
@@ -201,26 +197,22 @@ const styles = StyleSheet.create({
   subTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#555',
   },
   apiKeyText: {
     marginTop: 10,
     fontSize: 14,
-    color: '#007AFF',
     fontFamily: 'monospace', // Use a monospaced font for API Keys
     textAlign: 'center',
   },
   messageText: {
     marginTop: 15,
     fontSize: 14,
-    color: 'green',
     fontStyle: 'italic',
   },
   clearButton: {
     marginTop: 20,
   },
   buttonContainer: {
-    backgroundColor: '#007AFF', // A nice blue
     marginHorizontal: 110,
     paddingVertical: 5,
     paddingHorizontal: 0,
@@ -230,10 +222,9 @@ const styles = StyleSheet.create({
     // Shadow for iOS
     boxShadow: '0 5px 5px rgba(0,0,0,0.1)',
     // Shadow for Android
- 
+
   },
   buttonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   }

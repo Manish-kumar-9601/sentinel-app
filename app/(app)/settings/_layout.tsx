@@ -40,6 +40,13 @@ export default function RootLayout() {
 
           }}
         />
+        <Stack.Screen
+          name="theme"
+          options={{
+            headerShown: false,
+
+          }}
+        />
       </Stack>
     </SafeAreaProvider>
 

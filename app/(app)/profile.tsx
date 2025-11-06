@@ -119,8 +119,8 @@ const ProfileRow = ({ icon, iconSet, label, href, subtitle, color, isLast = fals
 
   return (
     <Link href={href} asChild>
-      <TouchableOpacity style={[styles.row, { borderBottomColor: colors.border }]}>
-        <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={[styles.iconContainer, { backgroundColor: color + '30' }]}>
           <IconComponent name={icon} size={20} color={color} />
         </View>
         <View style={styles.rowContent}>
@@ -154,7 +154,7 @@ const ProfileScreen = () => {
         <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={28} color={colors.info} />
+            <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
             <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
           </TouchableOpacity>
 
@@ -162,7 +162,7 @@ const ProfileScreen = () => {
         </View>
         {user ? (
           <LinearGradient
-            colors={[colors.primary, colors.primaryDark]}
+            colors={[colors.infoLight, colors.tint]}
             style={styles.userInfoSection}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -320,9 +320,7 @@ const styles = StyleSheet.create({
   menuContainer: {
     borderRadius: 15,
     marginHorizontal: 16,
-    boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
-
-
+    boxShadow: '0 3px 8px rgba(49, 49, 49, 0.1)',
   },
   row: {
     flexDirection: 'row',

@@ -10,11 +10,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { useTheme } from '@/styles';
 
 // --- Reusable UI Component for a feature card ---
 const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => {
-  const { colors } = useThemedStyles();
+  const { colors } = useTheme();
+
   const content = (
 
     <TouchableOpacity
@@ -23,7 +24,7 @@ const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => 
       disabled={comingSoon}
     >
       <View style={[styles.iconContainer, { backgroundColor: colors.infoLight }]}>
-        <Feather name={icon} size={28} color={colors.info} />
+        <Feather name={icon} size={28} color={colors.blueLight } />
       </View>
       <View style={styles.textContainer}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
@@ -43,15 +44,16 @@ const FeatureCard = ({ icon, title, description, href, comingSoon = false }) => 
 };
 
 export default function ExploreScreen() {
-  const { colors } = useThemedStyles();
+  const { colors } = useTheme();
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView>
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={32} color={colors.info} />
-            <Text style={[styles.headerTitle, { color: colors.info }]}>Explore</Text>
+            <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Explore</Text>
           </TouchableOpacity>
 
 
@@ -64,17 +66,11 @@ export default function ExploreScreen() {
             icon="shield"
             title="Data Leak Check"
             description="See if your email has been compromised in a data breach."
-            href="/dataLeak" // Links directly to the settings screen
+            href="/dataLeak"
           />
         </View>
 
-        {/* --- Placeholder for Safe Route Planning --- */}
-        {/* <FeatureCard
-          icon="map"
-          title="Safe Route Planning"
-          description="Find the safest route to your destination based on real-time data."
-          comingSoon={true}
-        /> */}
+
 
         {/* --- Placeholder for Community Reporting --- */}
         <FeatureCard
@@ -82,6 +78,7 @@ export default function ExploreScreen() {
           title="Community Reports"
           description="View and report safety incidents in your area."
           comingSoon={true}
+          href={''}
         />
       </ScrollView>
     </SafeAreaView>
@@ -98,7 +95,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    // marginBottom: 10,
+
   },
   headerPressable: {
     flexDirection: 'row',

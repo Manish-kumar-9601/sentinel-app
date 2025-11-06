@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet, Image, Text } from 'react-native';
+import { migrateOldData } from '@/utils/migration';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 // Import the app logo
 const sentinelIcon = require('../assets/images/sentinel-icon.png');
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { migrateOldData } from '@/utils/migration';
 
 /**
  * This is the initial splash screen for the application.
@@ -17,6 +18,7 @@ const GUEST_kEY = 'guest_user';
 const StartPage = () => {
     const { user, isLoading } = useAuth();
     const router = useRouter();
+    const { colors } = useTheme();
 
     useEffect(() => {
         migrateOldData();
@@ -41,10 +43,10 @@ const StartPage = () => {
 
     // Render a branded loading screen while the auth check is in progress.
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <Image source={sentinelIcon} style={styles.logo} />
-            <ActivityIndicator size="large" color="#FF4500" style={styles.spinner} />
-            <Text style={styles.loadingText}>Initializing Sentinel...</Text>
+            <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Initializing Sentinel...</Text>
         </View>
     );
 };
@@ -54,7 +56,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
     },
     logo: {
         width: 120,
@@ -68,7 +69,6 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 20,
         fontSize: 16,
-        color: '#6c757d', // A subtle gray color for the text
     },
 });
 

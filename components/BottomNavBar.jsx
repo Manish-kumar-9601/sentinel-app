@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
 import { useModal } from '../context/ModalContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
+import { createGlobalStyles, useTheme } from '@/styles';
 
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
@@ -18,11 +19,12 @@ const NAV_ITEMS = [
 const BottomNavBar = () =>
 {
   const { t } = useTranslation();
-  const { colors } = useThemedStyles();
   const router = useRouter();
   const pathname = usePathname();
   const { openContactModal } = useModal(); // Get the function from context
-
+  const { colors } = useTheme();
+  console.log("path name", pathname)
+  const hideOnPaths = pathname === '/fakeIncomingCall' ? true : false;
   const handlePress = (item) =>
   {
     if (item.path === '/checkContact')
@@ -33,16 +35,15 @@ const BottomNavBar = () =>
     } else if (item.path === '/fakeIncomingCall')
     {
       router.push(item.path);
-      // closeContactModal()
     } else
     {
       router.push(item.path);
-      // closeContactModal()
     }
   };
 
   return (
-    < View style={[styles.navBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+
+    <View style={[styles.navBar, { backgroundColor: colors.card, borderTopColor: colors.border, display: hideOnPaths ? 'none' : 'flex' }]}>
       {NAV_ITEMS.map((item) =>
       {
         const isActive = pathname === item.path;
@@ -56,9 +57,9 @@ const BottomNavBar = () =>
             <IconComponent
               name={item.icon}
               size={28}
-              color={isActive ? colors.info : colors.textTertiary}
+              color={isActive ? colors.navigatorColor : colors.textTertiary}
             />
-            <Text style={[styles.navText, { color: isActive ? colors.info : colors.textTertiary }]}>
+            <Text style={[styles.navText, { color: isActive ? colors.navigatorColor : colors.textTertiary }]}>
               {t(`home.${item.name}`)}
             </Text>
           </TouchableOpacity>
@@ -70,15 +71,11 @@ const BottomNavBar = () =>
 
 const styles = StyleSheet.create({
   navBar: {
-    // position: 'absolute',
-    // bottom: 10,
-    // left: 0,
-    // right: 0,
     height: 60,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    borderTopWidth: 0,
+    paddingBottom: 25,
   },
   navItem: {
     alignItems: 'center',

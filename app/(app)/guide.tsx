@@ -258,7 +258,8 @@ const EmergencyGuideScreen = () => {
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
           <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-            <Feather name="chevron-left" size={24} color={colors.info} />
+            <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
+
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.text }} >{categoryId.charAt(0).toUpperCase() + categoryId.slice(1)}</Text>
 
           </TouchableOpacity>

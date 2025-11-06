@@ -49,7 +49,7 @@ const privacyScreen = () =>
       <View style={styles.header}>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color={colors.primary} />
+          <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
           <Text style={styles.headerTitle}>{t('privacy.title')}</Text>
         </TouchableOpacity>
       </View>

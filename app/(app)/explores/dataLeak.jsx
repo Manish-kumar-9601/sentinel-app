@@ -1,32 +1,32 @@
 ﻿import { useEffect, useState } from 'react';
 import
-  {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Keyboard,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-  } from 'react-native';
+{
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import sentinel_detect_icon from '../../..//assets/images/heroIcon.png';
-import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { useTheme } from '../../../context/ThemeContext';
 const API_KEY_STORAGE_KEY = '@api_key';
-const DataLeakScreen = () =>
+export default function DataLeakScreen ()
 {
   const { t } = useTranslation();
-  const { colors } = useThemedStyles();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -111,12 +111,12 @@ const DataLeakScreen = () =>
     );
   }
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color={colors.info} />
-          <Text style={[styles.headerTitle, { color: colors.info }]}>{t('dataLeak.dataCheck')}</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('dataLeak.dataCheck')}</Text>
         </TouchableOpacity>
 
 
@@ -282,4 +282,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DataLeakScreen;

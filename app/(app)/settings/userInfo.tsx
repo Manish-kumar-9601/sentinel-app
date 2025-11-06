@@ -401,7 +401,8 @@ export default function UserInfoScreen() {
                                 }
                             }}
                         >
-                            <Feather name="chevron-left" size={24} color={colors.info} />
+                            <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
+
                             <Text style={[styles.headerTitle, { color: colors.text }]}>{t('userInfo.title')}</Text>
                         </TouchableOpacity>
                     </View>

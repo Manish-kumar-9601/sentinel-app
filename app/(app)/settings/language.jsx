@@ -78,7 +78,7 @@ const LanguageScreen = () =>
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
 
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color={colors.info} />
+          <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('language.selectLanguage')}</Text>
         </TouchableOpacity>
 

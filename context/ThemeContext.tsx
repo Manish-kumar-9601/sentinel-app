@@ -18,7 +18,7 @@ const THEME_STORAGE_KEY = '@theme_mode';
 // Light theme colors
 export const lightColors = {
     // Primary colors
-    primary: '#FF4500',
+    primary: '#ff5416ff',
     primaryLight: '#FF6B33',
     primaryDark: '#CC3700',
 
@@ -38,7 +38,7 @@ export const lightColors = {
     borderLight: '#F3F4F6',
     card: '#FFFFFF',
     cardElevated: '#FFFFFF',
-
+    navigatorColor: '#007AFF',
     // Status colors
     success: '#006422',
     successLight: '#10B981',
@@ -48,6 +48,54 @@ export const lightColors = {
     warningLight: '#FCD34D',
     info: '#007AFF',
     infoLight: '#3B82F6',
+
+    // --- New Base Colors ---
+
+    // Red
+    red: '#EF4444',
+    redLight: '#FEE2E2',
+    redDark: '#B91C1C',
+
+    // Green
+    green: '#22C55E',
+    greenLight: '#DCFCE7',
+    greenDark: '#15803D',
+
+    // Blue
+    blue: '#3B82F6',
+    blueLight: '#DBEAFE',
+    blueDark: '#1D4ED8',
+
+    // Yellow
+    yellow: '#F59E0B',
+    yellowLight: '#FEF3C7',
+    yellowDark: '#B45309',
+
+    // Purple
+    purple: '#8B5CF6',
+    purpleLight: '#EDE9FE',
+    purpleDark: '#6D28D9',
+
+    // Pink
+    pink: '#EC4899',
+    pinkLight: '#FCE7F3',
+    pinkDark: '#BE185D',
+
+    // Teal
+    teal: '#14B8A6',
+    tealLight: '#CCFBF1',
+    tealDark: '#0F766E',
+
+    // --- New Grayscale ---
+    grey100: '#F7F8FA', // Same as backgroundSecondary
+    grey200: '#EEEFF1', // Same as backgroundTertiary
+    grey300: '#E5E7EB', // Same as border
+    grey400: '#D1D5DB',
+    grey500: '#9BA1A6', // Same as textTertiary
+    grey600: '#687076', // Same as textSecondary
+    grey700: '#4B5563',
+    grey800: '#1F2937',
+    grey900: '#11181C', // Same as text
 
     // Special colors
     tint: '#0a7ea4',
@@ -67,58 +115,106 @@ export const lightColors = {
     inputText: '#11181C',
     inputPlaceholder: '#9BA1A6',
 };
-
 // Dark theme colors
 export const darkColors = {
     // Primary colors
-    primary: '#FF6B33',
-    primaryLight: '#FF8552',
-    primaryDark: '#FF4500',
+    primary: '#FF4500', // Often, the primary color stays vibrant
+    primaryLight: '#FF6B33',
+    primaryDark: '#CC3700',
 
     // Background colors
-    background: '#000000',
-    backgroundSecondary: '#1C1C1E',
-    backgroundTertiary: '#2C2C2E',
+    background: '#11181C', // Dark main background
+    backgroundSecondary: '#1F2937', // Slightly lighter
+    backgroundTertiary: '#4B5563', // Even lighter
 
     // Text colors
-    text: '#ECEDEE',
-    textSecondary: '#9BA1A6',
-    textTertiary: '#687076',
-    textInverse: '#11181C',
+    text: '#FFFFFF', // White
+    textSecondary: '#E5E7EB', // Light grey
+    textTertiary: '#9BA1A6', // Muted grey
+    textInverse: '#11181C', // Dark
 
     // UI colors
-    border: '#3A3A3C',
-    borderLight: '#2C2C2E',
-    card: '#1C1C1E',
-    cardElevated: '#2C2C2E',
+    border: '#4B5563', // Dark border
+    borderLight: '#1F2937', // Very subtle border
+    card: '#11181C', // Card background
+    cardElevated: '#1F2937', // Card background
+    navigatorColor: '#FF4500',
 
     // Status colors
-    success: '#10B981',
-    successLight: '#34D399',
-    error: '#EF4444',
-    errorLight: '#F87171',
-    warning: '#FCD34D',
-    warningLight: '#FDE68A',
-    info: '#3B82F6',
-    infoLight: '#60A5FA',
+    success: '#22C55E', // Bright green
+    successLight: '#15803D', // Darker green for backgrounds
+    error: '#EF4444', // Bright red
+    errorLight: '#B91C1C', // Darker red for backgrounds
+    warning: '#F59E0B', // Bright yellow/orange
+    warningLight: '#B45309', // Darker yellow for backgrounds
+    info: '#3B82F6', // Bright blue
+    infoLight: '#1D4ED8', // Darker blue for backgrounds
+
+    // --- Base Colors (Adjusted for dark mode) ---
+
+    // Red
+    red: '#EF4444',
+    redLight: '#F87171', // Lighter shade for emphasis
+    redDark: '#B91C1C', // Darker shade for backgrounds
+
+    // Green
+    green: '#22C55E',
+    greenLight: '#4ADE80',
+    greenDark: '#15803D',
+
+    // Blue
+    blue: '#3B82F6',
+    blueLight: '#60A5FA',
+    blueDark: '#1D4ED8',
+
+    // Yellow
+    yellow: '#F59E0B',
+    yellowLight: '#FBBF24',
+    yellowDark: '#B45309',
+
+    // Purple
+    purple: '#8B5CF6',
+    purpleLight: '#A78BFA',
+    purpleDark: '#6D28D9',
+
+    // Pink
+    pink: '#EC4899',
+    pinkLight: '#F472B6',
+    pinkDark: '#BE185D',
+
+    // Teal
+    teal: '#14B8A6',
+    tealLight: '#2DD4BF',
+    tealDark: '#0F766E',
+
+    // --- Grayscale (Inverted logic) ---
+    grey100: '#11181C', // Same as background
+    grey200: '#1F2937', // Same as backgroundSecondary
+    grey300: '#4B5563', // Same as backgroundTertiary
+    grey400: '#687076', // Muted text/icons
+    grey500: '#9BA1A6', // Same as textTertiary
+    grey600: '#D1D5DB', // Light grey
+    grey700: '#E5E7EB', // Same as textSecondary
+    grey800: '#F3F4F6', // Lighter grey
+    grey900: '#FFFFFF', // Same as text
 
     // Special colors
-    tint: '#FFFFFF',
-    icon: '#9BA1A6',
+    tint: '#0a7ea4', // May want to adjust this for contrast
+    icon: '#9BA1A6', // Muted grey
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: '#FFFFFF',
-    shadow: 'rgba(0, 0, 0, 0.3)',
-    overlay: 'rgba(0, 0, 0, 0.7)',
+    tabIconSelected: '#0a7ea4', // Same tint
+    shadow: 'rgba(0, 0, 0, 0.1)', // Shadows are less prominent in dark mode
+    overlay: 'rgba(0, 0, 0, 0.5)', // Stays the same, or could be a light overlay
 
     // Emergency colors
-    emergency: '#FF6B33',
-    emergencyLight: '#FF8552',
+    emergency: '#FF4500',
+    emergencyLight: '#FF6B33',
 
     // Input colors
-    inputBackground: '#2C2C2E',
-    inputBorder: '#3A3A3C',
-    inputText: '#ECEDEE',
-    inputPlaceholder: '#687076',
+    inputBackground: '#1F2937', // Dark input
+    inputBorder: '#4B5563', // Muted border
+    inputText: '#FFFFFF', // Light text
+    inputPlaceholder: '#9BA1A6', // Muted placeholder
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

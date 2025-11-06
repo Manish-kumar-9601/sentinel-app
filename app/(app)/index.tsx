@@ -213,7 +213,7 @@ const Header = ({ onProfile, colors }) => (
         <View>
             <Image
                 source={SentinelIcon}
-                style={{ width: 40, height: 40 }}
+                style={{ width: 40, height: 40 ,borderRadius:50}}
             />
         </View>
         <View style={styles.headerIcons}>
@@ -812,7 +812,7 @@ export default function HomeScreen() {
                 <EmergencyGrid onCategorySelect={handleCategorySelect}
                 />
             </ScrollView>
-            <BottomNavBar />
+            {/* <BottomNavBar /> */}
             <ContactListModal
                 refreshAppState={refreshAppState}
                 visible={isContactModalVisible}

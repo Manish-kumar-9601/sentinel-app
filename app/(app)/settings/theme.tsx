@@ -2,8 +2,9 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {  ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../../context/ThemeContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ThemeScreen = () => {
     const router = useRouter();
@@ -166,7 +167,7 @@ const ThemeScreen = () => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.headerPressable} onPress={() => router.back()}>
-                    <Ionicons name="chevron-back" size={28} color={colors.primary} />
+                    <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
                     <Text style={styles.headerTitle}>{t('theme.title')}</Text>
                 </TouchableOpacity>
             </View>

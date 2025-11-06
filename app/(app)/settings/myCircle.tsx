@@ -206,7 +206,7 @@ export default function MyCircleScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
-          <Feather name="chevron-left" size={32} color={colors.primary} />
+          <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
           <Text style={styles.headerTitle}>{t('myCircle.title')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButton} onPress={() => setIsPickerVisible(true)}>
