@@ -3,7 +3,7 @@ import { StorageService } from '@/services/storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, type Href } from 'expo-router';
 import type { ComponentProps } from 'react';
 import React, { useEffect, useState } from 'react';
 import {
@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_Storing } from '../../../components/APIStore';
 
 // --- Reusable UI Component for a settings link ---
-const SettingsRow = ({ icon, label, description, onPress, href }: { icon: ComponentProps<typeof Feather>['name']; label: string; description?: string; onPress?: () => void; href?: string }) => {
+const SettingsRow = ({ icon, label, description, onPress, href }: { icon: ComponentProps<typeof Feather>['name']; label: string; description?: string; onPress?: () => void; href?: Href }) => {
   const { colors } = useTheme();
   const content = (
     <TouchableOpacity style={{
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
   const [ringtoneName, setRingtoneName] = useState('Default');
 
   const { i18n } = useTranslation();
-  const { themeMode, setThemeMode, activeTheme, colors } = useTheme();
+  const { colors } = useTheme();
   // Initialize state with the currently active language from i18next
 
   const [language, setLanguage] = useState(i18n.language);
@@ -119,7 +119,7 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const getLanguageName = (code) => {
+  const getLanguageName = (code:any) => {
     switch (code) {
       case 'hi': return 'हिंदी';
       case 'gu': return 'ગુજરાતી';
@@ -149,7 +149,7 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>My Circle</Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingsRow
-              href="settings/myCircle"
+              href="/settings/myCircle"
               icon="users"
               label="Manage Emergency Contacts"
               description="Add or remove trusted contacts"
@@ -199,7 +199,7 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>App</Text>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <SettingsRow
-              href="settings/language"
+              href="/settings/language"
               icon="globe"
               label="Language"
               description={getLanguageName(language)}
