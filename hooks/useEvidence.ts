@@ -49,7 +49,7 @@ export interface ShareOptions {
 }
 
 export function useEvidence(): UseEvidenceResult {
-    const { userInfo } = useUserInfo();
+    const { data: userInfo } = useUserInfo();
     const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [capturing, setCapturing] = useState(false);
@@ -57,25 +57,25 @@ export function useEvidence(): UseEvidenceResult {
 
     // Load evidence on mount
     useEffect(() => {
-        if (userInfo?.id) {
+        if (userInfo?.userId) {
             loadEvidence();
         }
-    }, [userInfo?.id]);
+    }, [userInfo?.userId]);
 
     // Load evidence from service
     const loadEvidence = useCallback(async () => {
-        if (!userInfo?.id) return;
+        if (!userInfo?.userId) return;
 
         setLoading(true);
         try {
-            const items = await EvidenceLocationSharingService.getUserEvidence(userInfo.id);
+            const items = await EvidenceLocationSharingService.getUserEvidence(userInfo.userId);
             setEvidence(items);
         } catch (error) {
             console.error('Error loading evidence:', error);
         } finally {
             setLoading(false);
         }
-    }, [userInfo?.id]);
+    }, [userInfo?.userId]);
 
     // Refresh evidence
     const refreshEvidence = useCallback(async () => {
@@ -84,7 +84,7 @@ export function useEvidence(): UseEvidenceResult {
 
     // Capture photo from camera
     const capturePhoto = useCallback(async (): Promise<string | null> => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userId) {
             Alert.alert('Error', 'User not logged in');
             return null;
         }
@@ -111,7 +111,7 @@ export function useEvidence(): UseEvidenceResult {
 
                 // Capture with auto-location
                 const evidenceId = await EvidenceLocationSharingService.captureEvidence(
-                    userInfo.id,
+                    userInfo.userId,
                     'photo',
                     uri
                 );
@@ -131,11 +131,11 @@ export function useEvidence(): UseEvidenceResult {
         } finally {
             setCapturing(false);
         }
-    }, [userInfo?.id, loadEvidence]);
+    }, [userInfo?.userId, loadEvidence]);
 
     // Capture video from camera
     const captureVideo = useCallback(async (): Promise<string | null> => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userId) {
             Alert.alert('Error', 'User not logged in');
             return null;
         }
@@ -161,7 +161,7 @@ export function useEvidence(): UseEvidenceResult {
                 const uri = result.assets[0].uri;
 
                 const evidenceId = await EvidenceLocationSharingService.captureEvidence(
-                    userInfo.id,
+                    userInfo.userId,
                     'video',
                     uri
                 );
@@ -179,11 +179,11 @@ export function useEvidence(): UseEvidenceResult {
         } finally {
             setCapturing(false);
         }
-    }, [userInfo?.id, loadEvidence]);
+    }, [userInfo?.userId, loadEvidence]);
 
     // Record audio
     const recordAudio = useCallback(async (): Promise<string | null> => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userId) {
             Alert.alert('Error', 'User not logged in');
             return null;
         }
@@ -222,7 +222,7 @@ export function useEvidence(): UseEvidenceResult {
 
                             if (uri) {
                                 const evidenceId = await EvidenceLocationSharingService.captureEvidence(
-                                    userInfo.id,
+                                    userInfo.userId,
                                     'audio',
                                     uri
                                 );
@@ -244,11 +244,11 @@ export function useEvidence(): UseEvidenceResult {
         } finally {
             setCapturing(false);
         }
-    }, [userInfo?.id, loadEvidence]);
+    }, [userInfo?.userId, loadEvidence]);
 
     // Pick from gallery
     const pickFromGallery = useCallback(async (): Promise<string | null> => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userId) {
             Alert.alert('Error', 'User not logged in');
             return null;
         }
@@ -276,7 +276,7 @@ export function useEvidence(): UseEvidenceResult {
                 const type: 'photo' | 'video' = asset.type === 'video' ? 'video' : 'photo';
 
                 const evidenceId = await EvidenceLocationSharingService.captureEvidence(
-                    userInfo.id,
+                    userInfo.userId,
                     type,
                     uri
                 );
@@ -294,7 +294,7 @@ export function useEvidence(): UseEvidenceResult {
         } finally {
             setCapturing(false);
         }
-    }, [userInfo?.id, loadEvidence]);
+    }, [userInfo?.userId, loadEvidence]);
 
     // Delete evidence
     const deleteEvidence = useCallback(async (id: string) => {
@@ -339,7 +339,7 @@ export function useEvidence(): UseEvidenceResult {
         contactIds: string[],
         options: ShareOptions = {}
     ) => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userId) {
             Alert.alert('Error', 'User not logged in');
             return;
         }
@@ -354,7 +354,7 @@ export function useEvidence(): UseEvidenceResult {
 
             // Create share packages
             const packages = await EvidenceLocationSharingService.createSharedDataPackage(
-                userInfo.id,
+                userInfo.userId,
                 contactIds,
                 options
             );
@@ -376,7 +376,7 @@ export function useEvidence(): UseEvidenceResult {
         } finally {
             setSharing(false);
         }
-    }, [userInfo?.id, loadEvidence]);
+    }, [userInfo?.userId, loadEvidence]);
 
     // Calculate statistics
     const stats = {

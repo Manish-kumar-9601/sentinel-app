@@ -1,7 +1,7 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -15,49 +15,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PhoneContactsModal from '../../../components/PhoneContactsModal';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
-// --- Configuration ---
-const CONTACTS_STORAGE_KEY = 'emergency_contacts';
-
 export default function MyCircleScreen() {
-  const [contacts, setContacts] = useState([]);
+  // Use global emergency contacts context
+  const { contacts, loading, addContact, deleteContact } = useEmergencyContacts();
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const { t } = useTranslation();
   const { colors } = useThemedStyles();
 
-  // --- Load contacts from storage when the screen opens ---
-  useEffect(() => {
-    const loadContacts = async () => {
-      try {
-        const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-        if (storedContacts !== null) {
-          setContacts(JSON.parse(storedContacts));
-        }
-      } catch (error) {
-        console.error('Failed to load contacts.', error);
-      }
-    };
-    loadContacts();
-  }, []);
-
-  // --- Save contacts to storage whenever the list changes ---
-  useEffect(() => {
-    const saveContacts = async () => {
-      try {
-        const jsonValue = JSON.stringify(contacts);
-        await AsyncStorage.setItem(CONTACTS_STORAGE_KEY, jsonValue);
-      } catch (error) {
-        console.error('Failed to save contacts.', error);
-      }
-    };
-    // Only save if contacts isn't the initial empty array
-    if (contacts.length > 0) {
-      saveContacts();
-    }
-  }, [contacts]);
-
-
   // --- Logic to Remove a Contact ---
-  const handleRemoveContact = (contactToRemove) => {
+  const handleRemoveContact = async (contactToRemove: any) => {
     Alert.alert(
       t('myCircle.removeTitle'),
       t('myCircle.removeMessage', { name: contactToRemove.name }),
@@ -65,10 +31,13 @@ export default function MyCircleScreen() {
         { text: t('myCircle.cancel'), style: 'cancel' },
         {
           text: t('myCircle.remove'),
-          onPress: () => {
-            setContacts(currentContacts =>
-              currentContacts.filter(contact => contact.id !== contactToRemove.id)
-            );
+          onPress: async () => {
+            try {
+              await deleteContact(contactToRemove.id);
+            } catch (error) {
+              console.error('Failed to remove contact:', error);
+              Alert.alert(t('myCircle.error'), t('myCircle.removeError'));
+            }
           },
           style: 'destructive',
         },
@@ -77,17 +46,26 @@ export default function MyCircleScreen() {
   };
 
   // --- Logic to Add a Contact from the Phone Contacts Modal ---
-  const handleSelectFromPhone = (selectedContact) => {
+  const handleSelectFromPhone = async (selectedContact: any) => {
     // Check if contact already exists in the circle
     if (contacts.some(c => c.id === selectedContact.id)) {
       Alert.alert(t('myCircle.contactExists'), t('myCircle.contactExistsMessage', { name: selectedContact.name }));
     } else {
-      setContacts(currentContacts => [...currentContacts, selectedContact]);
+      try {
+        await addContact({
+          name: selectedContact.name,
+          phone: selectedContact.phone,
+          relationship: selectedContact.relationship || ''
+        });
+      } catch (error) {
+        console.error('Failed to add contact:', error);
+        Alert.alert(t('myCircle.error'), t('myCircle.addError'));
+      }
     }
   };
 
   // --- UI Component for each contact in the list ---
-  const ContactItem = ({ item }) => (
+  const ContactItem = ({ item }: { item: any }) => (
     <View style={styles.contactItem}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>

@@ -1,5 +1,5 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -8,34 +8,20 @@ import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 
-const CONTACTS_STORAGE_KEY = 'emergency_contacts';
-
 const CheckContactScreen = () =>
 {
     const router = useRouter();
     const { t } = useTranslation();
     const { colors } = useThemedStyles();
-    const [contacts, setContacts] = useState([]);
+    // Use global emergency contacts context
+    const { contacts, loading } = useEmergencyContacts();
     const [location, setLocation] = useState(null);
 
-    // Load contacts and current location when the screen opens
+    // Load current location when the screen opens
     useEffect(() =>
     {
-        const loadData = async () =>
+        const loadLocation = async () =>
         {
-            // Load contacts
-            try
-            {
-                const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-                if (storedContacts)
-                {
-                    setContacts(JSON.parse(storedContacts));
-                }
-            } catch (error)
-            {
-                console.error("Failed to load contacts for check-in", error);
-            }
-
             // Get current location
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted')
@@ -47,7 +33,7 @@ const CheckContactScreen = () =>
                 Alert.alert(t('checkContact.permissionDenied'), t('checkContact.locationPermissionMessage'));
             }
         };
-        loadData();
+        loadLocation();
     }, []);
 
     const handleSelectContact = async (contact) =>

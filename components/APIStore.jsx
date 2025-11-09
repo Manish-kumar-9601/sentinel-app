@@ -1,19 +1,17 @@
-﻿import { useTheme } from '@/context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { STORAGE_KEYS } from '@/constants/storage';
+import { useTheme } from '@/context/ThemeContext';
+import { StorageService } from '@/services/storage';
 import React, { useEffect, useState } from 'react';
 import
-{
-  Alert,
-  Button,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-
-// Define a key for storing the API Key.
-const API_KEY_STORAGE_KEY = '@api_key';
+  {
+    Alert,
+    Button,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+  } from 'react-native';
 
 export const API_Storing = () =>
 {
@@ -26,14 +24,14 @@ export const API_Storing = () =>
   const [toggle, setToggle] = useState(false);
   const { colors } = useTheme();
 
-  // useEffect hook to load the API Key from AsyncStorage when the component mounts
+  // useEffect hook to load the API Key from StorageService when the component mounts
   useEffect(() =>
   {
     const loadApiKey = async () =>
     {
       try
       {
-        const apiKey = await AsyncStorage.getItem(API_KEY_STORAGE_KEY);
+        const apiKey = await StorageService.get(STORAGE_KEYS.API_KEY);
         if (apiKey !== null)
         {
           console.log('API Key loaded successfully!');
@@ -54,7 +52,7 @@ export const API_Storing = () =>
     loadApiKey();
   }, []); // The empty dependency array ensures this runs only once on mount
 
-  // Function to save the API Key to AsyncStorage
+  // Function to save the API Key to StorageService
   const saveApiKey = async () =>
   {
     if (apiKeyInput.trim().length != 50)
@@ -70,7 +68,7 @@ export const API_Storing = () =>
 
     try
     {
-      await AsyncStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput);
+      await StorageService.set(STORAGE_KEYS.API_KEY, apiKeyInput);
       console.log('API Key saved successfully!');
       setStoredApiKey(apiKeyInput); // Update the displayed stored API Key
       setMessage(`API Key has been saved!`);
@@ -82,12 +80,12 @@ export const API_Storing = () =>
     }
   };
 
-  // Function to clear the API Key from AsyncStorage
+  // Function to clear the API Key from StorageService
   const clearApiKey = async () =>
   {
     try
     {
-      await AsyncStorage.removeItem(API_KEY_STORAGE_KEY);
+      await StorageService.delete(STORAGE_KEYS.API_KEY);
       console.log('API Key cleared successfully!');
       setStoredApiKey('');
       setMessage('API Key has been cleared from storage.');

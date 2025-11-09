@@ -4,12 +4,12 @@
  * Uses latest expo-location v18.1.6 and expo-task-manager v13.1.6
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/constants/storage';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { StorageService } from './storage';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const LOCATION_HISTORY_KEY = 'location_history';
 const MAX_HISTORY_POINTS = 1000; // Keep last 1000 location points
 const LOCATION_UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -171,7 +171,7 @@ export class LocationHistoryService {
                 history.splice(MAX_HISTORY_POINTS);
             }
 
-            await AsyncStorage.setItem(LOCATION_HISTORY_KEY, JSON.stringify(history));
+            await StorageService.setLocationHistory(history);
         } catch (error) {
             console.error('Error adding location point:', error);
         }
@@ -182,8 +182,8 @@ export class LocationHistoryService {
      */
     static async getHistory(): Promise<LocationPoint[]> {
         try {
-            const data = await AsyncStorage.getItem(LOCATION_HISTORY_KEY);
-            return data ? JSON.parse(data) : [];
+            const history = await StorageService.getLocationHistory();
+            return history || [];
         } catch (error) {
             console.error('Error getting location history:', error);
             return [];
@@ -313,7 +313,7 @@ export class LocationHistoryService {
      */
     static async clearHistory(): Promise<void> {
         try {
-            await AsyncStorage.removeItem(LOCATION_HISTORY_KEY);
+            await StorageService.delete(STORAGE_KEYS.LOCATION_HISTORY);
             console.log('🗑️ Location history cleared');
         } catch (error) {
             console.error('Error clearing history:', error);

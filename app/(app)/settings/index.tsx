@@ -1,9 +1,10 @@
+import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import type { ComponentProps } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { Link, useRouter } from 'expo-router';
+import type { ComponentProps } from 'react';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -20,10 +21,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_Storing } from '../../../components/APIStore';
-// --- Configuration ---
-const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
-const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
-const FAKE_CALL_RINGTONE_KEY = 'fake_call_ringtone_uri';
+
 // --- Reusable UI Component for a settings link ---
 const SettingsRow = ({ icon, label, description, onPress, href }: { icon: ComponentProps<typeof Feather>['name']; label: string; description?: string; onPress?: () => void; href?: string }) => {
   const { colors } = useTheme();
@@ -64,17 +62,17 @@ export default function SettingsScreen() {
   // --- Load saved settings ---
   useEffect(() => {
     const loadSettings = async () => {
-      const storedName = await AsyncStorage.getItem(FAKE_CALLER_NAME_KEY);
+      const storedName = await StorageService.get<string>(STORAGE_KEYS.FAKE_CALLER_NAME);
       if (storedName) setFakeCallerName(storedName);
 
-      const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
+      const storedNumber = await StorageService.get<string>(STORAGE_KEYS.FAKE_CALLER_NUMBER);
       if (storedNumber) setFakeCallerNumber(storedNumber);
 
-      const storedRingtoneUri = await AsyncStorage.getItem(FAKE_CALL_RINGTONE_KEY);
+      const storedRingtoneUri = await StorageService.get<string>(STORAGE_KEYS.FAKE_CALL_RINGTONE);
       if (storedRingtoneUri) {
         const fileInfo = await FileSystem.getInfoAsync(storedRingtoneUri);
         if (fileInfo.exists) {
-          const originalName = storedRingtoneUri.split('/').pop().replace(/%20/g, ' ').replace('custom_ringtone_', '');
+          const originalName = storedRingtoneUri.split('/').pop()?.replace(/%20/g, ' ').replace('custom_ringtone_', '') || '';
           setRingtoneName(originalName);
         }
       }
@@ -86,8 +84,8 @@ export default function SettingsScreen() {
   // --- Handlers ---
   const handleSaveSettings = async () => {
     try {
-      await AsyncStorage.setItem(FAKE_CALLER_NAME_KEY, fakeCallerName.trim());
-      await AsyncStorage.setItem(FAKE_CALLER_NUMBER_KEY, fakeCallerNumber.trim());
+      await StorageService.set(STORAGE_KEYS.FAKE_CALLER_NAME, fakeCallerName.trim());
+      await StorageService.set(STORAGE_KEYS.FAKE_CALLER_NUMBER, fakeCallerNumber.trim());
       Alert.alert('Saved!', 'Fake call settings have been updated.');
       Keyboard.dismiss();
     } catch (error) {
@@ -104,7 +102,7 @@ export default function SettingsScreen() {
         const safeName = asset.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const permanentUri = `${FileSystem.documentDirectory}custom_ringtone_${safeName}`;
         await FileSystem.copyAsync({ from: asset.uri, to: permanentUri });
-        await AsyncStorage.setItem(FAKE_CALL_RINGTONE_KEY, permanentUri);
+        await StorageService.set(STORAGE_KEYS.FAKE_CALL_RINGTONE, permanentUri);
         setRingtoneName(asset.name);
         Alert.alert('Ringtone Set!', `Your fake call will now use "${asset.name}".`);
       }

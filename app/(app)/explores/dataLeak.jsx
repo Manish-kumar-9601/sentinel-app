@@ -14,15 +14,16 @@ import
   View,
 } from 'react-native';
 
+import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import sentinel_detect_icon from '../../..//assets/images/heroIcon.png';
 import { useTheme } from '../../../context/ThemeContext';
-const API_KEY_STORAGE_KEY = '@api_key';
+
 export default function DataLeakScreen ()
 {
   const { t } = useTranslation();
@@ -37,7 +38,7 @@ export default function DataLeakScreen ()
     // Define an async function inside the effect
     const loadApiKey = async () =>
     {
-      const apiKey = await AsyncStorage.getItem(API_KEY_STORAGE_KEY);
+      const apiKey = await StorageService.get(STORAGE_KEYS.API_KEY);
       if (apiKey !== null)
       {
         setApiKey(apiKey);

@@ -1,18 +1,19 @@
 ﻿// utils/syncManager.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
 
 // ==================== CONFIGURATION ====================
 export const SYNC_CONFIG = {
     KEYS: {
-        USER_INFO: 'sync_user_info_v3',
-        CONTACTS: 'sync_contacts_v3',
-        LOCATION: 'sync_location_v3',
-        MEDICAL_INFO: 'sync_medical_info_v3',
-        QUEUE: 'sync_queue_v3',
-        LAST_SYNC: 'sync_last_sync_v3',
-        SYNC_STATE: 'sync_state_v3',
+        USER_INFO: STORAGE_KEYS.USER_INFO,
+        CONTACTS: STORAGE_KEYS.EMERGENCY_CONTACTS,
+        LOCATION: STORAGE_KEYS.LOCATION_CACHE,
+        MEDICAL_INFO: STORAGE_KEYS.MEDICAL_INFO,
+        QUEUE: STORAGE_KEYS.SYNC_QUEUE,
+        LAST_SYNC: STORAGE_KEYS.LAST_SYNC_TIMESTAMP,
+        SYNC_STATE: STORAGE_KEYS.SYNC_STATE,
     },
     EXPIRY: {
         USER_INFO: 10 * 60 * 1000, // 10 minutes
@@ -106,7 +107,7 @@ export class CacheManager {
                 },
             };
 
-            await AsyncStorage.setItem(key, JSON.stringify(cached));
+            await StorageService.set(key, cached);
             console.log(`💾 Cached: ${key} (synced: ${synced})`);
             return true;
         } catch (error) {
@@ -117,10 +118,8 @@ export class CacheManager {
 
     static async get<T>(key: string, maxAge?: number): Promise<{ data: T; metadata: SyncMetadata } | null> {
         try {
-            const stored = await AsyncStorage.getItem(key);
-            if (!stored) return null;
-
-            const cached: CachedData<T> = JSON.parse(stored);
+            const cached = await StorageService.get<CachedData<T>>(key);
+            if (!cached) return null;
 
             // Version check
             if (cached.metadata.version !== this.VERSION) {
@@ -144,7 +143,7 @@ export class CacheManager {
 
     static async remove(key: string): Promise<void> {
         try {
-            await AsyncStorage.removeItem(key);
+            await StorageService.delete(key);
             console.log(`🗑️ Removed cache: ${key}`);
         } catch (error) {
             console.error(`❌ Cache removal failed for ${key}:`, error);
@@ -154,7 +153,7 @@ export class CacheManager {
     static async clearAll(): Promise<void> {
         try {
             const keys = Object.values(SYNC_CONFIG.KEYS);
-            await AsyncStorage.multiRemove(keys);
+            await Promise.all(keys.map(key => StorageService.delete(key)));
             console.log('🗑️ All cache cleared');
         } catch (error) {
             console.error('❌ Cache clear failed:', error);
@@ -249,9 +248,9 @@ export class OfflineQueueManager {
 
     private async loadQueue(): Promise<void> {
         try {
-            const stored = await AsyncStorage.getItem(SYNC_CONFIG.KEYS.QUEUE);
+            const stored = await StorageService.get<QueuedOperation[]>(SYNC_CONFIG.KEYS.QUEUE);
             if (stored) {
-                this.queue = JSON.parse(stored);
+                this.queue = stored;
                 console.log(`📥 Loaded ${this.queue.length} queued operations`);
             }
         } catch (error) {
@@ -261,7 +260,7 @@ export class OfflineQueueManager {
 
     private async saveQueue(): Promise<void> {
         try {
-            await AsyncStorage.setItem(SYNC_CONFIG.KEYS.QUEUE, JSON.stringify(this.queue));
+            await StorageService.set(SYNC_CONFIG.KEYS.QUEUE, this.queue);
         } catch (error) {
             console.error('❌ Queue save failed:', error);
         }
@@ -405,9 +404,9 @@ export class SyncManager {
     private async initialize(): Promise<void> {
         // Load saved state
         try {
-            const saved = await AsyncStorage.getItem(SYNC_CONFIG.KEYS.SYNC_STATE);
+            const saved = await StorageService.get<Partial<SyncState>>(SYNC_CONFIG.KEYS.SYNC_STATE);
             if (saved) {
-                this.state = { ...this.state, ...JSON.parse(saved) };
+                this.state = { ...this.state, ...saved };
             }
         } catch (error) {
             console.error('Failed to load sync state:', error);
@@ -421,7 +420,7 @@ export class SyncManager {
 
     private async saveState(): Promise<void> {
         try {
-            await AsyncStorage.setItem(SYNC_CONFIG.KEYS.SYNC_STATE, JSON.stringify(this.state));
+            await StorageService.set(SYNC_CONFIG.KEYS.SYNC_STATE, this.state);
         } catch (error) {
             console.error('Failed to save sync state:', error);
         }

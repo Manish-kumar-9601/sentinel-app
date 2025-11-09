@@ -30,6 +30,10 @@ export const STORAGE_KEYS = {
     VOLUME_SOS_ENABLED: 'sentinel_volume_sos_enabled',
     NOTIFICATIONS_ENABLED: 'sentinel_notifications_enabled',
     VOICE_SOS_ENABLED: 'sentinel_voice_sos_enabled',
+    FAKE_CALLER_NAME: 'sentinel_fake_caller_name',
+    FAKE_CALLER_NUMBER: 'sentinel_fake_caller_number',
+    FAKE_CALL_RINGTONE: 'sentinel_fake_call_ringtone_uri',
+    API_KEY: 'sentinel_api_key',
 
     // ==================== ASYNC STORAGE - SYNC ====================
     SYNC_QUEUE: 'sentinel_sync_queue_v1',

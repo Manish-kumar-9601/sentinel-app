@@ -1,5 +1,4 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Updates from 'expo-updates';
 import { useState } from 'react';
@@ -24,7 +23,6 @@ const LANGUAGES = [
   { code: 'kn', name: 'ಕನ್ನಡ (Kannada)' },
   { code: 'raj', name: 'राजस्थानी (Rajasthani)' },
 ];
-const LANGUAGE_KEY = 'user_language';
 
 const LanguageScreen = () =>
 {
@@ -41,7 +39,7 @@ const LanguageScreen = () =>
       await i18n.changeLanguage(langCode);
 
       // 2. Save the new language preference to storage
-      await AsyncStorage.setItem(LANGUAGE_KEY, langCode);
+      await StorageService.set(STORAGE_KEYS.LANGUAGE, langCode);
 
       // 3. Update the local state to show the checkmark immediately
       setCurrentLang(langCode);

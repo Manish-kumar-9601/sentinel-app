@@ -1,4 +1,5 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
@@ -27,7 +28,6 @@ import { AppState, Platform } from 'react-native';
  * For iOS, we recommend using shake gesture as alternative.
  */
 
-const VOLUME_SOS_ENABLED_KEY = 'volume_sos_enabled';
 const HOLD_DURATION = 2000; // 2 seconds
 
 export const useVolumeButtonSOS = (onSOSTrigger: () => void) => {
@@ -45,8 +45,8 @@ export const useVolumeButtonSOS = (onSOSTrigger: () => void) => {
 
     const loadSettings = async () => {
         try {
-            const value = await AsyncStorage.getItem(VOLUME_SOS_ENABLED_KEY);
-            setEnabled(value !== 'false'); // Enabled by default
+            const value = await StorageService.get(STORAGE_KEYS.VOLUME_SOS_ENABLED);
+            setEnabled(value !== false); // Enabled by default
         } catch (error) {
             console.error('Failed to load volume SOS settings:', error);
         }
@@ -135,7 +135,7 @@ export const useVolumeButtonSOS = (onSOSTrigger: () => void) => {
     // Public method to enable/disable
     const toggleVolumeButtonSOS = async (enable: boolean) => {
         setEnabled(enable);
-        await AsyncStorage.setItem(VOLUME_SOS_ENABLED_KEY, enable.toString());
+        await StorageService.set(STORAGE_KEYS.VOLUME_SOS_ENABLED, enable);
     };
 
     return {
