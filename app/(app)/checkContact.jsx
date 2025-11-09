@@ -1,5 +1,5 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { StorageService } from '@/services/StorageService';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -7,8 +7,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
-
-const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 
 const CheckContactScreen = () =>
 {
@@ -26,11 +24,8 @@ const CheckContactScreen = () =>
             // Load contacts
             try
             {
-                const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-                if (storedContacts)
-                {
-                    setContacts(JSON.parse(storedContacts));
-                }
+                const storedContacts = await StorageService.getEmergencyContacts();
+                setContacts(storedContacts);
             } catch (error)
             {
                 console.error("Failed to load contacts for check-in", error);

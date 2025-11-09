@@ -1,8 +1,8 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import type { ThemeMode } from '@/services/StorageService';
+import { StorageService } from '@/services/StorageService';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { useColorScheme as useSystemColorScheme } from 'react-native';
 
-type ThemeMode = 'light' | 'dark' | 'system';
 type ActiveTheme = 'light' | 'dark';
 
 interface ThemeContextType {
@@ -12,8 +12,6 @@ interface ThemeContextType {
     toggleTheme: () => void;
     colors: typeof lightColors;
 }
-
-const THEME_STORAGE_KEY = '@theme_mode';
 
 // Light theme colors
 export const lightColors = {
@@ -228,10 +226,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const loadTheme = async () => {
             try {
-                const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-                if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
-                    setThemeModeState(savedTheme as ThemeMode);
-                }
+                const savedTheme = await StorageService.getThemeMode();
+                setThemeModeState(savedTheme);
             } catch (error) {
                 console.error('Failed to load theme preference:', error);
             } finally {
@@ -253,7 +249,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     // Save theme preference
     const setThemeMode = async (mode: ThemeMode) => {
         try {
-            await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
+            await StorageService.setThemeMode(mode);
             setThemeModeState(mode);
         } catch (error) {
             console.error('Failed to save theme preference:', error);

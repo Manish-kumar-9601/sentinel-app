@@ -1,15 +1,7 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+﻿import type { User } from '@/services/StorageService';
+import { StorageService } from '@/services/StorageService';
 import Constants from 'expo-constants';
-
-const TOKEN_KEY = 'auth_token';
-const USER_KEY = 'user_data';
-
-interface User {
-    id: string;
-    name: string;
-    email: string;
-}
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
     user: User | null;
@@ -38,8 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setIsLoading(true);
             const [storedToken, storedUser] = await Promise.all([
-                SecureStore.getItemAsync(TOKEN_KEY),
-                SecureStore.getItemAsync(USER_KEY)
+                StorageService.getAuthToken(),
+                StorageService.getUserData()
             ]);
 
             if (storedToken && storedUser) {
@@ -50,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (isValid) {
                     setTokenState(storedToken);
-                    setUserState(JSON.parse(storedUser));
+                    setUserState(storedUser);
                     console.log('✅ Session restored');
                 } else {
                     console.log('❌ Stored token invalid, clearing');
@@ -101,26 +93,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const setUser = async (newUser: User | null) => {
         setUserState(newUser);
         if (newUser) {
-            await SecureStore.setItemAsync(USER_KEY, JSON.stringify(newUser));
+            await StorageService.setUserData(newUser);
         } else {
-            await SecureStore.deleteItemAsync(USER_KEY);
+            await StorageService.clearUserData();
         }
     };
 
     const setToken = async (newToken: string | null) => {
         setTokenState(newToken);
         if (newToken) {
-            await SecureStore.setItemAsync(TOKEN_KEY, newToken);
+            await StorageService.setAuthToken(newToken);
         } else {
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            await StorageService.clearAuthToken();
         }
     };
 
     const clearStoredAuth = async () => {
-        await Promise.all([
-            SecureStore.deleteItemAsync(TOKEN_KEY),
-            SecureStore.deleteItemAsync(USER_KEY)
-        ]);
+        await StorageService.clearAuthData();
         setUserState(null);
         setTokenState(null);
     };
@@ -196,11 +185,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Environment at Auth context:', env);
             const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
             console.log("apiUrl at Auth context", apiUrl)
-            if (!apiUrl && env === 'production') {
-                return { success: false, error: 'API URL not configured' };
-            }
 
-            if (token) {
+            if (token && apiUrl) {
                 // Call logout endpoint
                 await fetch(`${apiUrl}/api/auth/logout`, {
                     method: 'POST',

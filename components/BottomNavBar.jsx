@@ -1,11 +1,10 @@
-﻿import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+﻿import { fontSize, layout, useTheme } from '@/styles';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useModal } from '../context/ModalContext';
-import { useThemedStyles } from '../hooks/useThemedStyles';
-import { createGlobalStyles, useTheme } from '@/styles';
 
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
@@ -42,8 +41,17 @@ const BottomNavBar = () =>
   };
 
   return (
-
-    <View style={[styles.navBar, { backgroundColor: colors.card, borderTopColor: colors.border, display: hideOnPaths ? 'none' : 'flex' }]}>
+    <View style={[
+      layout.rowCenter,
+      {
+        height: 60,
+        justifyContent: 'space-around',
+        paddingBottom: 25,
+        backgroundColor: colors.card,
+        borderTopColor: colors.border,
+        display: hideOnPaths ? 'none' : 'flex'
+      }
+    ]}>
       {NAV_ITEMS.map((item) =>
       {
         const isActive = pathname === item.path;
@@ -51,7 +59,7 @@ const BottomNavBar = () =>
         return (
           <TouchableOpacity
             key={item.name}
-            style={styles.navItem}
+            style={{ alignItems: 'center' }}
             onPress={() => handlePress(item)}
           >
             <IconComponent
@@ -59,7 +67,11 @@ const BottomNavBar = () =>
               size={28}
               color={isActive ? colors.navigatorColor : colors.textTertiary}
             />
-            <Text style={[styles.navText, { color: isActive ? colors.navigatorColor : colors.textTertiary }]}>
+            <Text style={{
+              fontSize: fontSize.sm,
+              marginTop: 2,
+              color: isActive ? colors.navigatorColor : colors.textTertiary
+            }}>
               {t(`home.${item.name}`)}
             </Text>
           </TouchableOpacity>
@@ -68,22 +80,5 @@ const BottomNavBar = () =>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  navBar: {
-    height: 60,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingBottom: 25,
-  },
-  navItem: {
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-});
 
 export default BottomNavBar;

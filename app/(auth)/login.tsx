@@ -1,5 +1,5 @@
-﻿import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { StorageService } from '@/services/StorageService';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,8 +18,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
-
-const GUEST_KEY = 'guest_user';
 
 const LoginScreen = () => {
     const { t } = useTranslation();
@@ -54,7 +52,7 @@ const LoginScreen = () => {
     };
 
     const handleContinueAsGuest = async () => {
-        await AsyncStorage.setItem(GUEST_KEY, 'true');
+        await StorageService.setGuestMode(true);
         router.replace('/(app)');
     };
 
@@ -134,7 +132,7 @@ const styles = StyleSheet.create({
         height: 100,
         alignSelf: 'center',
         marginBottom: 20,
-        borderRadius:50
+        borderRadius: 50
     },
     title: {
         fontSize: 28,

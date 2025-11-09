@@ -1,8 +1,7 @@
-﻿import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
+﻿import { StorageService } from '@/services/StorageService';
+import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
-const TOKEN_KEY = 'auth_token';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
@@ -16,12 +15,7 @@ async function delay(ms: number) {
 }
 
 async function getAuthToken(): Promise<string | null> {
-    try {
-        return await SecureStore.getItemAsync(TOKEN_KEY);
-    } catch (error) {
-        console.error('Failed to get auth token:', error);
-        return null;
-    }
+    return await StorageService.getAuthToken();
 }
 
 export async function authenticatedFetch(
@@ -56,7 +50,7 @@ export async function authenticatedFetch(
     for (let i = 0; i <= retries; i++) {
         try {
             console.log(`🌐 Fetching: ${endpoint} (attempt ${i + 1})`);
-            
+
             const response = await fetch(url, {
                 ...fetchOptions,
                 headers,
@@ -95,7 +89,7 @@ export const api = {
     get: async (endpoint: string, options?: FetchOptions) => {
         return authenticatedFetch(endpoint, { ...options, method: 'GET' });
     },
-    
+
     post: async (endpoint: string, data?: any, options?: FetchOptions) => {
         return authenticatedFetch(endpoint, {
             ...options,
@@ -103,7 +97,7 @@ export const api = {
             body: data ? JSON.stringify(data) : undefined,
         });
     },
-    
+
     put: async (endpoint: string, data?: any, options?: FetchOptions) => {
         return authenticatedFetch(endpoint, {
             ...options,
@@ -111,7 +105,7 @@ export const api = {
             body: data ? JSON.stringify(data) : undefined,
         });
     },
-    
+
     delete: async (endpoint: string, options?: FetchOptions) => {
         return authenticatedFetch(endpoint, { ...options, method: 'DELETE' });
     },

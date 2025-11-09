@@ -1,5 +1,5 @@
-﻿import { Entypo, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { StorageService } from '@/services/StorageService';
+import { Entypo, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import { useNavigation, useRouter } from 'expo-router';
@@ -8,8 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // --- Configuration ---
-const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
-const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
 const DEFAULT_CALLER_NAME = '';
 const DEFAULT_CALLER_NUMBER = '';
 
@@ -66,11 +64,12 @@ const FakeCallScreen = () =>
         {
             try
             {
-                const storedName = await AsyncStorage.getItem(FAKE_CALLER_NAME_KEY);
-                if (storedName && mounted) setCallerName(storedName);
-
-                const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
-                if (storedNumber && mounted) setCallerNumber(storedNumber);
+                const settings = await StorageService.getFakeCallerSettings();
+                if (mounted)
+                {
+                    setCallerName(settings.name);
+                    setCallerNumber(settings.number);
+                }
             } catch (error)
             {
                 console.error("Failed to load caller info", error);

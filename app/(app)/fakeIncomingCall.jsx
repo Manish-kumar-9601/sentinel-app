@@ -1,5 +1,5 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import { StorageService } from '@/services/StorageService';
+import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
 import { useNavigation, useRouter } from 'expo-router';
@@ -17,11 +17,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // --- Configuration ---
-const FAKE_CALLER_NAME_KEY = 'fake_caller_name';
-const FAKE_CALLER_NUMBER_KEY = 'fake_caller_number';
-const FAKE_CALL_RINGTONE_KEY = 'fake_call_ringtone_uri';
-const DEFAULT_CALLER_NAME = 'Nevil Modi BMP Clg';
-const DEFAULT_CALLER_NUMBER = '+91 81606 17183';
+const DEFAULT_CALLER_NAME = 'User';
+const DEFAULT_CALLER_NUMBER = '+91 0000000000';
 
 const FakeIncomingCallScreen = () =>
 {
@@ -48,19 +45,18 @@ const FakeIncomingCallScreen = () =>
       try
       {
         // Load caller settings
-        const storedName = await AsyncStorage.getItem(FAKE_CALLER_NAME_KEY);
-        if (isMounted && storedName) setCallerName(storedName);
-
-        const storedNumber = await AsyncStorage.getItem(FAKE_CALLER_NUMBER_KEY);
-        if (isMounted && storedNumber) setCallerNumber(storedNumber);
+        const settings = await StorageService.getFakeCallerSettings();
+        if (isMounted)
+        {
+          setCallerName(settings.name);
+          setCallerNumber(settings.number);
+        }
 
         // Load ringtone
         let ringtoneUri = require('../../assets/ringtone.mp3');
-        const customRingtoneUri = await AsyncStorage.getItem(FAKE_CALL_RINGTONE_KEY);
-
-        if (customRingtoneUri)
+        if (settings.ringtoneUri)
         {
-          const fileInfo = await FileSystem.getInfoAsync(customRingtoneUri);
+          const fileInfo = await FileSystem.getInfoAsync(settings.ringtoneUri);
           if (fileInfo?.exists)
           {
             ringtoneUri = customRingtoneUri;

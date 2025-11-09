@@ -1,5 +1,6 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { EmergencyContact } from '@/services/StorageService';
+import { StorageService } from '@/services/StorageService';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,11 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PhoneContactsModal from '../../../components/PhoneContactsModal';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
-// --- Configuration ---
-const CONTACTS_STORAGE_KEY = 'emergency_contacts';
-
 export default function MyCircleScreen() {
-  const [contacts, setContacts] = useState([]);
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const { t } = useTranslation();
   const { colors } = useThemedStyles();
@@ -28,10 +26,8 @@ export default function MyCircleScreen() {
   useEffect(() => {
     const loadContacts = async () => {
       try {
-        const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-        if (storedContacts !== null) {
-          setContacts(JSON.parse(storedContacts));
-        }
+        const storedContacts = await StorageService.getEmergencyContacts();
+        setContacts(storedContacts);
       } catch (error) {
         console.error('Failed to load contacts.', error);
       }
@@ -43,8 +39,7 @@ export default function MyCircleScreen() {
   useEffect(() => {
     const saveContacts = async () => {
       try {
-        const jsonValue = JSON.stringify(contacts);
-        await AsyncStorage.setItem(CONTACTS_STORAGE_KEY, jsonValue);
+        await StorageService.setEmergencyContacts(contacts);
       } catch (error) {
         console.error('Failed to save contacts.', error);
       }

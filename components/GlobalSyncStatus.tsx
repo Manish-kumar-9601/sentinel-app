@@ -1,67 +1,54 @@
 ﻿// components/GlobalSyncStatus.tsx
+import { borderRadius, fontSize, fontWeight, spacing, useTheme } from '@/styles';
 import { syncService } from '@/utils/syncManager';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useThemedStyles } from '../hooks/useThemedStyles';
+import { Text, View } from 'react-native';
 
 export const GlobalSyncStatus = () => {
     const [state, setState] = useState(syncService.sync.getState());
-    const { colors } = useThemedStyles();
+    const { colors } = useTheme();
 
     useEffect(() => {
         return syncService.sync.subscribe(setState);
     }, []);
 
+    const baseStyle = {
+        padding: spacing.sm,
+        borderRadius: borderRadius.sm,
+        margin: spacing.sm,
+        alignItems: 'center' as const,
+        borderLeftWidth: 4,
+    };
+
+    const textStyle = {
+        fontSize: fontSize.base,
+        fontWeight: fontWeight.medium,
+        color: colors.text,
+    };
+
     if (!state.isOnline) {
         return (
-            <View style={[styles.offline, { backgroundColor: colors.errorLight, borderLeftColor: colors.error }]}>
-                <Text style={[styles.text, { color: colors.text }]}>📴 Offline Mode</Text>
+            <View style={[baseStyle, { backgroundColor: colors.errorLight, borderLeftColor: colors.error }]}>
+                <Text style={textStyle}>📴 Offline Mode</Text>
             </View>
         );
     }
 
     if (state.isSyncing) {
         return (
-            <View style={[styles.syncing, { backgroundColor: colors.infoLight, borderLeftColor: colors.info }]}>
-                <Text style={[styles.text, { color: colors.text }]}>🔄 Syncing...</Text>
+            <View style={[baseStyle, { backgroundColor: colors.infoLight, borderLeftColor: colors.info }]}>
+                <Text style={textStyle}>🔄 Syncing...</Text>
             </View>
         );
     }
 
     if (state.pendingOperations > 0) {
         return (
-            <View style={[styles.pending, { backgroundColor: colors.warningLight, borderLeftColor: colors.warning }]}>
-                <Text style={[styles.text, { color: colors.text }]}>⏳ {state.pendingOperations} changes pending</Text>
+            <View style={[baseStyle, { backgroundColor: colors.warningLight, borderLeftColor: colors.warning }]}>
+                <Text style={textStyle}>⏳ {state.pendingOperations} changes pending</Text>
             </View>
         );
     }
 
     return null;
 };
-const styles = StyleSheet.create({
-    offline: {
-        padding: 10,
-        borderRadius: 8,
-        margin: 10,
-        alignItems: 'center',
-        borderLeftWidth: 4,
-    },
-    syncing: {
-        padding: 10,
-        borderRadius: 8,
-        margin: 10,
-        alignItems: 'center',
-        borderLeftWidth: 4,
-    },
-    pending: {
-        padding: 10,
-        borderRadius: 8,
-        margin: 10,
-        alignItems: 'center',
-        borderLeftWidth: 4,
-    },
-    text: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-});

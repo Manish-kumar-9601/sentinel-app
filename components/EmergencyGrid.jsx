@@ -1,19 +1,41 @@
-﻿import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+﻿import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from "@/styles";
+import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Text, TouchableOpacity, View } from "react-native";
 
 const EmergencyCategory = ({ icon, name, color, iconSet, onPress, textColor }) =>
 {
     const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : (iconSet === 'MaterialIcons') ? MaterialIcons : FontAwesome5;
     const IconSize = iconSet === 'MaterialCommunity' || iconSet === 'MaterialIcons' ? 36 : 28;
     return (
-        <TouchableOpacity style={styles.categoryBox} onPress={onPress}>
-            <View style={[styles.iconContainer, { backgroundColor: color }]}>
+        <TouchableOpacity
+            style={{
+                width: '30%',
+                alignItems: 'center',
+                marginBottom: spacing.lg
+            }}
+            onPress={onPress}
+        >
+            <View style={[
+                layout.center,
+                {
+                    width: 60,
+                    height: 60,
+                    borderRadius: borderRadius.md,
+                    backgroundColor: color,
+                    marginBottom: spacing.xs
+                }
+            ]}>
                 <IconComponent name={icon} size={IconSize} color="white" />
             </View>
-            <Text style={[styles.categoryText, { color: textColor }]}>{name}</Text>
+            <Text style={{
+                fontSize: fontSize.sm,
+                fontWeight: fontWeight.medium,
+                color: textColor
+            }}>
+                {name}
+            </Text>
         </TouchableOpacity>
     );
 };
@@ -34,7 +56,7 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
 {
     const router = useRouter();
     const { t } = useTranslation();
-    const { colors } = useThemedStyles();
+    const { colors } = useTheme();
 
     const categories = CATEGORY_CONFIG.map(cat => ({
         ...cat,
@@ -56,9 +78,23 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
     };
 
     return (
-        <View style={styles.categoriesSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.emergencyGridTitle')}</Text>
-            <View style={styles.categoriesGrid}>
+        <View style={{
+            paddingHorizontal: spacing.lg,
+            marginTop: spacing.sm
+        }}>
+            <Text style={{
+                fontSize: fontSize.lg,
+                fontWeight: fontWeight.bold,
+                color: colors.text
+            }}>
+                {t('home.emergencyGridTitle')}
+            </Text>
+            <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                marginTop: spacing.md
+            }}>
                 {categories.map((cat) => (
                     <EmergencyCategory
                         key={cat.id}
@@ -74,38 +110,4 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
         </View>
     );
 };
-const styles = StyleSheet.create({
-    categoriesSection: {
-        paddingHorizontal: 20,
-        marginTop: 10,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    categoriesGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginTop: 15,
-    },
-    categoryBox: {
-        width: '30%',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    iconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    categoryText: {
-        fontSize: 13,
-        fontWeight: '500',
-    },
-
-});
 

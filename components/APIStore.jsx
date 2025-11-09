@@ -1,19 +1,16 @@
 ﻿import { useTheme } from '@/context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StorageService } from '@/services/StorageService';
 import React, { useEffect, useState } from 'react';
 import
-{
-  Alert,
-  Button,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-
-// Define a key for storing the API Key.
-const API_KEY_STORAGE_KEY = '@api_key';
+  {
+    Alert,
+    Button,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+  } from 'react-native';
 
 export const API_Storing = () =>
 {
@@ -33,7 +30,7 @@ export const API_Storing = () =>
     {
       try
       {
-        const apiKey = await AsyncStorage.getItem(API_KEY_STORAGE_KEY);
+        const apiKey = await StorageService.getApiKey();
         if (apiKey !== null)
         {
           console.log('API Key loaded successfully!');
@@ -70,7 +67,7 @@ export const API_Storing = () =>
 
     try
     {
-      await AsyncStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput);
+      await StorageService.setApiKey(apiKeyInput);
       console.log('API Key saved successfully!');
       setStoredApiKey(apiKeyInput); // Update the displayed stored API Key
       setMessage(`API Key has been saved!`);
@@ -87,7 +84,7 @@ export const API_Storing = () =>
   {
     try
     {
-      await AsyncStorage.removeItem(API_KEY_STORAGE_KEY);
+      await StorageService.clearApiKey();
       console.log('API Key cleared successfully!');
       setStoredApiKey('');
       setMessage('API Key has been cleared from storage.');

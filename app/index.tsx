@@ -1,5 +1,5 @@
+import { StorageService } from '@/services/StorageService';
 import { migrateOldData } from '@/utils/migration';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
@@ -14,7 +14,6 @@ const sentinelIcon = require('../assets/images/sentinel-icon.png');
  * and redirecting them to the appropriate part of the app.
  * While checking, it displays the app logo and a loading indicator.
  */
-const GUEST_kEY = 'guest_user';
 const StartPage = () => {
     const { user, isLoading } = useAuth();
     const router = useRouter();
@@ -30,8 +29,8 @@ const StartPage = () => {
                 // Redirect them to the main application stack.
                 router.replace('/(app)');
             } else {
-                AsyncStorage.getItem(GUEST_kEY).then(value => {
-                    if (value === 'true') {
+                StorageService.getGuestMode().then(isGuest => {
+                    if (isGuest) {
                         router.replace('/(app)');
                     } else {
                         router.replace('/(auth)/login');

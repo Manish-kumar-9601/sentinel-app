@@ -1,8 +1,8 @@
-﻿import { useTheme } from '@/context/ThemeContext';
+﻿import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from '@/styles';
 import { syncService } from '@/utils/syncManager';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 interface SyncStatusBarProps {
     lastSync?: Date | null;
@@ -57,24 +57,43 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
-            <View style={styles.leftSection}>
+        <View style={[
+            layout.rowBetween,
+            {
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.sm,
+                borderRadius: borderRadius.sm,
+                marginHorizontal: spacing.sm,
+                marginVertical: spacing.xs,
+                backgroundColor: getBackgroundColor(),
+            }
+        ]}>
+            <View style={[layout.rowCenter, { gap: spacing.sm }]}>
                 {state.isSyncing ? (
                     <ActivityIndicator size="small" color={getStatusColor()} />
                 ) : (
                     <Ionicons name={getStatusIcon() as any} size={16} color={getStatusColor()} />
                 )}
-                <Text style={[styles.statusText, { color: getStatusColor() }]}>
+                <Text style={{
+                    fontSize: fontSize.sm,
+                    fontWeight: fontWeight.semibold,
+                    color: getStatusColor()
+                }}>
                     {getStatusText()}
                 </Text>
             </View>
 
-            <View style={styles.rightSection}>
+            <View style={[layout.rowCenter, { gap: spacing.md }]}>
                 {lastSync && (
-                    <Text style={[styles.lastSyncText, { color: colors.textSecondary }]}>{formatLastSync(lastSync)}</Text>
+                    <Text style={{
+                        fontSize: fontSize.sm,
+                        color: colors.textSecondary
+                    }}>
+                        {formatLastSync(lastSync)}
+                    </Text>
                 )}
                 {onRefresh && (
-                    <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+                    <TouchableOpacity onPress={onRefresh} style={{ padding: spacing.xs }}>
                         <Ionicons name="refresh" size={16} color={colors.textSecondary} />
                     </TouchableOpacity>
                 )}
@@ -82,36 +101,3 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
-        marginHorizontal: 10,
-        marginVertical: 4,
-    },
-    leftSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    rightSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    statusText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    lastSyncText: {
-        fontSize: 12,
-    },
-    refreshButton: {
-        padding: 4,
-    },
-});

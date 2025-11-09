@@ -1,6 +1,6 @@
 ﻿import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+import { StorageService } from '@/services/StorageService';
 import { FontAwesome5 } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -22,7 +22,6 @@ import {
 import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
-import BottomNavBar from '../../components/BottomNavBar';
 import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
@@ -30,7 +29,6 @@ import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 // --- Configuration ---
-const CONTACTS_STORAGE_KEY = 'emergency_contacts';
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_FALLBACK_TIMEOUT = 10000; // 10 seconds for fallback
@@ -213,7 +211,7 @@ const Header = ({ onProfile, colors }) => (
         <View>
             <Image
                 source={SentinelIcon}
-                style={{ width: 40, height: 40 ,borderRadius:50}}
+                style={{ width: 40, height: 40, borderRadius: 50 }}
             />
         </View>
         <View style={styles.headerIcons}>
@@ -259,13 +257,9 @@ export default function HomeScreen() {
         useCallback(() => {
             const loadContacts = async () => {
                 try {
-                    const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
+                    const storedContacts = await StorageService.getEmergencyContacts();
                     console.log('Stored contacts:', storedContacts);
-                    if (storedContacts !== null) {
-                        setEmergencyContacts(JSON.parse(storedContacts));
-                    } else {
-                        setEmergencyContacts([]);
-                    }
+                    setEmergencyContacts(storedContacts);
                 } catch (error) {
                     console.error('Failed to load contacts from storage.', error);
                 }
@@ -428,10 +422,8 @@ export default function HomeScreen() {
 
             // Reload contacts
             try {
-                const storedContacts = await AsyncStorage.getItem(CONTACTS_STORAGE_KEY);
-                if (storedContacts !== null) {
-                    setEmergencyContacts(JSON.parse(storedContacts));
-                }
+                const storedContacts = await StorageService.getEmergencyContacts();
+                setEmergencyContacts(storedContacts);
             } catch (error) {
                 console.error('Pull-to-refresh: Failed to reload contacts', error);
             }
