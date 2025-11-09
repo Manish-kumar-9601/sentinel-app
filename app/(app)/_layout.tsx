@@ -18,6 +18,15 @@ export default function AppLayout() {
                 <Stack.Screen name="guide" options={{
                     headerShown: false,
                 }} />
+                <Stack.Screen name="evidence" options={{
+                    headerShown: false,
+                }} />
+                <Stack.Screen name="locationHistory" options={{
+                    headerShown: false,
+                }} />
+                <Stack.Screen name="guide" options={{
+                    headerShown: false,
+                }} />
                 <Stack.Screen name="fakeCall" options={{ presentation: 'fullScreenModal', headerShown: false }} />
                 <Stack.Screen name="fakeIncomingCall" options={{ presentation: 'fullScreenModal', headerShown: false }} />
             </Stack>

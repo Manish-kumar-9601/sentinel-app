@@ -1,4 +1,6 @@
 ﻿import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+import { useVoiceSOS } from '@/hooks/useVoiceSOS';
+import { MultiLayerSOSService } from '@/services/multiLayerSOSService';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -22,7 +24,6 @@ import {
 import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
-import BottomNavBar from '../../components/BottomNavBar';
 import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
@@ -213,7 +214,7 @@ const Header = ({ onProfile, colors }) => (
         <View>
             <Image
                 source={SentinelIcon}
-                style={{ width: 40, height: 40 ,borderRadius:50}}
+                style={{ width: 40, height: 40, borderRadius: 50 }}
             />
         </View>
         <View style={styles.headerIcons}>
@@ -240,6 +241,13 @@ export default function HomeScreen() {
     const router = useRouter();
     const { t } = useTranslation();
     const { isContactModalVisible, closeContactModal } = useModal();
+
+    // Voice SOS Hook
+    const voiceSOS = useVoiceSOS({
+        enabled: true,
+        voiceFeedback: true,
+        confirmationRequired: true,
+    });
 
     const locationRequestInProgress = useRef(false);
     const appStateRef = useRef(AppState.currentState);
@@ -613,15 +621,74 @@ export default function HomeScreen() {
         }
 
         setIsSending(true);
+
         try {
-            const results = await SOSService.sendEmergencyMessages(emergencyContacts, location, {
-                includeSMS: true,
-                includeWhatsApp: whatsappAvailable
-            });
-            showSOSResults(results);
+            console.log('🚨 Initiating Multi-Layer SOS...');
+
+            // Get user ID (you'll need to pass this from auth context)
+            const userId = 'user_current'; // TODO: Replace with actual user ID from auth
+
+            // Execute Multi-Layer SOS
+            const result = await MultiLayerSOSService.executeMultiLayerSOS(
+                userId,
+                emergencyContacts,
+                location,
+                t('home.emergencyMessage') || '🚨 EMERGENCY! I need help immediately!',
+                {
+                    skipAPI: false,  // Try API first
+                    skipWhatsApp: !whatsappAvailable, // Skip if not available
+                    skipSMS: false,  // Always try SMS
+                    skipCall: false, // Offer call if all else fails
+                }
+            );
+
+            // Format and show results
+            const resultMessage = MultiLayerSOSService.formatResultsForUser(result);
+
+            Alert.alert(
+                '🚨 Emergency Alert Sent',
+                resultMessage,
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Log the alert details
+                            console.log('Alert Summary:', {
+                                alertId: result.alertId,
+                                contactsNotified: result.totalContactsNotified,
+                                layersUsed: result.layers.length,
+                                timestamp: new Date(result.timestamp).toISOString(),
+                            });
+                        }
+                    }
+                ]
+            );
+
+            // Also show a brief success toast if available
+            if (result.totalContactsNotified > 0) {
+                console.log(`✅ Success: ${result.totalContactsNotified} contacts notified`);
+            } else {
+                console.warn('⚠️ Warning: No contacts were notified');
+            }
+
         } catch (error) {
-            console.error('SOS sending failed:', error);
-            Alert.alert('Error', t('home.sosFailedMessage'));
+            console.error('❌ Multi-Layer SOS failed:', error);
+
+            Alert.alert(
+                'Emergency Alert Error',
+                'Failed to send emergency alert. Please try calling your contacts directly.',
+                [
+                    { text: 'OK', style: 'cancel' },
+                    {
+                        text: 'Call Now',
+                        onPress: () => {
+                            if (emergencyContacts.length > 0) {
+                                Linking.openURL(`tel:${emergencyContacts[0].phone}`);
+                            }
+                        }
+                    }
+                ]
+            );
         } finally {
             setIsSending(false);
         }

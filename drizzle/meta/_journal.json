@@ -15,6 +15,20 @@
       "when": 1760976953399,
       "tag": "0001_sad_captain_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762670635110,
+      "tag": "0002_lush_moira_mactaggert",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762671799438,
+      "tag": "0003_bitter_whistler",
+      "breakpoints": true
     }
   ]
 }
