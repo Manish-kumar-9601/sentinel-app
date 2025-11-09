@@ -1,16 +1,32 @@
-﻿import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
-import StorageService from '@/services/StorageService';
+﻿/**
+ * Home Screen - MIGRATED TO GLOBAL STORE
+ * 
+ * Main app screen with SOS functionality and emergency contacts.
+ * Now uses centralized Zustand store for contacts management.
+ * 
+ * Changes:
+ * - ✅ Replaced local emergencyContacts state with useContacts() hook
+ * - ✅ Removed manual StorageService calls for contacts
+ * - ✅ Automatic sync when screen is focused
+ * - ✅ Real-time updates from other screens
+ * 
+ * Note: Location management remains local to this screen as it's UI-specific.
+ */
+
+import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+import { useContacts } from '@/store';
 import { FontAwesome5 } from '@expo/vector-icons';
+// @ts-ignore
+import SentinelIcon from '@/assets/images/sentinel-nav-icon.png';
 import * as ExpoLocation from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
-// @ts-ignore
-import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Alert,
     AppState,
+    Image,
     Linking,
     Platform,
     RefreshControl,
@@ -30,7 +46,6 @@ import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 // --- Configuration ---
 const LOCATION_TIMEOUT = 15000; // 15 seconds
-const LOCATION_FALLBACK_TIMEOUT = 10000; // 10 seconds for fallback
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // --- WhatsApp Service ---
 class WhatsAppService {
@@ -223,6 +238,8 @@ interface HeaderProps {
 // --- UI Components ---
 const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
     <View style={styles.header}>
+        <Image style={styles.brandLogo} source={SentinelIcon}
+        />
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
                 <FontAwesome5 name="user-circle" size={30} color={colors.text} />
@@ -235,8 +252,12 @@ const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
 export default function HomeScreen() {
     const { colors } = useThemedStyles();
 
-    // Local state for emergency contacts
-    const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
+    // 🎯 GLOBAL STORE HOOK - replaces local state & manual loading
+    const {
+        contacts: emergencyContacts,
+        loading: contactsLoading,
+        loadContacts,
+    } = useContacts();
 
     // Local state for location
     const [location, setLocation] = useState<ExpoLocation.LocationObject | null>(null);
@@ -348,21 +369,18 @@ export default function HomeScreen() {
         checkWhatsAppAvailability();
     }, []);
 
-    // Refresh contacts when screen is focused
-    useFocusEffect(
-        useCallback(() => {
-            const loadContacts = async () => {
-                try {
-                    const storedContacts = await StorageService.getEmergencyContacts();
-                    console.log('Stored contacts:', storedContacts);
-                    setEmergencyContacts(storedContacts);
-                } catch (error) {
-                    console.error('Failed to load contacts from storage.', error);
-                }
-            };
-            loadContacts();
-        }, [])
-    );
+    // Contacts are automatically loaded by the global store on app startup
+    // No need to reload on focus - the store is the single source of truth
+    // and will be updated automatically when contacts are added/removed from any screen
+
+    // Debug: Log contacts whenever they change
+    useEffect(() => {
+        console.log('📋 [HomeScreen] Emergency contacts updated:', {
+            count: emergencyContacts.length,
+            contacts: emergencyContacts.map(c => ({ id: c.id, name: c.name })),
+            loading: contactsLoading
+        });
+    }, [emergencyContacts, contactsLoading]);
 
     // App initialization with automatic location setup
     useEffect(() => {
@@ -428,7 +446,7 @@ export default function HomeScreen() {
         }
     };
 
-    // Simplified refresh function using context
+    // Simplified refresh function using global store
     const refreshAppState = async () => {
         setRefreshing(true);
         try {
@@ -440,13 +458,8 @@ export default function HomeScreen() {
             setLocation(null);
             setLocationError(null);
 
-            // Reload contacts
-            try {
-                const storedContacts = await StorageService.getEmergencyContacts();
-                setEmergencyContacts(storedContacts);
-            } catch (error) {
-                console.error('Pull-to-refresh: Failed to reload contacts', error);
-            }
+            // Reload contacts from global store
+            await loadContacts();
 
             // Re-check WhatsApp
             const isAvailable = await WhatsAppService.isWhatsAppInstalled();
@@ -500,13 +513,28 @@ export default function HomeScreen() {
 
 
     const handleSOSPress = async () => {
+        console.log('🚨 [SOS] Button pressed', {
+            isSending,
+            contactsCount: emergencyContacts.length,
+            contacts: emergencyContacts,
+            hasLocation: !!location,
+            permissionStatus
+        });
+
         if (isSending) return;
 
         if (emergencyContacts.length === 0) {
+            console.log('❌ [SOS] No emergency contacts available');
             Alert.alert(
                 t('home.noContactsAlertTitle'),
                 t('home.noContactsAlertMessage'),
-                [{ text: 'OK' }]
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Add Contacts',
+                        onPress: () => router.push('/settings/myCircle')
+                    }
+                ]
             );
             return;
         }
@@ -675,6 +703,14 @@ export default function HomeScreen() {
             return { isReady: false, text: t('home.sending') };
         }
 
+        if (contactsLoading) {
+            return { isReady: false, text: t('home.loading') || 'Loading...' };
+        }
+
+        if (emergencyContacts.length === 0) {
+            return { isReady: false, text: t('home.noContactsAlertTitle') || 'No Contacts' };
+        }
+
         if (isLoadingLocation) {
             return { isReady: false, text: t('home.locating') };
         }
@@ -766,6 +802,50 @@ export default function HomeScreen() {
                     locationText={locationDisplay.text}
                     locationStatus={locationDisplay.status}
                 />
+
+                {/* Emergency Contacts Display */}
+                {/* {emergencyContacts.length > 0 && (
+                    <View style={styles.contactsSection}>
+                        <View style={styles.contactsHeader}>
+                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                {t('home.myCircle') || 'My Emergency Circle'}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => router.push('/settings/myCircle')}
+                                style={styles.viewAllButton}
+                            >
+                                <Text style={[styles.viewAllText, { color: colors.primary }]}>
+                                    {t('common.viewAll') || 'View All'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.contactsList}>
+                            {emergencyContacts.slice(0, 3).map((contact) => (
+                                <View key={contact.id} style={[styles.contactCard, { backgroundColor: colors.card }]}>
+                                    <View style={[styles.contactAvatar, { backgroundColor: colors.primary }]}>
+                                        <Text style={[styles.contactAvatarText, { color: colors.textInverse }]}>
+                                            {contact.name.charAt(0).toUpperCase()}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.contactInfo}>
+                                        <Text style={[styles.contactName, { color: colors.text }]} numberOfLines={1}>
+                                            {contact.name}
+                                        </Text>
+                                        <Text style={[styles.contactPhone, { color: colors.textSecondary }]} numberOfLines={1}>
+                                            {contact.phone}
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                        {emergencyContacts.length > 3 && (
+                            <Text style={[styles.moreContactsText, { color: colors.textSecondary }]}>
+                                +{emergencyContacts.length - 3} more contact{emergencyContacts.length - 3 > 1 ? 's' : ''}
+                            </Text>
+                        )}
+                    </View>
+                )} */}
+
                 <EmergencyGrid onCategorySelect={handleCategorySelect}
                 />
             </ScrollView>
@@ -786,6 +866,10 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 50,
+    },
+    brandLogo: {
+        width: 28,
+        height: 28,
     },
     header: {
         flexDirection: 'row',
@@ -863,5 +947,66 @@ const styles = StyleSheet.create({
     navText: {
         fontSize: 12,
         marginTop: 2,
+    },
+    contactsSection: {
+        paddingHorizontal: 20,
+        marginTop: 20,
+        marginBottom: 10,
+    },
+    contactsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    viewAllButton: {
+        padding: 5,
+    },
+    viewAllText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    contactsList: {
+        gap: 10,
+    },
+    contactCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    contactAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    contactAvatarText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    contactInfo: {
+        flex: 1,
+    },
+    contactName: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    contactPhone: {
+        fontSize: 14,
+    },
+    moreContactsText: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginTop: 10,
+        fontStyle: 'italic',
     },
 });

@@ -1,6 +1,6 @@
-import BottomNavBar from '@/components/BottomNavBar';
 import { Stack } from 'expo-router';
 import React from 'react';
+import BottomNavBar from '@/components/BottomNavBar';
 
 export default function AppLayout() {
     return (

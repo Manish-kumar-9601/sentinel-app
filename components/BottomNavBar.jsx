@@ -1,10 +1,10 @@
 ﻿import { fontSize, layout, useTheme } from '@/styles';
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useModal } from '../context/ModalContext';
+import { useState } from 'react';
 
 // --- Configuration for Navigation Items ---
 const NAV_ITEMS = [
@@ -15,13 +15,14 @@ const NAV_ITEMS = [
 
 ];
 
-const BottomNavBar = () =>
+export default function BottomNavBar ()
 {
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const { openContactModal } = useModal(); // Get the function from context
   const { colors } = useTheme();
+  const [hideBottomNav, setHideBottomNav] = useState(false);
   console.log("path name", pathname)
   const hideOnPaths = pathname === '/fakeIncomingCall' ? true : false;
   const handlePress = (item) =>
@@ -30,12 +31,13 @@ const BottomNavBar = () =>
     {
       openContactModal()
       console.log('check Contact')
-      // Open the modal instead of navigating
-    } else if (item.path === '/fakeIncomingCall')
+    } else if (item.path === '/audioRecorder')
     {
+      setHideBottomNav(true);
       router.push(item.path);
     } else
     {
+       console.log("path name", pathname)
       router.push(item.path);
     }
   };
@@ -46,10 +48,11 @@ const BottomNavBar = () =>
       {
         height: 60,
         justifyContent: 'space-around',
+        paddingTop: 8,
         paddingBottom: 25,
         backgroundColor: colors.card,
         borderTopColor: colors.border,
-        display: hideOnPaths ? 'none' : 'flex'
+        display: hideBottomNav  ? 'none' : 'flex'
       }
     ]}>
       {NAV_ITEMS.map((item) =>
@@ -81,4 +84,4 @@ const BottomNavBar = () =>
   );
 };
 
-export default BottomNavBar;
+

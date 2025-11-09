@@ -69,6 +69,7 @@ export interface GlobalState {
     addContact: (contact: EmergencyContact) => Promise<void>;
     updateContact: (id: string, updates: Partial<EmergencyContact>) => Promise<void>;
     removeContact: (id: string) => Promise<void>;
+    fetchContactsFromServer: (token: string) => Promise<EmergencyContact[]>;
     syncContactsToServer: (token: string) => Promise<boolean>;
 
     // Settings Actions
@@ -168,16 +169,56 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
 
     loadContacts: async () => {
         try {
+            console.log('🔄 [Store] Loading contacts from storage...');
+            console.log('📊 [Store] Current state before load:', {
+                currentContactsCount: get().emergencyContacts.length,
+                loading: get().contactsLoading
+            });
             set({ contactsLoading: true, contactsError: null });
 
-            const contacts = await StorageService.getEmergencyContacts();
+            // Step 1: Try to load from AsyncStorage (local cache)
+            let contacts = await StorageService.getEmergencyContacts();
+            console.log('📦 [Store] Retrieved from AsyncStorage:', contacts.length, 'contacts');
+
+            // Step 2: If no contacts in AsyncStorage, try to fetch from database/server
+            if (contacts.length === 0) {
+                console.log('⚠️ [Store] No contacts in AsyncStorage, attempting to fetch from server...');
+                const { token } = get();
+
+                if (token) {
+                    try {
+                        const serverContacts = await get().fetchContactsFromServer(token);
+                        if (serverContacts && serverContacts.length > 0) {
+                            console.log('📥 [Store] Fetched', serverContacts.length, 'contacts from server');
+                            contacts = serverContacts;
+
+                            // Save to AsyncStorage for future use
+                            await StorageService.setEmergencyContacts(serverContacts);
+                            console.log('💾 [Store] Server contacts cached to AsyncStorage');
+                        } else {
+                            console.log('ℹ️ [Store] No contacts found on server');
+                        }
+                    } catch (serverError) {
+                        console.error('❌ [Store] Failed to fetch from server:', serverError);
+                        // Continue with empty array - don't throw, let user add contacts
+                    }
+                } else {
+                    console.log('ℹ️ [Store] No auth token, cannot fetch from server');
+                }
+            }
+
+            console.log('📋 [Store] Contact details:', JSON.stringify(contacts, null, 2));
 
             set({
                 emergencyContacts: contacts,
                 contactsLoading: false,
             });
 
-            console.log(`✅ [Store] Loaded ${contacts.length} contacts`);
+            console.log(`✅ [Store] Loaded ${contacts.length} contacts into state`);
+            console.log('📊 [Store] Final state after load:', {
+                contactsCount: get().emergencyContacts.length,
+                loading: get().contactsLoading
+            });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to load contacts';
             set({
@@ -191,6 +232,7 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
     addContact: async (contact) => {
         try {
             const { emergencyContacts } = get();
+            console.log('📝 [Store] Adding contact:', contact.name, 'Current count:', emergencyContacts.length);
 
             // Check for duplicates
             if (emergencyContacts.some(c => c.id === contact.id)) {
@@ -200,17 +242,34 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
             // Update state optimistically
             const updatedContacts = [...emergencyContacts, contact];
             set({ emergencyContacts: updatedContacts });
+            console.log('✅ [Store] State updated, new count:', updatedContacts.length);
 
-            // Persist to storage
+            // Persist to AsyncStorage (critical - must succeed)
             await StorageService.setEmergencyContacts(updatedContacts);
+            console.log('💾 [Store] Persisted to AsyncStorage');
 
-            // Queue for server sync if online
+            // Verify write was successful
+            const verifyContacts = await StorageService.getEmergencyContacts();
+            if (verifyContacts.length !== updatedContacts.length) {
+                throw new Error('AsyncStorage verification failed - contact not saved');
+            }
+            console.log('✅ [Store] AsyncStorage write verified');
+
+            // Sync to server (best effort - don't fail if offline)
             const { token, syncStatus } = get();
             if (token && syncStatus.isOnline) {
-                await get().syncContactsToServer(token);
+                try {
+                    await get().syncContactsToServer(token);
+                    console.log('☁️ [Store] Contact synced to server');
+                } catch (syncError) {
+                    console.warn('⚠️ [Store] Server sync failed, but contact saved locally:', syncError);
+                    // Don't throw - local save succeeded
+                }
+            } else {
+                console.log('ℹ️ [Store] Contact saved locally, will sync when online');
             }
 
-            console.log('✅ [Store] Contact added:', contact.name);
+            console.log('✅ [Store] Contact added successfully:', contact.name);
         } catch (error) {
             console.error('❌ [Store] Failed to add contact:', error);
             // Rollback on error
@@ -271,6 +330,52 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
             console.error('❌ [Store] Failed to remove contact:', error);
             // Rollback on error
             await get().loadContacts();
+            throw error;
+        }
+    },
+
+    fetchContactsFromServer: async (token) => {
+        try {
+            console.log('📥 [Store] Fetching contacts from server...');
+
+            const env = process.env.NODE_ENV;
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+            if (!apiUrl && env === 'production') {
+                console.log('⚠️ [Store] API URL not configured');
+                return [];
+            }
+
+            const response = await fetch(`${apiUrl}/api/user-info`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch contacts: HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const serverContacts = data.emergencyContacts || [];
+
+            // Transform server contacts to match our EmergencyContact type
+            const formattedContacts: EmergencyContact[] = serverContacts.map((c: any) => ({
+                id: c.id || String(Date.now() + Math.random()),
+                name: c.name || '',
+                phone: c.phone || '',
+                relationship: c.relationship || '',
+                createdAt: c.createdAt || new Date().toISOString(),
+                synced: true, // Contacts from server are synced
+            }));
+
+            console.log('✅ [Store] Fetched', formattedContacts.length, 'contacts from server');
+            return formattedContacts;
+
+        } catch (error) {
+            console.error('❌ [Store] Failed to fetch contacts from server:', error);
             throw error;
         }
     },
@@ -503,22 +608,34 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
  */
 export const initializeStore = async () => {
     console.log('🚀 [Store] Initializing global store...');
+    console.log('📱 [Store] App startup - beginning store initialization');
 
     try {
         // Load auth data
+        console.log('🔐 [Store] Loading auth data...');
         const [token, user] = await Promise.all([
             StorageService.getAuthToken(),
             StorageService.getUserData(),
         ]);
 
         if (token && user) {
-            useGlobalStore.getState().setAuth(user, token);
+            console.log('✅ [Store] Auth data found, setting auth state');
+            await useGlobalStore.getState().setAuth(user, token);
+        } else {
+            console.log('ℹ️ [Store] No auth data found');
         }
 
         // Load contacts
+        console.log('📇 [Store] Loading emergency contacts...');
         await useGlobalStore.getState().loadContacts();
+        const contactsAfterLoad = useGlobalStore.getState().emergencyContacts;
+        console.log('📊 [Store] Contacts after initialization:', {
+            count: contactsAfterLoad.length,
+            contacts: contactsAfterLoad.map(c => ({ id: c.id, name: c.name }))
+        });
 
         // Load settings
+        console.log('⚙️ [Store] Loading user settings...');
         const [language, themeMode, apiKey, guestMode] = await Promise.all([
             StorageService.getLanguage(),
             StorageService.getThemeMode(),
@@ -534,8 +651,10 @@ export const initializeStore = async () => {
                 guestMode,
             },
         });
+        console.log('✅ [Store] Settings loaded');
 
         // Load fake call settings (convert undefined to null for store)
+        console.log('📞 [Store] Loading fake call settings...');
         const fakeCallSettings = await StorageService.getFakeCallerSettings();
         useGlobalStore.setState({
             fakeCallSettings: {
@@ -544,11 +663,19 @@ export const initializeStore = async () => {
                 ringtoneUri: fakeCallSettings.ringtoneUri || null,
             },
         });
+        console.log('✅ [Store] Fake call settings loaded');
 
         // Initialize sync
+        console.log('🔄 [Store] Initializing sync manager...');
         await useGlobalStore.getState().initializeSync();
+        console.log('✅ [Store] Sync manager initialized');
 
         console.log('✅ [Store] Store initialized successfully');
+        console.log('📊 [Store] Final state:', {
+            contactsCount: useGlobalStore.getState().emergencyContacts.length,
+            isAuthenticated: useGlobalStore.getState().isAuthenticated,
+            language: useGlobalStore.getState().settings.language
+        });
     } catch (error) {
         console.error('❌ [Store] Initialization failed:', error);
     }
@@ -567,6 +694,8 @@ export const useContacts = () => {
     const updateContact = useGlobalStore(state => state.updateContact);
     const removeContact = useGlobalStore(state => state.removeContact);
     const loadContacts = useGlobalStore(state => state.loadContacts);
+    const fetchContactsFromServer = useGlobalStore(state => state.fetchContactsFromServer);
+    const syncContactsToServer = useGlobalStore(state => state.syncContactsToServer);
 
     return {
         contacts,
@@ -576,6 +705,8 @@ export const useContacts = () => {
         updateContact,
         removeContact,
         loadContacts,
+        fetchContactsFromServer,
+        syncContactsToServer,
     };
 };
 
