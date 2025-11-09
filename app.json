@@ -92,13 +92,20 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "none-pv7"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      
       "eas": {
         "projectId": "149ae237-40de-4c01-8535-aeb659ca4222"
       },

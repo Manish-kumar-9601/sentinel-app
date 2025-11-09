@@ -1,6 +1,8 @@
-﻿const { getDefaultConfig } = require('expo/metro-config');
+const {
+  getSentryExpoConfig
+} = require("@sentry/react-native/metro");
 
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 
 // Fix platform resolution to prevent web modules from being imported on native
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
