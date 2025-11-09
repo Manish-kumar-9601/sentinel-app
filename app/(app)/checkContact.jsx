@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿import { StorageService } from '@/services/StorageService';
+=======
+﻿import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -13,14 +17,16 @@ const CheckContactScreen = () =>
     const router = useRouter();
     const { t } = useTranslation();
     const { colors } = useThemedStyles();
-    const [contacts, setContacts] = useState([]);
+    // Use global emergency contacts context
+    const { contacts, loading } = useEmergencyContacts();
     const [location, setLocation] = useState(null);
 
-    // Load contacts and current location when the screen opens
+    // Load current location when the screen opens
     useEffect(() =>
     {
-        const loadData = async () =>
+        const loadLocation = async () =>
         {
+<<<<<<< HEAD
             // Load contacts
             try
             {
@@ -31,6 +37,8 @@ const CheckContactScreen = () =>
                 console.error("Failed to load contacts for check-in", error);
             }
 
+=======
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
             // Get current location
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted')
@@ -42,7 +50,7 @@ const CheckContactScreen = () =>
                 Alert.alert(t('checkContact.permissionDenied'), t('checkContact.locationPermissionMessage'));
             }
         };
-        loadData();
+        loadLocation();
     }, []);
 
     const handleSelectContact = async (contact) =>

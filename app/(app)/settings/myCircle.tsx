@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 import type { EmergencyContact } from '@/services/StorageService';
 import { StorageService } from '@/services/StorageService';
+=======
+import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -17,11 +21,17 @@ import PhoneContactsModal from '../../../components/PhoneContactsModal';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 export default function MyCircleScreen() {
+<<<<<<< HEAD
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
+=======
+  // Use global emergency contacts context
+  const { contacts, loading, addContact, deleteContact } = useEmergencyContacts();
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const { t } = useTranslation();
   const { colors } = useThemedStyles();
 
+<<<<<<< HEAD
   // --- Load contacts from storage when the screen opens ---
   useEffect(() => {
     const loadContacts = async () => {
@@ -51,8 +61,10 @@ export default function MyCircleScreen() {
   }, [contacts]);
 
 
+=======
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
   // --- Logic to Remove a Contact ---
-  const handleRemoveContact = (contactToRemove) => {
+  const handleRemoveContact = async (contactToRemove: any) => {
     Alert.alert(
       t('myCircle.removeTitle'),
       t('myCircle.removeMessage', { name: contactToRemove.name }),
@@ -60,10 +72,13 @@ export default function MyCircleScreen() {
         { text: t('myCircle.cancel'), style: 'cancel' },
         {
           text: t('myCircle.remove'),
-          onPress: () => {
-            setContacts(currentContacts =>
-              currentContacts.filter(contact => contact.id !== contactToRemove.id)
-            );
+          onPress: async () => {
+            try {
+              await deleteContact(contactToRemove.id);
+            } catch (error) {
+              console.error('Failed to remove contact:', error);
+              Alert.alert(t('myCircle.error'), t('myCircle.removeError'));
+            }
           },
           style: 'destructive',
         },
@@ -72,17 +87,26 @@ export default function MyCircleScreen() {
   };
 
   // --- Logic to Add a Contact from the Phone Contacts Modal ---
-  const handleSelectFromPhone = (selectedContact) => {
+  const handleSelectFromPhone = async (selectedContact: any) => {
     // Check if contact already exists in the circle
     if (contacts.some(c => c.id === selectedContact.id)) {
       Alert.alert(t('myCircle.contactExists'), t('myCircle.contactExistsMessage', { name: selectedContact.name }));
     } else {
-      setContacts(currentContacts => [...currentContacts, selectedContact]);
+      try {
+        await addContact({
+          name: selectedContact.name,
+          phone: selectedContact.phone,
+          relationship: selectedContact.relationship || ''
+        });
+      } catch (error) {
+        console.error('Failed to add contact:', error);
+        Alert.alert(t('myCircle.error'), t('myCircle.addError'));
+      }
     }
   };
 
   // --- UI Component for each contact in the list ---
-  const ContactItem = ({ item }) => (
+  const ContactItem = ({ item }: { item: any }) => (
     <View style={styles.contactItem}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>

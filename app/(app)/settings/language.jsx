@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import { StorageService } from '@/services/StorageService';
+=======
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Updates from 'expo-updates';
@@ -20,6 +23,7 @@ const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'हिंदी (Hindi)' },
   { code: 'gu', name: 'ગુજરાતી (Gujarati)' },
+
   { code: 'mr', name: 'मराठी (Marathi)' },
   { code: 'kn', name: 'ಕನ್ನಡ (Kannada)' },
   { code: 'raj', name: 'राजस्थानी (Rajasthani)' },
@@ -40,7 +44,11 @@ const LanguageScreen = () =>
       await i18n.changeLanguage(langCode);
 
       // 2. Save the new language preference to storage
+<<<<<<< HEAD
       await StorageService.setLanguage(langCode);
+=======
+      await StorageService.set(STORAGE_KEYS.LANGUAGE, langCode);
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 
       // 3. Update the local state to show the checkmark immediately
       setCurrentLang(langCode);

@@ -1,7 +1,17 @@
 ﻿import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+<<<<<<< HEAD
 import { StorageService } from '@/services/StorageService';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+=======
+import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
+import { useLocation } from '@/context/LocationContext';
+import { useUser } from '@/context/UserContext';
+import { useVoiceSOS } from '@/hooks/useVoiceSOS';
+import { MultiLayerSOSService } from '@/services/multiLayerSOSService';
+import { FontAwesome5 } from '@expo/vector-icons';
+import * as ExpoLocation from 'expo-location';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -9,7 +19,6 @@ import { useTranslation } from 'react-i18next';
 import {
     Alert,
     AppState,
-    Image,
     Linking,
     Platform,
     RefreshControl,
@@ -21,7 +30,10 @@ import {
 } from 'react-native';
 import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+<<<<<<< HEAD
 import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
+=======
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
@@ -29,9 +41,13 @@ import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 // --- Configuration ---
+<<<<<<< HEAD
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+=======
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_FALLBACK_TIMEOUT = 10000; // 10 seconds for fallback
+const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // --- WhatsApp Service ---
 class WhatsAppService {
@@ -45,7 +61,7 @@ class WhatsAppService {
         }
     }
 
-    static formatPhoneNumber(phone) {
+    static formatPhoneNumber(phone: string): string {
         let cleaned = phone.replace(/\D/g, '');
         if (!cleaned.startsWith('91') && cleaned.length === 10) {
             cleaned = '91' + cleaned;
@@ -53,7 +69,7 @@ class WhatsAppService {
         return cleaned;
     }
 
-    static async sendWhatsAppMessage(phoneNumber, message) {
+    static async sendWhatsAppMessage(phoneNumber: string, message: string): Promise<boolean> {
         try {
             const formattedNumber = this.formatPhoneNumber(phoneNumber);
             const encodedMessage = encodeURIComponent(message);
@@ -72,8 +88,8 @@ class WhatsAppService {
         }
     }
 
-    static async sendToMultipleContacts(contacts, message) {
-        const results = [];
+    static async sendToMultipleContacts(contacts: any[], message: string) {
+        const results: any[] = [];
         for (let i = 0; i < contacts.length; i++) {
             const contact = contacts[i];
             try {
@@ -83,39 +99,50 @@ class WhatsAppService {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             } catch (error) {
-                results.push({ contact: contact.name, success: false, error: error.message });
+                const err = error as Error;
+                results.push({ contact: contact.name, success: false, error: err.message });
             }
         }
         return results;
     }
 }
 
-// --- Enhanced SOS Service --+-
+// --- Enhanced SOS Service ---
 interface SOSOptions {
     includeSMS?: boolean;
     includeWhatsApp?: boolean;
 }
 
-class SOSService {
-    static async sendEmergencyMessages(contacts, location, options: SOSOptions = {}) {
-        const { includeSMS = true, includeWhatsApp = true } = options;
-        const results = { sms: null, whatsapp: null };
+interface SOSResult {
+    sms: { success: boolean; count?: number; error?: string } | null;
+    whatsapp: { success: boolean; count?: number; total?: number; details?: any[]; error?: string } | null;
+}
 
-        const message = `🚨 EMERGENCY SOS! I need immediate help! My current location is: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude} - Sent automatically from Emergency App`;
+class SOSService {
+    static async sendEmergencyMessages(contacts: any[], location: any, options: SOSOptions = {}): Promise<SOSResult> {
+        const { includeSMS = true, includeWhatsApp = true } = options;
+        const results: SOSResult = { sms: null, whatsapp: null };
+
+        // Handle both CurrentLocation and LocationData formats
+        const lat = location.latitude || location.coords?.latitude;
+        const lng = location.longitude || location.coords?.longitude;
+
+        const message = `🚨 EMERGENCY SOS! I need immediate help! My current location is: https://maps.google.com/?q=${lat},${lng} - Sent automatically from Emergency App`;
 
         if (includeSMS) {
             try {
                 const isSmsAvailable = await SMS.isAvailableAsync();
                 if (isSmsAvailable) {
-                    const contactNumbers = contacts.map(c => c.phone);
-                    await SMS.s - endSMSAsync(contactNumbers, message);
+                    const contactNumbers = contacts.map((c: any) => c.phone);
+                    await SMS.sendSMSAsync(contactNumbers, message);
                     results.sms = { success: true, count: contacts.length };
                 } else {
                     results.sms = { success: false, error: 'SMS not available' };
                 }
             } catch (error) {
                 console.error('SMS sending failed:', error);
-                results.sms = { success: false, error: error.message };
+                const err = error as Error;
+                results.sms = { success: false, error: err.message };
             }
         }
 
@@ -123,8 +150,8 @@ class SOSService {
             try {
                 const isWhatsAppAvailable = await WhatsAppService.isWhatsAppInstalled();
                 if (isWhatsAppAvailable) {
-                    // const whatsappResults = await WhatsAppService.sendToMultipleContacts(contacts, message);
-                    const successCount = whatsappResults.filter(r => r.success).length;
+                    const whatsappResults = await WhatsAppService.sendToMultipleContacts(contacts, message);
+                    const successCount = whatsappResults.filter((r: any) => r.success).length;
                     results.whatsapp = {
                         success: successCount > 0,
                         count: successCount,
@@ -136,7 +163,8 @@ class SOSService {
                 }
             } catch (error) {
                 console.error('WhatsApp sending failed:', error);
-                results.whatsapp = { success: false, error: error.message };
+                const err = error as Error;
+                results.whatsapp = { success: false, error: err.message };
             }
         }
 
@@ -148,7 +176,7 @@ class SOSService {
 class LocationService {
     static async checkPermissionStatus() {
         try {
-            const { status } = await Location.getForegroundPermissionsAsync();
+            const { status } = await ExpoLocation.getForegroundPermissionsAsync();
             return status;
         } catch (error) {
             console.error('Error checking location permission:', error);
@@ -158,7 +186,7 @@ class LocationService {
 
     static async requestPermission() {
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
+            const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
             return status;
         } catch (error) {
             console.error('Error requesting location permission:', error);
@@ -168,7 +196,7 @@ class LocationService {
 
     static async checkLocationServices() {
         try {
-            return await Location.hasServicesEnabledAsync();
+            return await ExpoLocation.hasServicesEnabledAsync();
         } catch (error) {
             console.error('Error checking location services:', error);
             return false;
@@ -177,7 +205,7 @@ class LocationService {
 
     static async getLastKnownLocation() {
         try {
-            return await Location.getLastKnownPositionAsync({
+            return await ExpoLocation.getLastKnownPositionAsync({
                 maxAge: LOCATION_CACHE_DURATION,
                 requiredAccuracy: 1000,
             });
@@ -187,14 +215,13 @@ class LocationService {
         }
     }
 
-    static async getCurrentLocationWithTimeout(accuracy = Location.Accuracy.High, timeout = LOCATION_TIMEOUT) {
+    static async getCurrentLocationWithTimeout(accuracy = ExpoLocation.Accuracy.High, timeout = LOCATION_TIMEOUT) {
         try {
-            const locationPromise = Location.getCurrentPositionAsync({
+            const locationPromise = ExpoLocation.getCurrentPositionAsync({
                 accuracy,
-                timeout,
             });
 
-            const timeoutPromise = new Promise((_, reject) =>
+            const timeoutPromise = new Promise<never>((_, reject) =>
                 setTimeout(() => reject(new Error('Location request timeout')), timeout)
             );
 
@@ -205,15 +232,23 @@ class LocationService {
     }
 }
 
+interface HeaderProps {
+    onProfile: () => void;
+    colors: any;
+}
+
 // --- UI Components ---
-const Header = ({ onProfile, colors }) => (
+const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
     <View style={styles.header}>
+<<<<<<< HEAD
         <View>
             <Image
                 source={SentinelIcon}
                 style={{ width: 40, height: 40, borderRadius: 50 }}
             />
         </View>
+=======
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
                 <FontAwesome5 name="user-circle" size={30} color={colors.text} />
@@ -225,12 +260,21 @@ const Header = ({ onProfile, colors }) => (
 
 export default function HomeScreen() {
     const { colors } = useThemedStyles();
-    const [location, setLocation] = useState(null);
-    const [locationError, setLocationError] = useState(null);
+
+    // Global contexts
+    const { contacts: emergencyContacts, loading: contactsLoading, refreshContacts } = useEmergencyContacts();
+    const {
+        currentLocation: location,
+        locationError,
+        isLoadingLocation,
+        permissionStatus,
+        refreshLocation,
+        requestPermission: requestLocationPermission
+    } = useLocation();
+    const { userInfo } = useUser();
+
+    // Local state
     const [isSending, setIsSending] = useState(false);
-    const [emergencyContacts, setEmergencyContacts] = useState([]);
-    const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-    const [permissionStatus, setPermissionStatus] = useState('undetermined');
     const [locationServicesEnabled, setLocationServicesEnabled] = useState(null);
     const [whatsappAvailable, setWhatsappAvailable] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -238,6 +282,13 @@ export default function HomeScreen() {
     const router = useRouter();
     const { t } = useTranslation();
     const { isContactModalVisible, closeContactModal } = useModal();
+
+    // Voice SOS Hook
+    const voiceSOS = useVoiceSOS({
+        enabled: true,
+        voiceFeedback: true,
+        confirmationRequired: true,
+    });
 
     const locationRequestInProgress = useRef(false);
     const appStateRef = useRef(AppState.currentState);
@@ -252,9 +303,10 @@ export default function HomeScreen() {
         checkWhatsAppAvailability();
     }, []);
 
-    // Load contacts when screen is focused
+    // Refresh contacts when screen is focused
     useFocusEffect(
         useCallback(() => {
+<<<<<<< HEAD
             const loadContacts = async () => {
                 try {
                     const storedContacts = await StorageService.getEmergencyContacts();
@@ -266,6 +318,10 @@ export default function HomeScreen() {
             };
             loadContacts();
         }, [])
+=======
+            refreshContacts();
+        }, [refreshContacts])
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
     );
 
     // App initialization with automatic location setup
@@ -279,51 +335,44 @@ export default function HomeScreen() {
         };
 
         initializeApp();
-        loadLocation()
     }, []);
 
-    // Direct permission request and location setup
+    // Simplified permission request using context
     const requestLocationPermissionAndSetup = async () => {
         try {
             console.log('📍 Starting location permission request...');
+            const status = await requestLocationPermission();
 
-            // Check current permission status
-            const currentPermission = await LocationService.checkPermissionStatus();
-            setPermissionStatus(currentPermission);
-
-            if (currentPermission === 'undetermined') {
-                // Request permission directly - this shows the native dialog
-                console.log('📱 Requesting location permission (native dialog)...');
-                const newStatus = await LocationService.requestPermission();
-                setPermissionStatus(newStatus);
-
-                if (newStatus === 'granted') {
-                    await setupLocationAfterPermission();
-                } else {
-                    console.log('❌ Permission denied');
-                    setLocationError('permission_denied');
-                }
-            } else if (currentPermission === 'granted') {
-                await setupLocationAfterPermission();
+            if (status === 'granted') {
+                await refreshLocation();
             } else {
-                setLocationError('permission_denied');
+                console.log('❌ Permission denied');
+                Alert.alert(
+                    t('home.permissionDenied'),
+                    t('home.locationAccessNeeded'),
+                    [
+                        { text: t('common.cancel'), style: 'cancel' },
+                        { text: t('common.settings'), onPress: () => Linking.openSettings() }
+                    ]
+                );
             }
         } catch (error) {
             console.error('Error in location permission request:', error);
-            setLocationError('setup_failed');
         }
     };
+
     const openLocationSettings = async () => {
         if (Platform.OS === 'android') {
             try {
                 const result = await promptForEnableLocationIfNeeded();
                 console.log('promptForEnableLocationIfNeeded result', result);
                 if (result === 'enabled' || result === 'already-enabled') {
-                    // Location is enabled
+                    await refreshLocation();
                 }
             } catch (error) {
-                console.error(error.message);
-                if (error.code === 'ERR_ANDROID_LOCATION_SERVICES_DISABLED') {
+                const err = error as any;
+                console.error(err.message);
+                if (err.code === 'ERR_ANDROID_LOCATION_SERVICES_DISABLED') {
                     Alert.alert(
                         'Location services are disabled.',
                         'Please enable them in the device settings.',
@@ -335,85 +384,17 @@ export default function HomeScreen() {
                 }
             }
         } else {
-            Linking.openSettings(); // iOS fallback
+            Linking.openSettings();
         }
     };
 
-    // Setup location after permission is granted
-    const setupLocationAfterPermission = async () => {
-        try {
-            // Check location services
-            const servicesEnabled = await LocationService.checkLocationServices();
-            setLocationServicesEnabled(servicesEnabled);
-
-            if (!servicesEnabled) {
-                setLocationError('location_services_disabled');
-                // Show alert asking user to enable location services
-                openLocationSettings();
-            } else {
-                // Everything is good, get location
-                await fetchLocation(true);
-            }
-        } catch (error) {
-            console.error('Error in location setup:', error);
-            setLocationError('setup_failed');
-        }
-    };
-
-    // Enhanced app state change handler
-    useEffect(() => {
-
-
-        const handleAppStateChange = async (nextAppState) => {
-            console.log('App state changed from', appStateRef.current, 'to', nextAppState);
-
-            if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-                console.log('🔄 App came to foreground - rechecking location setup');
-
-                // Recheck permission status
-                const currentPermission = await LocationService.checkPermissionStatus();
-                setPermissionStatus(currentPermission);
-
-                // Recheck location services if we have permission
-                if (currentPermission === 'granted') {
-                    const servicesEnabled = await LocationService.checkLocationServices();
-                    setLocationServicesEnabled(servicesEnabled);
-
-                    // If both are good and we don't have recent location, fetch it
-                    if (servicesEnabled && (!location || (Date.now() - location.timestamp > LOCATION_CACHE_DURATION))) {
-                        await fetchLocation(true);
-                    }
-                }
-            }
-
-            appStateRef.current = nextAppState;
-        };
-
-        const subscription = AppState.addEventListener('change', handleAppStateChange);
-        return () => subscription?.remove();
-    }, [location, permissionStatus]);
-    const loadLocation = async () => {
-        try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
-                await Location.getCurrentPositionAsync({});
-
-            } else {
-                Alert.alert(t('home.permissionDenied'), t('home.locationAccessNeeded'));
-            }
-        } catch (error) {
-            console.error("Failed to get location", error);
-        }
-    };
-
-
-    // Enhanced refresh function
+    // Simplified refresh function using context
     const refreshAppState = async () => {
-        loadLocation()
         setRefreshing(true);
         try {
             console.log('🔄 Pull-to-refresh: Starting refresh...');
 
+<<<<<<< HEAD
             locationRequestInProgress.current = false;
             initialLocationRequest.current = false;
 
@@ -427,17 +408,17 @@ export default function HomeScreen() {
             } catch (error) {
                 console.error('Pull-to-refresh: Failed to reload contacts', error);
             }
+=======
+            // Refresh all global data in parallel
+            await Promise.all([
+                refreshContacts(),
+                refreshLocation(),
+            ]);
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 
             // Re-check WhatsApp
-            try {
-                const isAvailable = await WhatsAppService.isWhatsAppInstalled();
-                setWhatsappAvailable(isAvailable);
-            } catch (error) {
-                console.error('Pull-to-refresh: Failed to check WhatsApp', error);
-            }
-
-            // Re-run location setup
-            await requestLocationPermissionAndSetup();
+            const isAvailable = await WhatsAppService.isWhatsAppInstalled();
+            setWhatsappAvailable(isAvailable);
 
         } catch (error) {
             console.error('Pull-to-refresh: Error during refresh:', error);
@@ -446,92 +427,16 @@ export default function HomeScreen() {
         }
     };
 
-    // Enhanced location fetching
-    const fetchLocation = async (forceRefresh = false) => {
-        if (locationRequestInProgress.current && !forceRefresh) {
-            console.log('Location request already in progress, skipping...');
-            return;
-        }
-
-        console.log('📍 Fetching location... (forceRefresh:', forceRefresh, ')');
-
-        setLocationError(null);
-
-        if (permissionStatus !== 'granted') {
-            setLocationError('permission_not_granted');
-            return;
-        }
-
-        const servicesEnabled = await LocationService.checkLocationServices();
-        setLocationServicesEnabled(servicesEnabled);
-
-        if (!servicesEnabled) {
-            setLocationError('location_services_disabled');
-            return;
-        }
-
-        locationRequestInProgress.current = true;
-        setIsLoadingLocation(true);
-
-        try {
-            if (!location || forceRefresh) {
-                const lastKnown = await LocationService.getLastKnownLocation();
-                if (lastKnown && (!location || forceRefresh)) {
-                    setLocation(lastKnown);
-                    console.log('📍 Set last known location as temporary location');
-                }
-            }
-
-            try {
-                console.log('📍 Attempting high accuracy location...');
-                const currentLocation = await LocationService.getCurrentLocationWithTimeout(
-                    Location.Accuracy.High,
-                    LOCATION_TIMEOUT
-                );
-                setLocation(currentLocation);
-                setLocationError(null);
-                console.log('✅ High accuracy location obtained successfully');
-            } catch (error) {
-                console.log('📍 High accuracy failed, trying balanced accuracy');
-                try {
-                    const fallbackLocation = await LocationService.getCurrentLocationWithTimeout(
-                        Location.Accuracy.Balanced,
-                        LOCATION_FALLBACK_TIMEOUT
-                    );
-                    setLocation(fallbackLocation);
-                    setLocationError(null);
-                    console.log('✅ Balanced accuracy location obtained successfully');
-                } catch (fallbackError) {
-                    console.error('❌ All location attempts failed:', fallbackError);
-                    if (!location) {
-                        setLocationError('location_fetch_failed');
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Location fetch error:', error);
-            if (!location) {
-                setLocationError('location_fetch_failed');
-            }
-        } finally {
-            setIsLoadingLocation(false);
-            locationRequestInProgress.current = false;
-            console.log('📍 Location fetch process completed');
-        }
-    };
-
     // Focus effect to refresh location when screen becomes focused
     useFocusEffect(
         React.useCallback(() => {
-            if (permissionStatus === 'granted' && locationServicesEnabled) {
-                if (!location || (Date.now() - location.timestamp > LOCATION_CACHE_DURATION)) {
-                    fetchLocation(true);
-                }
+            if (permissionStatus === 'granted' && !locationError) {
+                refreshLocation();
             }
-        }, [permissionStatus, locationServicesEnabled, location])
+        }, [permissionStatus, locationError, refreshLocation])
     );
 
-    const showSOSResults = (results) => {
+    const showSOSResults = (results: SOSResult) => {
         let message = '';
         let hasSuccess = false;
 
@@ -580,17 +485,16 @@ export default function HomeScreen() {
                         {
                             text: 'Grant Permission',
                             onPress: async () => {
-                                const status = await LocationService.requestPermission();
-                                setPermissionStatus(status);
+                                const status = await requestLocationPermission();
                                 if (status === 'granted') {
-                                    await setupLocationAfterPermission();
+                                    await refreshLocation();
                                 }
                             }
                         }
                     ]
                 );
                 return;
-            } else if (!locationServicesEnabled) {
+            } else if (locationError === 'location_services_disabled') {
                 openLocationSettings();
                 return;
             } else {
@@ -599,27 +503,99 @@ export default function HomeScreen() {
                     t('home.locationRequiredMessage'),
                     [{ text: 'OK' }]
                 );
-                await fetchLocation(true);
+                await refreshLocation();
                 if (!location) return;
             }
         }
 
         setIsSending(true);
+
         try {
-            const results = await SOSService.sendEmergencyMessages(emergencyContacts, location, {
-                includeSMS: true,
-                includeWhatsApp: whatsappAvailable
-            });
-            showSOSResults(results);
+            console.log('🚨 Initiating Multi-Layer SOS...');
+
+            // Get user ID (you'll need to pass this from auth context)
+            const userId = 'user_current'; // TODO: Replace with actual user ID from auth
+
+            // Convert CurrentLocation to LocationData format expected by MultiLayerSOSService
+            const locationData = {
+                coords: {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    accuracy: location.accuracy,
+                    altitude: location.altitude,
+                    speed: location.speed,
+                    heading: location.heading,
+                },
+                timestamp: location.timestamp || Date.now(),
+            };
+
+            // Execute Multi-Layer SOS
+            const result = await MultiLayerSOSService.executeMultiLayerSOS(
+                userId,
+                emergencyContacts,
+                locationData,
+                t('home.emergencyMessage') || '🚨 EMERGENCY! I need help immediately!',
+                {
+                    skipAPI: false,  // Try API first
+                    skipWhatsApp: !whatsappAvailable, // Skip if not available
+                    skipSMS: false,  // Always try SMS
+                    skipCall: false, // Offer call if all else fails
+                }
+            );
+
+            // Format and show results
+            const resultMessage = MultiLayerSOSService.formatResultsForUser(result);
+
+            Alert.alert(
+                '🚨 Emergency Alert Sent',
+                resultMessage,
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Log the alert details
+                            console.log('Alert Summary:', {
+                                alertId: result.alertId,
+                                contactsNotified: result.totalContactsNotified,
+                                layersUsed: result.layers.length,
+                                timestamp: new Date(result.timestamp).toISOString(),
+                            });
+                        }
+                    }
+                ]
+            );
+
+            // Also show a brief success toast if available
+            if (result.totalContactsNotified > 0) {
+                console.log(`✅ Success: ${result.totalContactsNotified} contacts notified`);
+            } else {
+                console.warn('⚠️ Warning: No contacts were notified');
+            }
+
         } catch (error) {
-            console.error('SOS sending failed:', error);
-            Alert.alert('Error', t('home.sosFailedMessage'));
+            console.error('❌ Multi-Layer SOS failed:', error);
+
+            Alert.alert(
+                'Emergency Alert Error',
+                'Failed to send emergency alert. Please try calling your contacts directly.',
+                [
+                    { text: 'OK', style: 'cancel' },
+                    {
+                        text: 'Call Now',
+                        onPress: () => {
+                            if (emergencyContacts.length > 0) {
+                                Linking.openURL(`tel:${emergencyContacts[0].phone}`);
+                            }
+                        }
+                    }
+                ]
+            );
         } finally {
             setIsSending(false);
         }
     };
 
-    const handleCategorySelect = (category) => {
+    const handleCategorySelect = (category: any) => {
         router.push({
             pathname: '/guide',
             params: {
@@ -634,8 +610,8 @@ export default function HomeScreen() {
             router.push({
                 pathname: "/webMap",
                 params: {
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
+                    latitude: location.latitude,
+                    longitude: location.longitude,
                 },
             });
         } else {
@@ -649,20 +625,19 @@ export default function HomeScreen() {
                         {
                             text: 'Grant Permission',
                             onPress: async () => {
-                                const status = await LocationService.requestPermission();
-                                setPermissionStatus(status);
+                                const status = await requestLocationPermission();
                                 if (status === 'granted') {
-                                    await setupLocationAfterPermission();
+                                    await refreshLocation();
                                 }
                             }
                         }
                     ]
                 );
-            } else if (!locationServicesEnabled) {
+            } else if (locationError === 'location_services_disabled') {
                 openLocationSettings();
             } else {
                 Alert.alert(t('home.gettingLocationAlert'), t('home.gettingLocationAlertMessage'));
-                await fetchLocation(true);
+                await refreshLocation();
             }
         }
     };
@@ -677,7 +652,7 @@ export default function HomeScreen() {
             return { text: t('home.permissionNeeded'), status: 'error' };
         }
 
-        if (locationServicesEnabled === false) {
+        if (locationError === 'location_services_disabled') {
             return { text: t('home.servicesDisabled'), status: 'error' };
         }
 
@@ -696,7 +671,7 @@ export default function HomeScreen() {
 
         if (location) {
             return {
-                text: `Lat: ${location.coords.latitude.toFixed(4)}, Lon: ${location.coords.longitude.toFixed(4)}`,
+                text: `Lat: ${location.latitude.toFixed(4)}, Lon: ${location.longitude.toFixed(4)}`,
                 status: 'available'
             };
         }
@@ -758,7 +733,7 @@ export default function HomeScreen() {
         Alert.alert(t('home.sosOptionsTitle'), t('home.sosOptionsMessage'), options);
     };
 
-    const sendSOSWithOptions = async (options) => {
+    const sendSOSWithOptions = async (options: SOSOptions) => {
         setIsSending(true);
         try {
             const results = await SOSService.sendEmergencyMessages(emergencyContacts, location, options);

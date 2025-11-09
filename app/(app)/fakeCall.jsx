@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 ﻿import { StorageService } from '@/services/StorageService';
+=======
+﻿import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { Entypo, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
@@ -64,12 +69,20 @@ const FakeCallScreen = () =>
         {
             try
             {
+<<<<<<< HEAD
                 const settings = await StorageService.getFakeCallerSettings();
                 if (mounted)
                 {
                     setCallerName(settings.name);
                     setCallerNumber(settings.number);
                 }
+=======
+                const storedName = await StorageService.get(STORAGE_KEYS.FAKE_CALLER_NAME);
+                if (storedName && mounted) setCallerName(storedName);
+
+                const storedNumber = await StorageService.get(STORAGE_KEYS.FAKE_CALLER_NUMBER);
+                if (storedNumber && mounted) setCallerNumber(storedNumber);
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
             } catch (error)
             {
                 console.error("Failed to load caller info", error);

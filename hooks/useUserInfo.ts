@@ -1,4 +1,4 @@
-﻿// hooks/useUserInfo.ts - IMPROVED VERSION
+﻿// hooks/useUserInfo.ts -
 import { useAuth } from '@/context/AuthContext';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useRef, useState } from 'react';

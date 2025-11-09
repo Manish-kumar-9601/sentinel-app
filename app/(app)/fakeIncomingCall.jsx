@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 ﻿import { StorageService } from '@/services/StorageService';
+=======
+﻿import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
@@ -17,8 +22,13 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // --- Configuration ---
+<<<<<<< HEAD
 const DEFAULT_CALLER_NAME = 'User';
 const DEFAULT_CALLER_NUMBER = '+91 0000000000';
+=======
+const DEFAULT_CALLER_NAME = 'Nevil Modi BMP Clg';
+const DEFAULT_CALLER_NUMBER = '+91 81606 17183';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 
 const FakeIncomingCallScreen = () =>
 {
@@ -45,6 +55,7 @@ const FakeIncomingCallScreen = () =>
       try
       {
         // Load caller settings
+<<<<<<< HEAD
         const settings = await StorageService.getFakeCallerSettings();
         if (isMounted)
         {
@@ -55,6 +66,19 @@ const FakeIncomingCallScreen = () =>
         // Load ringtone
         let ringtoneUri = require('../../assets/ringtone.mp3');
         if (settings.ringtoneUri)
+=======
+        const storedName = await StorageService.get(STORAGE_KEYS.FAKE_CALLER_NAME);
+        if (isMounted && storedName) setCallerName(storedName);
+
+        const storedNumber = await StorageService.get(STORAGE_KEYS.FAKE_CALLER_NUMBER);
+        if (isMounted && storedNumber) setCallerNumber(storedNumber);
+
+        // Load ringtone
+        let ringtoneUri = require('../../assets/ringtone.mp3');
+        const customRingtoneUri = await StorageService.get(STORAGE_KEYS.FAKE_CALL_RINGTONE);
+
+        if (customRingtoneUri)
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
         {
           const fileInfo = await FileSystem.getInfoAsync(settings.ringtoneUri);
           if (fileInfo?.exists)

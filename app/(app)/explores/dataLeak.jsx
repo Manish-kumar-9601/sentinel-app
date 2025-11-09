@@ -14,7 +14,12 @@ import
     View,
   } from 'react-native';
 
+<<<<<<< HEAD
 import { StorageService } from '@/services/StorageService';
+=======
+import { STORAGE_KEYS } from '@/constants/storage';
+import { StorageService } from '@/services/storage';
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { Feather, Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -37,7 +42,11 @@ export default function DataLeakScreen ()
     // Define an async function inside the effect
     const loadApiKey = async () =>
     {
+<<<<<<< HEAD
       const apiKey = await StorageService.getApiKey();
+=======
+      const apiKey = await StorageService.get(STORAGE_KEYS.API_KEY);
+>>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
       if (apiKey !== null)
       {
         setApiKey(apiKey);
