@@ -6,6 +6,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { ModalProvider } from '../context/ModalContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import i18next, { loadSavedLanguage } from '../lib/i18n';
+import { initializeStore } from '../store';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -16,6 +17,10 @@ export default function RootLayout() {
     useEffect(() => {
         const prepareApp = async () => {
             try {
+                // Initialize global store (loads persisted state)
+                await initializeStore();
+                console.log('✅ Global store initialized');
+
                 // Load the user's saved language preference
                 await loadSavedLanguage();
             } catch (e) {

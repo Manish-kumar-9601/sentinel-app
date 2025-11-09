@@ -1,19 +1,11 @@
 ﻿import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
-<<<<<<< HEAD
-import { StorageService } from '@/services/StorageService';
-import { FontAwesome5 } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-=======
-import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
-import { useLocation } from '@/context/LocationContext';
-import { useUser } from '@/context/UserContext';
-import { useVoiceSOS } from '@/hooks/useVoiceSOS';
-import { MultiLayerSOSService } from '@/services/multiLayerSOSService';
+import StorageService from '@/services/StorageService';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as ExpoLocation from 'expo-location';
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
+// @ts-ignore
+import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -30,10 +22,6 @@ import {
 } from 'react-native';
 import { promptForEnableLocationIfNeeded } from 'react-native-android-location-enabler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-<<<<<<< HEAD
-import SentinelIcon from '../../assets/images/sentinel-nav-icon.png';
-=======
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import ContactListModal from '../../components/ContactListModal';
 import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
@@ -41,14 +29,9 @@ import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 // --- Configuration ---
-<<<<<<< HEAD
-const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-=======
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_FALLBACK_TIMEOUT = 10000; // 10 seconds for fallback
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 // --- WhatsApp Service ---
 class WhatsAppService {
     static async isWhatsAppInstalled() {
@@ -240,15 +223,6 @@ interface HeaderProps {
 // --- UI Components ---
 const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
     <View style={styles.header}>
-<<<<<<< HEAD
-        <View>
-            <Image
-                source={SentinelIcon}
-                style={{ width: 40, height: 40, borderRadius: 50 }}
-            />
-        </View>
-=======
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
                 <FontAwesome5 name="user-circle" size={30} color={colors.text} />
@@ -261,21 +235,18 @@ const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
 export default function HomeScreen() {
     const { colors } = useThemedStyles();
 
-    // Global contexts
-    const { contacts: emergencyContacts, loading: contactsLoading, refreshContacts } = useEmergencyContacts();
-    const {
-        currentLocation: location,
-        locationError,
-        isLoadingLocation,
-        permissionStatus,
-        refreshLocation,
-        requestPermission: requestLocationPermission
-    } = useLocation();
-    const { userInfo } = useUser();
+    // Local state for emergency contacts
+    const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
 
-    // Local state
+    // Local state for location
+    const [location, setLocation] = useState<ExpoLocation.LocationObject | null>(null);
+    const [locationError, setLocationError] = useState<string | null>(null);
+    const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+    const [permissionStatus, setPermissionStatus] = useState<ExpoLocation.PermissionStatus | null>(null);
+
+    // Other local state
     const [isSending, setIsSending] = useState(false);
-    const [locationServicesEnabled, setLocationServicesEnabled] = useState(null);
+    const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null);
     const [whatsappAvailable, setWhatsappAvailable] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -283,16 +254,90 @@ export default function HomeScreen() {
     const { t } = useTranslation();
     const { isContactModalVisible, closeContactModal } = useModal();
 
-    // Voice SOS Hook
-    const voiceSOS = useVoiceSOS({
-        enabled: true,
-        voiceFeedback: true,
-        confirmationRequired: true,
-    });
-
+    // Refs
     const locationRequestInProgress = useRef(false);
     const appStateRef = useRef(AppState.currentState);
     const initialLocationRequest = useRef(false);
+
+    // Request location permission
+    const requestLocationPermission = async (): Promise<ExpoLocation.PermissionStatus> => {
+        try {
+            console.log('📍 Requesting location permission...');
+            const status = await LocationService.requestPermission();
+            setPermissionStatus(status as ExpoLocation.PermissionStatus);
+            return status as ExpoLocation.PermissionStatus;
+        } catch (error) {
+            console.error('Error requesting permission:', error);
+            return 'denied' as ExpoLocation.PermissionStatus;
+        }
+    };
+
+    // Refresh location
+    const refreshLocation = useCallback(async () => {
+        if (locationRequestInProgress.current) {
+            console.log('⏭️ Location request already in progress, skipping...');
+            return;
+        }
+
+        locationRequestInProgress.current = true;
+        setIsLoadingLocation(true);
+        setLocationError(null);
+
+        try {
+            console.log('🔄 Refreshing location...');
+
+            // Check permission
+            const status = await LocationService.checkPermissionStatus();
+            setPermissionStatus(status as ExpoLocation.PermissionStatus);
+
+            if (status !== 'granted') {
+                setLocationError('permission_denied');
+                setLocation(null);
+                return;
+            }
+
+            // Check location services
+            const servicesEnabled = await LocationService.checkLocationServices();
+            setLocationServicesEnabled(servicesEnabled);
+
+            if (!servicesEnabled) {
+                setLocationError('location_services_disabled');
+                setLocation(null);
+                return;
+            }
+
+            // Try to get last known location first (faster)
+            const lastKnown = await LocationService.getLastKnownLocation();
+            if (lastKnown) {
+                console.log('✅ Using last known location');
+                setLocation(lastKnown);
+            }
+
+            // Then get current location (more accurate)
+            try {
+                const currentLocation = await LocationService.getCurrentLocationWithTimeout(
+                    ExpoLocation.Accuracy.High,
+                    LOCATION_TIMEOUT
+                );
+                console.log('✅ Got current location');
+                setLocation(currentLocation);
+                setLocationError(null);
+            } catch (error) {
+                if (lastKnown) {
+                    console.log('⚠️ Current location timeout, using last known');
+                } else {
+                    console.error('❌ Location fetch failed:', error);
+                    setLocationError('location_fetch_failed');
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing location:', error);
+            setLocationError('location_fetch_failed');
+        } finally {
+            setIsLoadingLocation(false);
+            locationRequestInProgress.current = false;
+        }
+    }, []);
 
     // Check WhatsApp availability on mount
     useEffect(() => {
@@ -306,7 +351,6 @@ export default function HomeScreen() {
     // Refresh contacts when screen is focused
     useFocusEffect(
         useCallback(() => {
-<<<<<<< HEAD
             const loadContacts = async () => {
                 try {
                     const storedContacts = await StorageService.getEmergencyContacts();
@@ -318,10 +362,6 @@ export default function HomeScreen() {
             };
             loadContacts();
         }, [])
-=======
-            refreshContacts();
-        }, [refreshContacts])
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
     );
 
     // App initialization with automatic location setup
@@ -337,7 +377,7 @@ export default function HomeScreen() {
         initializeApp();
     }, []);
 
-    // Simplified permission request using context
+    // Simplified permission request
     const requestLocationPermissionAndSetup = async () => {
         try {
             console.log('📍 Starting location permission request...');
@@ -394,7 +434,6 @@ export default function HomeScreen() {
         try {
             console.log('🔄 Pull-to-refresh: Starting refresh...');
 
-<<<<<<< HEAD
             locationRequestInProgress.current = false;
             initialLocationRequest.current = false;
 
@@ -408,13 +447,6 @@ export default function HomeScreen() {
             } catch (error) {
                 console.error('Pull-to-refresh: Failed to reload contacts', error);
             }
-=======
-            // Refresh all global data in parallel
-            await Promise.all([
-                refreshContacts(),
-                refreshLocation(),
-            ]);
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 
             // Re-check WhatsApp
             const isAvailable = await WhatsAppService.isWhatsAppInstalled();
@@ -449,16 +481,20 @@ export default function HomeScreen() {
             }
         }
 
-        // if (results.whatsapp) {
-        //     if (results.whatsapp.success) {
-        //         message += `✅ WhatsApp messages initiated for ${results.whatsapp.count}/${results.whatsapp.total} contact(s)\n`;
-        //         hasSuccess = true;
-        //     } else {
-        //         message += `❌ WhatsApp failed: ${results.whatsapp.error}\n`;
-        //     }
-        // }
+        if (results.whatsapp) {
+            if (results.whatsapp.success) {
+                message += `✅ WhatsApp messages initiated for ${results.whatsapp.count}/${results.whatsapp.total} contact(s)\n`;
+                hasSuccess = true;
+            } else {
+                message += `❌ WhatsApp failed: ${results.whatsapp.error}\n`;
+            }
+        }
 
-
+        Alert.alert(
+            hasSuccess ? '🚨 Emergency Alert Sent' : '❌ Emergency Alert Failed',
+            message.trim() || 'Failed to send emergency messages',
+            [{ text: 'OK' }]
+        );
     };
 
 
@@ -511,69 +547,23 @@ export default function HomeScreen() {
         setIsSending(true);
 
         try {
-            console.log('🚨 Initiating Multi-Layer SOS...');
+            console.log('🚨 Sending Emergency SOS...');
 
-            // Get user ID (you'll need to pass this from auth context)
-            const userId = 'user_current'; // TODO: Replace with actual user ID from auth
-
-            // Convert CurrentLocation to LocationData format expected by MultiLayerSOSService
-            const locationData = {
-                coords: {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                    accuracy: location.accuracy,
-                    altitude: location.altitude,
-                    speed: location.speed,
-                    heading: location.heading,
-                },
-                timestamp: location.timestamp || Date.now(),
-            };
-
-            // Execute Multi-Layer SOS
-            const result = await MultiLayerSOSService.executeMultiLayerSOS(
-                userId,
+            // Send emergency messages using SOSService
+            const results = await SOSService.sendEmergencyMessages(
                 emergencyContacts,
-                locationData,
-                t('home.emergencyMessage') || '🚨 EMERGENCY! I need help immediately!',
+                location,
                 {
-                    skipAPI: false,  // Try API first
-                    skipWhatsApp: !whatsappAvailable, // Skip if not available
-                    skipSMS: false,  // Always try SMS
-                    skipCall: false, // Offer call if all else fails
+                    includeSMS: true,
+                    includeWhatsApp: whatsappAvailable
                 }
             );
 
-            // Format and show results
-            const resultMessage = MultiLayerSOSService.formatResultsForUser(result);
-
-            Alert.alert(
-                '🚨 Emergency Alert Sent',
-                resultMessage,
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => {
-                            // Log the alert details
-                            console.log('Alert Summary:', {
-                                alertId: result.alertId,
-                                contactsNotified: result.totalContactsNotified,
-                                layersUsed: result.layers.length,
-                                timestamp: new Date(result.timestamp).toISOString(),
-                            });
-                        }
-                    }
-                ]
-            );
-
-            // Also show a brief success toast if available
-            if (result.totalContactsNotified > 0) {
-                console.log(`✅ Success: ${result.totalContactsNotified} contacts notified`);
-            } else {
-                console.warn('⚠️ Warning: No contacts were notified');
-            }
+            // Show results
+            showSOSResults(results);
 
         } catch (error) {
-            console.error('❌ Multi-Layer SOS failed:', error);
+            console.error('❌ SOS sending failed:', error);
 
             Alert.alert(
                 'Emergency Alert Error',
@@ -610,8 +600,8 @@ export default function HomeScreen() {
             router.push({
                 pathname: "/webMap",
                 params: {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
                 },
             });
         } else {
@@ -671,7 +661,7 @@ export default function HomeScreen() {
 
         if (location) {
             return {
-                text: `Lat: ${location.latitude.toFixed(4)}, Lon: ${location.longitude.toFixed(4)}`,
+                text: `Lat: ${location.coords.latitude.toFixed(4)}, Lon: ${location.coords.longitude.toFixed(4)}`,
                 status: 'available'
             };
         }

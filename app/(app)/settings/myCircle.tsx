@@ -1,14 +1,25 @@
-<<<<<<< HEAD
+/**
+ * My Circle Screen - MIGRATED TO GLOBAL STORE
+ * 
+ * Emergency contacts management using centralized Zustand store.
+ * This version eliminates local state and manual storage operations.
+ * 
+ * Benefits:
+ * - ✅ Automatic persistence
+ * - ✅ Real-time sync across screens
+ * - ✅ Offline support with queue
+ * - ✅ Type-safe operations
+ * - ✅ Less boilerplate code
+ */
+
 import type { EmergencyContact } from '@/services/StorageService';
-import { StorageService } from '@/services/StorageService';
-=======
-import { useEmergencyContacts } from '@/context/EmergencyContactsContext';
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
+import { useContacts } from '@/store';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
@@ -21,50 +32,34 @@ import PhoneContactsModal from '../../../components/PhoneContactsModal';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 export default function MyCircleScreen() {
-<<<<<<< HEAD
-  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
-=======
-  // Use global emergency contacts context
-  const { contacts, loading, addContact, deleteContact } = useEmergencyContacts();
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const { t } = useTranslation();
   const { colors } = useThemedStyles();
 
-<<<<<<< HEAD
-  // --- Load contacts from storage when the screen opens ---
+  // 🎯 GLOBAL STORE HOOK - replaces local state & useEffect
+  const {
+    contacts,
+    loading: contactsLoading,
+    error: contactsError,
+    addContact,
+    removeContact,
+    loadContacts,
+  } = useContacts();
+
+  // Load contacts on mount (store handles caching)
   useEffect(() => {
-    const loadContacts = async () => {
-      try {
-        const storedContacts = await StorageService.getEmergencyContacts();
-        setContacts(storedContacts);
-      } catch (error) {
-        console.error('Failed to load contacts.', error);
-      }
-    };
     loadContacts();
   }, []);
 
-  // --- Save contacts to storage whenever the list changes ---
+  // Show error if loading fails
   useEffect(() => {
-    const saveContacts = async () => {
-      try {
-        await StorageService.setEmergencyContacts(contacts);
-      } catch (error) {
-        console.error('Failed to save contacts.', error);
-      }
-    };
-    // Only save if contacts isn't the initial empty array
-    if (contacts.length > 0) {
-      saveContacts();
+    if (contactsError) {
+      Alert.alert(t('myCircle.error'), contactsError);
     }
-  }, [contacts]);
+  }, [contactsError, t]);
 
-
-=======
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
   // --- Logic to Remove a Contact ---
-  const handleRemoveContact = async (contactToRemove: any) => {
+  const handleRemoveContact = async (contactToRemove: EmergencyContact) => {
     Alert.alert(
       t('myCircle.removeTitle'),
       t('myCircle.removeMessage', { name: contactToRemove.name }),
@@ -74,7 +69,13 @@ export default function MyCircleScreen() {
           text: t('myCircle.remove'),
           onPress: async () => {
             try {
-              await deleteContact(contactToRemove.id);
+              // 🚀 Single call - store handles persistence + sync
+              await removeContact(contactToRemove.id);
+
+              Alert.alert(
+                t('myCircle.success'),
+                t('myCircle.removeSuccess', { name: contactToRemove.name })
+              );
             } catch (error) {
               console.error('Failed to remove contact:', error);
               Alert.alert(t('myCircle.error'), t('myCircle.removeError'));
@@ -88,25 +89,41 @@ export default function MyCircleScreen() {
 
   // --- Logic to Add a Contact from the Phone Contacts Modal ---
   const handleSelectFromPhone = async (selectedContact: any) => {
-    // Check if contact already exists in the circle
+    // Check if contact already exists
     if (contacts.some(c => c.id === selectedContact.id)) {
-      Alert.alert(t('myCircle.contactExists'), t('myCircle.contactExistsMessage', { name: selectedContact.name }));
-    } else {
-      try {
-        await addContact({
-          name: selectedContact.name,
-          phone: selectedContact.phone,
-          relationship: selectedContact.relationship || ''
-        });
-      } catch (error) {
-        console.error('Failed to add contact:', error);
-        Alert.alert(t('myCircle.error'), t('myCircle.addError'));
-      }
+      Alert.alert(
+        t('myCircle.contactExists'),
+        t('myCircle.contactExistsMessage', { name: selectedContact.name })
+      );
+      return;
+    }
+
+    try {
+      // Create new contact object
+      const newContact: EmergencyContact = {
+        id: selectedContact.id || Date.now().toString(),
+        name: selectedContact.name,
+        phone: selectedContact.phone,
+      };
+
+      // 🚀 Single call - store handles persistence + sync
+      await addContact(newContact);
+
+      // Close modal on success
+      setIsPickerVisible(false);
+
+      Alert.alert(
+        t('myCircle.success'),
+        t('myCircle.addSuccess', { name: selectedContact.name })
+      );
+    } catch (error) {
+      console.error('Failed to add contact:', error);
+      Alert.alert(t('myCircle.error'), t('myCircle.addError'));
     }
   };
 
   // --- UI Component for each contact in the list ---
-  const ContactItem = ({ item }: { item: any }) => (
+  const ContactItem = ({ item }: { item: EmergencyContact }) => (
     <View style={styles.contactItem}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
@@ -219,12 +236,37 @@ export default function MyCircleScreen() {
       textAlign: 'center',
       paddingHorizontal: 40,
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
   });
+
+  // Show loading spinner while fetching
+  if (contactsLoading && contacts.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerPressable} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
+            <Text style={styles.headerTitle}>{t('myCircle.title')}</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.emptySubtext, { marginTop: 20 }]}>
+            {t('myCircle.loading')}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerPressable} onPress={() => { router.back() }}>
+        <TouchableOpacity style={styles.headerPressable} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={28} color={colors.navigatorColor} />
           <Text style={styles.headerTitle}>{t('myCircle.title')}</Text>
         </TouchableOpacity>
@@ -233,8 +275,6 @@ export default function MyCircleScreen() {
           <Text style={styles.addButtonText}>{t('myCircle.add')}</Text>
         </TouchableOpacity>
       </View>
-
-
 
       <FlatList
         data={contacts}
@@ -256,4 +296,4 @@ export default function MyCircleScreen() {
       />
     </SafeAreaView>
   );
-};
+}

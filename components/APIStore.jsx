@@ -1,11 +1,5 @@
-<<<<<<< HEAD
 ﻿import { useTheme } from '@/context/ThemeContext';
 import { StorageService } from '@/services/StorageService';
-=======
-﻿import { STORAGE_KEYS } from '@/constants/storage';
-import { useTheme } from '@/context/ThemeContext';
-import { StorageService } from '@/services/storage';
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
 import React, { useEffect, useState } from 'react';
 import
   {
@@ -36,11 +30,7 @@ export const API_Storing = () =>
     {
       try
       {
-<<<<<<< HEAD
         const apiKey = await StorageService.getApiKey();
-=======
-        const apiKey = await StorageService.get(STORAGE_KEYS.API_KEY);
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
         if (apiKey !== null)
         {
           console.log('API Key loaded successfully!');
@@ -77,11 +67,7 @@ export const API_Storing = () =>
 
     try
     {
-<<<<<<< HEAD
       await StorageService.setApiKey(apiKeyInput);
-=======
-      await StorageService.set(STORAGE_KEYS.API_KEY, apiKeyInput);
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
       console.log('API Key saved successfully!');
       setStoredApiKey(apiKeyInput); // Update the displayed stored API Key
       setMessage(`API Key has been saved!`);
@@ -98,11 +84,7 @@ export const API_Storing = () =>
   {
     try
     {
-<<<<<<< HEAD
       await StorageService.clearApiKey();
-=======
-      await StorageService.delete(STORAGE_KEYS.API_KEY);
->>>>>>> 8496b3f7aefa1e42e06318f68c1f526fcd481795
       console.log('API Key cleared successfully!');
       setStoredApiKey('');
       setMessage('API Key has been cleared from storage.');

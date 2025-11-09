@@ -15,6 +15,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// @ts-ignore
 import SentinelIcon from '../../assets/images/sentinel-icon.png';
 import { useAuth } from '../../context/AuthContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';

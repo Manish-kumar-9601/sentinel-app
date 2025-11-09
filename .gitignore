@@ -60,3 +60,5 @@ Thumbs.db
 
 # --- Project-Specific ---
 # Add any other files or folders unique to your project below.
+
+.env.local
