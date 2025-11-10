@@ -24,6 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.sentinel",
+      "useNextNotificationsApi": true,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -98,7 +99,6 @@
       "typedRoutes": true
     },
     "extra": {
-      
       "eas": {
         "projectId": "149ae237-40de-4c01-8535-aeb659ca4222"
       },

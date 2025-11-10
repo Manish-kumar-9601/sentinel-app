@@ -20,6 +20,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUserState] = useState<User | null>(null);
     const [token, setTokenState] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [lastTokenVerification, setLastTokenVerification] = useState<number>(0);
+
+    // Cache token verification for 24 hours
+    const TOKEN_VERIFICATION_CACHE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
     // Load stored auth data on mount
     useEffect(() => {
@@ -37,13 +41,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (storedToken && storedUser) {
                 console.log('📦 Found stored auth data');
 
-                // Verify token is still valid
+                // ✅ OPTIMIZATION: Check if we verified recently
+                const now = Date.now();
+                const needsVerification = (now - lastTokenVerification) > TOKEN_VERIFICATION_CACHE_MS;
+
+                if (!needsVerification) {
+                    console.log('✅ Using cached token verification (verified within 24h)');
+                    setTokenState(storedToken);
+                    setUserState(storedUser);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Verify token only if cache expired
+                console.log('🔄 Token verification cache expired, verifying...');
                 const isValid = await verifyToken(storedToken);
 
                 if (isValid) {
                     setTokenState(storedToken);
                     setUserState(storedUser);
-                    console.log('✅ Session restored');
+                    setLastTokenVerification(now);
+                    console.log('✅ Session restored and verified');
                 } else {
                     console.log('❌ Stored token invalid, clearing');
                     await clearStoredAuth();

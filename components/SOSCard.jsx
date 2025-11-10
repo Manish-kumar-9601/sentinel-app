@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -10,18 +11,21 @@ import Animated, {
 import { useThemedStyles } from '../hooks/useThemedStyles';
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
-export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) =>
+
+// ✅ Memoized component - only re-renders when props change
+export const SOSCard = React.memo(({ onSOSPress, isReady, buttonText, locationText, onLocationPress, locationStatus, onSOSOptions }) =>
 {
     const { t } = useTranslation();
     const { colors } = useThemedStyles();
     const shadowSpread = useSharedValue(2);
+    const animationRef = useRef({ value: 0, direction: 1 });
 
-    // Check if button text indicates loading state
-    const isLoadingState = [
+    // ✅ Memoize loading state check - avoid recalculating every render
+    const isLoadingState = useMemo(() => [
         t('home.preparing'),
         t('home.locating'),
         t('home.sending')
-    ].includes(buttonText);
+    ].includes(buttonText), [t, buttonText]);
 
     const animatedStyle = useAnimatedStyle(() =>
     {
@@ -34,20 +38,27 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
             elevation: shadowSpread.value, // Android fallback
         };
     });
-    let withTimerValue = 0;
-    let direction = 1;
 
-    setInterval(() =>
+    // ✅ FIX: Move animation to useEffect with proper cleanup
+    useEffect(() =>
     {
-        shadowSpread.value = withTiming(withTimerValue, { duration: 500 });
+        const intervalId = setInterval(() =>
+        {
+            const animation = animationRef.current;
 
-        // Step forward or backward
-        withTimerValue += direction;
+            shadowSpread.value = withTiming(animation.value, { duration: 500 });
 
-        // Reverse direction at bounds
-        if (withTimerValue >= 4) direction = -1;
-        if (withTimerValue <= 0) direction = 1;
-    }, 1500);
+            // Step forward or backward
+            animation.value += animation.direction;
+
+            // Reverse direction at bounds
+            if (animation.value >= 4) animation.direction = -1;
+            if (animation.value <= 0) animation.direction = 1;
+        }, 1500);
+
+        // ✅ Cleanup function prevents memory leak
+        return () => clearInterval(intervalId);
+    }, [shadowSpread]); // Only recreate if shadowSpread changes
 
     return (
         <View style={[styles.sosCard, { backgroundColor: colors.card }]}>
@@ -94,7 +105,10 @@ export const SOSCard = ({ onSOSPress, isReady, buttonText, locationText, onLocat
             <Text style={[styles.sosHelpText, { color: colors.textTertiary }]}>{t('home.sosHelpText')}</Text>
         </View>
     )
-};
+});
+
+// ✅ Add display name for debugging
+SOSCard.displayName = 'SOSCard';
 
 const styles = StyleSheet.create({
     sosCard: {

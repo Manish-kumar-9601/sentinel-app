@@ -20,6 +20,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from '@/styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // Blood group options
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -423,7 +424,7 @@ export default function UserInfoScreen() {
 
                     {/* Sync Status */}
                     {lastSyncTime && (
-                        <View style={[styles.syncStatus, { backgroundColor: colors.successLight }]}>
+                        <View style={[styles.syncStatus, { backgroundColor: colors.blueLight,borderRadius:borderRadius.md }]}>
                             <Feather name="check-circle" size={14} color={colors.success} />
                             <Text style={[styles.syncText, { color: colors.success }]}>
                                 {t('userInfo.lastSynced')}: {lastSyncTime.toLocaleTimeString()}
@@ -529,7 +530,7 @@ export default function UserInfoScreen() {
                     </View>
 
                     {/* Emergency Contacts */}
-                    <View style={styles.section}>
+                    {/* <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Feather name="phone" size={20} color={colors.success} />
                             <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('userInfo.emergencyContacts')}</Text>
@@ -588,7 +589,7 @@ export default function UserInfoScreen() {
                             <Feather name="plus" size={18} color={colors.info} />
                             <Text style={[styles.addContactText, { color: colors.info }]}>{t('userInfo.addContact')}</Text>
                         </TouchableOpacity>
-                    </View>
+                    </View> */}
 
                     {/* Actions */}
                     <View style={styles.actions}>
@@ -613,7 +614,7 @@ export default function UserInfoScreen() {
             </KeyboardAvoidingView>
 
             {/* Contact Modal */}
-            <Modal
+            {/* <Modal
                 visible={showContactModal}
                 transparent
                 animationType="slide"
@@ -674,7 +675,7 @@ export default function UserInfoScreen() {
                         </TouchableOpacity>
                     </View>
                 </SafeAreaView>
-            </Modal>
+            </Modal> */}
 
             {/* Blood Group Picker Modal */}
             <Modal

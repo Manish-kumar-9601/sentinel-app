@@ -53,7 +53,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
         if (!state.isOnline) return colors.warningLight;
         if (state.isSyncing) return colors.infoLight;
         if (state.pendingOperations > 0) return colors.warningLight;
-        return colors.successLight;
+        return colors.blueLight;
     };
 
     return (
@@ -62,7 +62,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ lastSync, onRefres
             {
                 paddingHorizontal: spacing.lg,
                 paddingVertical: spacing.sm,
-                borderRadius: borderRadius.sm,
+                borderRadius: borderRadius.md,
                 marginHorizontal: spacing.sm,
                 marginVertical: spacing.xs,
                 backgroundColor: getBackgroundColor(),

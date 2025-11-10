@@ -1,10 +1,12 @@
 ﻿import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from "@/styles";
 import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TouchableOpacity, View } from "react-native";
 
-const EmergencyCategory = ({ icon, name, color, iconSet, onPress, textColor }) =>
+// ✅ Memoized category component - prevents re-renders when parent updates
+const EmergencyCategory = React.memo(({ icon, name, color, iconSet, onPress, textColor }) =>
 {
     const IconComponent = iconSet === 'MaterialCommunity' ? MaterialCommunityIcons : (iconSet === 'MaterialIcons') ? MaterialIcons : FontAwesome5;
     const IconSize = iconSet === 'MaterialCommunity' || iconSet === 'MaterialIcons' ? 36 : 28;
@@ -38,7 +40,7 @@ const EmergencyCategory = ({ icon, name, color, iconSet, onPress, textColor }) =
             </Text>
         </TouchableOpacity>
     );
-};
+});
 
 const CATEGORY_CONFIG = [
     { id: 'medical', icon: 'medical-bag', color: '#FF6B6B', iconSet: 'MaterialCommunity' },
@@ -52,18 +54,24 @@ const CATEGORY_CONFIG = [
     { id: 'sound_recorder', icon: 'multitrack-audio', color: '#7a78f0ff', iconSet: 'MaterialIcons' },
 ];
 
-export const EmergencyGrid = ({ onCategorySelect }) =>
+// ✅ Memoized main component - only re-renders when dependencies change
+export const EmergencyGrid = React.memo(({ onCategorySelect }) =>
 {
     const router = useRouter();
     const { t } = useTranslation();
     const { colors } = useTheme();
 
-    const categories = CATEGORY_CONFIG.map(cat => ({
-        ...cat,
-        name: t(`home.categories.${cat.id}`),
-    }));
+    // ✅ Memoize categories - only recalculate when language changes
+    const categories = useMemo(() =>
+        CATEGORY_CONFIG.map(cat => ({
+            ...cat,
+            name: t(`home.categories.${cat.id}`),
+        })),
+        [t] // Only recalculate when translation function changes
+    );
 
-    const handlePress = (category) =>
+    // ✅ Memoize handler - prevents recreating function on every render
+    const handlePress = useCallback((category) =>
     {
         if (category.id === 'record')
         {
@@ -75,7 +83,7 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
         {
             onCategorySelect(category);
         }
-    };
+    }, [router, onCategorySelect]); // Only recreate when dependencies change
 
     return (
         <View style={{
@@ -109,5 +117,9 @@ export const EmergencyGrid = ({ onCategorySelect }) =>
             </View>
         </View>
     );
-};
+});
+
+// ✅ Add display name for debugging
+EmergencyGrid.displayName = 'EmergencyGrid';
+EmergencyCategory.displayName = 'EmergencyCategory';
 

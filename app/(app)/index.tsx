@@ -43,7 +43,7 @@ import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
 import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
-
+import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from '@/styles';
 // --- Configuration ---
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -238,7 +238,7 @@ interface HeaderProps {
 // --- UI Components ---
 const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
     <View style={styles.header}>
-        <Image style={styles.brandLogo} source={SentinelIcon}
+        <Image style={[styles.brandLogo,{borderRadius: borderRadius.circle}]} source={SentinelIcon}
         />
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
@@ -868,8 +868,8 @@ const styles = StyleSheet.create({
         paddingBottom: 50,
     },
     brandLogo: {
-        width: 28,
-        height: 28,
+        width: 30,
+        height: 30,
     },
     header: {
         flexDirection: 'row',

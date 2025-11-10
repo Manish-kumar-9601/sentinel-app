@@ -1,6 +1,7 @@
 ﻿// utils/syncManager.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 
 // ==================== CONFIGURATION ====================
@@ -33,6 +34,29 @@ interface SyncMetadata {
     hash: string;
     serverTimestamp?: string;
     synced: boolean;
+    deviceId?: string; // ✅ NEW: Track which device made the change
+    userId?: string; // ✅ NEW: Track which user made the change
+}
+
+// ✅ NEW: Conflict detection and resolution interfaces
+interface ConflictInfo<T> {
+    local: {
+        data: T;
+        timestamp: number;
+        deviceId?: string;
+    };
+    server: {
+        data: T;
+        timestamp: number;
+        deviceId?: string;
+    };
+    conflictType: 'TIMESTAMP' | 'HASH_MISMATCH' | 'VERSION_MISMATCH';
+    resolution: 'LOCAL_WINS' | 'SERVER_WINS' | 'MERGE' | 'MANUAL';
+}
+
+interface MergeStrategy {
+    strategy: 'last-write-wins' | 'manual' | 'field-level-merge';
+    customMerger?: <T>(local: T, server: T) => T;
 }
 
 interface CachedData<T> {
@@ -84,7 +108,164 @@ class SyncUtilities {
         return Date.now() - timestamp > expiryMs;
     }
 
+    // ✅ ENHANCED: Sophisticated conflict resolution with timestamp-based merging
+    static detectConflict<T>(
+        local: { data: T; metadata: SyncMetadata },
+        server: { data: T; timestamp: number; deviceId?: string }
+    ): ConflictInfo<T> | null {
+        const localHash = this.generateHash(local.data);
+        const serverHash = this.generateHash(server.data);
+
+        // No conflict if hashes match
+        if (localHash === serverHash) {
+            return null;
+        }
+
+        // Determine conflict type
+        let conflictType: ConflictInfo<T>['conflictType'] = 'HASH_MISMATCH';
+        if (Math.abs(local.metadata.timestamp - server.timestamp) > 1000) {
+            conflictType = 'TIMESTAMP';
+        }
+
+        // Determine resolution strategy
+        let resolution: ConflictInfo<T>['resolution'] = 'SERVER_WINS';
+        if (server.timestamp > local.metadata.timestamp) {
+            resolution = 'SERVER_WINS';
+        } else if (server.timestamp < local.metadata.timestamp) {
+            resolution = 'LOCAL_WINS';
+        } else {
+            // Same timestamp, different data - rare but possible
+            resolution = 'MERGE';
+        }
+
+        const conflict: ConflictInfo<T> = {
+            local: {
+                data: local.data,
+                timestamp: local.metadata.timestamp,
+                deviceId: local.metadata.deviceId,
+            },
+            server: {
+                data: server.data,
+                timestamp: server.timestamp,
+                deviceId: server.deviceId,
+            },
+            conflictType,
+            resolution,
+        };
+
+        // Log conflict to Sentry
+        Sentry.captureMessage('Sync conflict detected', {
+            level: 'warning',
+            extra: {
+                conflictType,
+                resolution,
+                localTimestamp: local.metadata.timestamp,
+                serverTimestamp: server.timestamp,
+                localDeviceId: local.metadata.deviceId,
+                serverDeviceId: server.deviceId,
+                timeDifferenceMs: server.timestamp - local.metadata.timestamp,
+            },
+        });
+
+        console.warn('⚠️ Sync conflict detected:', {
+            type: conflictType,
+            resolution,
+            timeDiff: server.timestamp - local.metadata.timestamp,
+        });
+
+        return conflict;
+    }
+
+    // ✅ ENHANCED: Intelligent data merging based on conflict resolution
+    static resolveConflict<T>(
+        conflict: ConflictInfo<T>,
+        strategy: MergeStrategy = { strategy: 'last-write-wins' }
+    ): T {
+        switch (strategy.strategy) {
+            case 'last-write-wins':
+                return conflict.resolution === 'LOCAL_WINS'
+                    ? conflict.local.data
+                    : conflict.server.data;
+
+            case 'field-level-merge':
+                // Field-level merge for objects
+                if (typeof conflict.local.data === 'object' && typeof conflict.server.data === 'object') {
+                    return this.fieldLevelMerge(
+                        conflict.local.data as any,
+                        conflict.server.data as any,
+                        conflict.local.timestamp,
+                        conflict.server.timestamp
+                    ) as T;
+                }
+                // Fallback to last-write-wins for primitives
+                return conflict.resolution === 'LOCAL_WINS'
+                    ? conflict.local.data
+                    : conflict.server.data;
+
+            case 'manual':
+                if (strategy.customMerger) {
+                    return strategy.customMerger(conflict.local.data, conflict.server.data);
+                }
+                // Fallback to last-write-wins
+                return conflict.resolution === 'LOCAL_WINS'
+                    ? conflict.local.data
+                    : conflict.server.data;
+
+            default:
+                return conflict.server.data;
+        }
+    }
+
+    // ✅ NEW: Field-level merge for nested objects
+    private static fieldLevelMerge<T extends Record<string, any>>(
+        local: T,
+        server: T,
+        localTimestamp: number,
+        serverTimestamp: number
+    ): T {
+        const merged: any = { ...server }; // Start with server data as base
+
+        // Iterate through local fields
+        Object.keys(local).forEach(key => {
+            const localValue = local[key];
+            const serverValue = server[key];
+
+            // If field doesn't exist in server, use local
+            if (!(key in server)) {
+                merged[key] = localValue;
+                return;
+            }
+
+            // If values are different, use the one from the latest timestamp
+            if (JSON.stringify(localValue) !== JSON.stringify(serverValue)) {
+                // For nested objects, recurse
+                if (
+                    typeof localValue === 'object' &&
+                    localValue !== null &&
+                    typeof serverValue === 'object' &&
+                    serverValue !== null &&
+                    !Array.isArray(localValue) &&
+                    !Array.isArray(serverValue)
+                ) {
+                    merged[key] = this.fieldLevelMerge(
+                        localValue,
+                        serverValue,
+                        localTimestamp,
+                        serverTimestamp
+                    );
+                } else {
+                    // Use timestamp to decide
+                    merged[key] = localTimestamp > serverTimestamp ? localValue : serverValue;
+                }
+            }
+        });
+
+        return merged as T;
+    }
+
+    // ✅ DEPRECATED: Old simple merge method (kept for backwards compatibility)
     static mergeData<T>(local: T, server: T, serverWins: boolean = true): T {
+        console.warn('⚠️ Using deprecated mergeData - use resolveConflict instead');
         if (serverWins) return server;
         return { ...server, ...local };
     }
@@ -93,9 +274,29 @@ class SyncUtilities {
 // ==================== CACHE MANAGER ====================
 export class CacheManager {
     private static readonly VERSION = '3.0';
+    private static deviceId: string | null = null;
 
-    static async set<T>(key: string, data: T, synced: boolean = false): Promise<boolean> {
+    // ✅ NEW: Get or generate device ID
+    private static async getDeviceId(): Promise<string> {
+        if (this.deviceId) return this.deviceId;
+
         try {
+            let stored = await AsyncStorage.getItem('device_id');
+            if (!stored) {
+                stored = `device_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+                await AsyncStorage.setItem('device_id', stored);
+            }
+            this.deviceId = stored;
+            return stored;
+        } catch (error) {
+            console.error('Failed to get device ID:', error);
+            return 'unknown_device';
+        }
+    }
+
+    static async set<T>(key: string, data: T, synced: boolean = false, userId?: string): Promise<boolean> {
+        try {
+            const deviceId = await this.getDeviceId();
             const cached: CachedData<T> = {
                 data,
                 metadata: {
@@ -103,14 +304,19 @@ export class CacheManager {
                     version: this.VERSION,
                     hash: SyncUtilities.generateHash(data),
                     synced,
+                    deviceId, // ✅ NEW: Track device
+                    userId, // ✅ NEW: Track user
                 },
             };
 
             await AsyncStorage.setItem(key, JSON.stringify(cached));
-            console.log(`💾 Cached: ${key} (synced: ${synced})`);
+            console.log(`💾 Cached: ${key} (synced: ${synced}, device: ${deviceId.slice(0, 12)}...)`);
             return true;
         } catch (error) {
             console.error(`❌ Cache save failed for ${key}:`, error);
+            Sentry.captureException(error, {
+                extra: { operation: 'cache_set', key },
+            });
             return false;
         }
     }
@@ -158,6 +364,60 @@ export class CacheManager {
             console.log('🗑️ All cache cleared');
         } catch (error) {
             console.error('❌ Cache clear failed:', error);
+        }
+    }
+
+    // ✅ NEW: Merge server data with local cache, handling conflicts
+    static async mergeWithServer<T>(
+        key: string,
+        serverData: T,
+        serverTimestamp: number,
+        serverDeviceId?: string,
+        strategy: MergeStrategy = { strategy: 'last-write-wins' }
+    ): Promise<{ data: T; hadConflict: boolean }> {
+        try {
+            const localCache = await this.get<T>(key);
+
+            if (!localCache) {
+                // No local data, use server data
+                await this.set(key, serverData, true);
+                return { data: serverData, hadConflict: false };
+            }
+
+            // Detect conflict
+            const conflict = SyncUtilities.detectConflict(localCache, {
+                data: serverData,
+                timestamp: serverTimestamp,
+                deviceId: serverDeviceId,
+            });
+
+            if (!conflict) {
+                // No conflict, data is identical
+                await this.set(key, serverData, true, localCache.metadata.userId);
+                return { data: serverData, hadConflict: false };
+            }
+
+            // Resolve conflict
+            const resolvedData = SyncUtilities.resolveConflict(conflict, strategy);
+
+            // Save resolved data
+            await this.set(key, resolvedData, true, localCache.metadata.userId);
+
+            console.log(`✅ Conflict resolved for ${key}:`, {
+                strategy: strategy.strategy,
+                resolution: conflict.resolution,
+                winner: conflict.resolution === 'LOCAL_WINS' ? 'local' : 'server',
+            });
+
+            return { data: resolvedData, hadConflict: true };
+        } catch (error) {
+            console.error(`❌ Merge failed for ${key}:`, error);
+            Sentry.captureException(error, {
+                extra: { operation: 'merge_with_server', key },
+            });
+            // On error, prefer server data
+            await this.set(key, serverData, true);
+            return { data: serverData, hadConflict: false };
         }
     }
 }
@@ -499,18 +759,225 @@ export class SyncManager {
     }
 
     private async syncUserInfo(token: string): Promise<void> {
-        // Implementation would go here
-        console.log('Syncing user info...');
+        console.log('🔄 Syncing user info...');
+
+        try {
+            const env = process.env.NODE_ENV;
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+            if (!apiUrl && env === 'production') {
+                throw new Error('API URL not configured');
+            }
+
+            // Fetch from server
+            const response = await fetch(`${apiUrl}/api/user-info`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            const serverData = await response.json();
+            const serverTimestamp = new Date(serverData.updated_at || serverData.timestamp || Date.now()).getTime();
+
+            // ✅ Use conflict resolution
+            const { data: resolvedData, hadConflict } = await CacheManager.mergeWithServer(
+                SYNC_CONFIG.KEYS.USER_INFO,
+                serverData,
+                serverTimestamp,
+                serverData.device_id,
+                { strategy: 'field-level-merge' } // Use field-level merge for user info
+            );
+
+            if (hadConflict) {
+                console.log('⚠️ User info conflict resolved');
+                // If local data won, push to server
+                if (resolvedData !== serverData) {
+                    await this.pushUserInfoToServer(token, resolvedData);
+                }
+            }
+
+            console.log('✅ User info synced successfully');
+        } catch (error: any) {
+            console.error('❌ User info sync failed:', error);
+            Sentry.captureException(error, {
+                extra: { operation: 'sync_user_info' },
+            });
+            throw error;
+        }
     }
 
     private async syncContacts(token: string): Promise<void> {
-        // Implementation would go here
-        console.log('Syncing contacts...');
+        console.log('🔄 Syncing contacts...');
+
+        try {
+            const env = process.env.NODE_ENV;
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+            if (!apiUrl && env === 'production') {
+                throw new Error('API URL not configured');
+            }
+
+            const response = await fetch(`${apiUrl}/api/contacts`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            const serverData = await response.json();
+            const serverTimestamp = new Date(serverData.updated_at || Date.now()).getTime();
+
+            // ✅ Use last-write-wins for contacts (array data)
+            const { data: resolvedData, hadConflict } = await CacheManager.mergeWithServer(
+                SYNC_CONFIG.KEYS.CONTACTS,
+                serverData,
+                serverTimestamp,
+                serverData.device_id,
+                { strategy: 'last-write-wins' }
+            );
+
+            if (hadConflict) {
+                console.log('⚠️ Contacts conflict resolved');
+                if (resolvedData !== serverData) {
+                    await this.pushContactsToServer(token, resolvedData);
+                }
+            }
+
+            console.log('✅ Contacts synced successfully');
+        } catch (error: any) {
+            console.error('❌ Contacts sync failed:', error);
+            Sentry.captureException(error, {
+                extra: { operation: 'sync_contacts' },
+            });
+            throw error;
+        }
     }
 
     private async syncMedicalInfo(token: string): Promise<void> {
-        // Implementation would go here
-        console.log('Syncing medical info...');
+        console.log('🔄 Syncing medical info...');
+
+        try {
+            const env = process.env.NODE_ENV;
+            const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+            if (!apiUrl && env === 'production') {
+                throw new Error('API URL not configured');
+            }
+
+            const response = await fetch(`${apiUrl}/api/medical-info`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            const serverData = await response.json();
+            const serverTimestamp = new Date(serverData.updated_at || Date.now()).getTime();
+
+            // ✅ Use field-level merge for medical info (critical data)
+            const { data: resolvedData, hadConflict } = await CacheManager.mergeWithServer(
+                SYNC_CONFIG.KEYS.MEDICAL_INFO,
+                serverData,
+                serverTimestamp,
+                serverData.device_id,
+                { strategy: 'field-level-merge' }
+            );
+
+            if (hadConflict) {
+                console.log('⚠️ Medical info conflict resolved');
+                if (resolvedData !== serverData) {
+                    await this.pushMedicalInfoToServer(token, resolvedData);
+                }
+            }
+
+            console.log('✅ Medical info synced successfully');
+        } catch (error: any) {
+            console.error('❌ Medical info sync failed:', error);
+            Sentry.captureException(error, {
+                extra: { operation: 'sync_medical_info' },
+            });
+            throw error;
+        }
+    }
+
+    // ✅ NEW: Helper methods to push resolved data back to server
+    private async pushUserInfoToServer(token: string, data: any): Promise<void> {
+        const env = process.env.NODE_ENV;
+        const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+        if (!apiUrl && env === 'production') return;
+
+        try {
+            await fetch(`${apiUrl}/api/user-info`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            console.log('✅ Pushed resolved user info to server');
+        } catch (error) {
+            console.error('Failed to push user info to server:', error);
+        }
+    }
+
+    private async pushContactsToServer(token: string, data: any): Promise<void> {
+        const env = process.env.NODE_ENV;
+        const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+        if (!apiUrl && env === 'production') return;
+
+        try {
+            await fetch(`${apiUrl}/api/contacts`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            console.log('✅ Pushed resolved contacts to server');
+        } catch (error) {
+            console.error('Failed to push contacts to server:', error);
+        }
+    }
+
+    private async pushMedicalInfoToServer(token: string, data: any): Promise<void> {
+        const env = process.env.NODE_ENV;
+        const apiUrl = env === 'production' ? Constants.expoConfig?.extra?.apiUrl : '';
+
+        if (!apiUrl && env === 'production') return;
+
+        try {
+            await fetch(`${apiUrl}/api/medical-info`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            console.log('✅ Pushed resolved medical info to server');
+        } catch (error) {
+            console.error('Failed to push medical info to server:', error);
+        }
     }
 }
 
@@ -520,4 +987,11 @@ export const syncService = {
     network: NetworkManager.getInstance(),
     queue: OfflineQueueManager.getInstance(),
     sync: SyncManager.getInstance(),
+    utilities: SyncUtilities, // ✅ NEW: Export utilities for testing
+};
+
+// Export types for external use
+export type {
+    CachedData, ConflictInfo,
+    MergeStrategy, QueuedOperation, SyncMetadata, SyncState
 };

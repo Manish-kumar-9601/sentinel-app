@@ -14,6 +14,7 @@
  */
 
 import { StorageService, type EmergencyContact, type User } from '@/services/StorageService';
+import { safeJSONStringify } from '@/utils/safeJSON';
 import { NetworkManager, OfflineQueueManager } from '@/utils/syncManager';
 import Constants from 'expo-constants';
 import { create } from 'zustand';
@@ -207,7 +208,7 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
                 }
             }
 
-            console.log('📋 [Store] Contact details:', JSON.stringify(contacts, null, 2));
+            console.log('📋 [Store] Contact details:', safeJSONStringify(contacts, 'contacts_load_log'));
 
             set({
                 emergencyContacts: contacts,
@@ -439,7 +440,7 @@ export const useGlobalStore = create<GlobalState>((set, get) => ({
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify(payload),
+                body: safeJSONStringify(payload, 'sync_contacts_payload'),
             });
 
             if (!response.ok) {

@@ -16,7 +16,7 @@ import type { EmergencyContact } from '@/services/StorageService';
 import { useContacts } from '@/store';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -30,6 +30,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PhoneContactsModal from '../../../components/PhoneContactsModal';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
+
+// ✅ Define fixed item height for FlatList optimization
+const ITEM_HEIGHT = 80; // Height of each contact item
 
 export default function MyCircleScreen() {
   const [isPickerVisible, setIsPickerVisible] = useState(false);
@@ -122,8 +125,8 @@ export default function MyCircleScreen() {
     }
   };
 
-  // --- UI Component for each contact in the list ---
-  const ContactItem = ({ item }: { item: EmergencyContact }) => (
+  // ✅ Memoized contact item component - prevents re-renders
+  const ContactItem = useCallback(({ item }: { item: EmergencyContact }) => (
     <View style={styles.contactItem}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
@@ -136,6 +139,24 @@ export default function MyCircleScreen() {
         <Ionicons name="trash-bin" size={24} color={colors.error} />
       </TouchableOpacity>
     </View>
+  ), [colors.error, handleRemoveContact]); // Dependencies
+
+  // ✅ Memoized render function
+  const renderItem = useCallback(({ item }: { item: EmergencyContact }) => (
+    <ContactItem item={item} />
+  ), [ContactItem]);
+
+  // ✅ Memoized key extractor
+  const keyExtractor = useCallback((item: EmergencyContact) => item.id, []);
+
+  // ✅ Memoized getItemLayout for better scrolling performance
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
   );
 
   const styles = StyleSheet.create({
@@ -278,9 +299,16 @@ export default function MyCircleScreen() {
 
       <FlatList
         data={contacts}
-        renderItem={ContactItem}
-        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
         contentContainerStyle={styles.listContainer}
+        // ✅ FlatList performance optimizations
+        initialNumToRender={10} // Render first 10 items immediately
+        maxToRenderPerBatch={5} // Render 5 items per batch
+        windowSize={10} // Keep 10 screens worth of items in memory
+        removeClippedSubviews={true} // Remove off-screen views (Android optimization)
+        updateCellsBatchingPeriod={50} // Batch updates for smoother scrolling
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>{t('myCircle.emptyTitle')}</Text>

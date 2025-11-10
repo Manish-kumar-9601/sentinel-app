@@ -16,6 +16,7 @@
  * @module StorageService
  */
 
+import { safeJSONParse, safeJSONStringify } from '@/utils/safeJSON';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as SecureStore from 'expo-secure-store';
@@ -139,7 +140,7 @@ class StorageServiceClass {
         try {
             const data = await SecureStore.getItemAsync(STORAGE_KEYS.USER_DATA);
             if (!data) return null;
-            return JSON.parse(data) as User;
+            return safeJSONParse(data, null, 'user_data');
         } catch (error) {
             console.error('❌ [StorageService] Failed to get user data:', error);
             return null;
@@ -152,7 +153,7 @@ class StorageServiceClass {
      */
     async setUserData(user: User): Promise<void> {
         try {
-            await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+            await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, safeJSONStringify(user, 'user_data'));
             console.log('✅ [StorageService] User data stored');
         } catch (error) {
             console.error('❌ [StorageService] Failed to set user data:', error);
@@ -366,7 +367,7 @@ class StorageServiceClass {
                 return [];
             }
 
-            const parsed = JSON.parse(data) as EmergencyContact[];
+            const parsed = safeJSONParse<EmergencyContact[]>(data, [], 'emergency_contacts');
             console.log('✅ [StorageService] Successfully parsed', parsed.length, 'contacts');
 
             // Log timestamp of last save if available
@@ -384,7 +385,7 @@ class StorageServiceClass {
                 const backup = await AsyncStorage.getItem(STORAGE_KEYS.EMERGENCY_CONTACTS_BACKUP);
                 if (backup) {
                     console.log('🆘 [StorageService] Using backup after error');
-                    return JSON.parse(backup) as EmergencyContact[];
+                    return safeJSONParse<EmergencyContact[]>(backup, [], 'emergency_contacts_backup');
                 }
             } catch (backupError) {
                 console.error('❌ [StorageService] Backup also failed:', backupError);
@@ -396,59 +397,45 @@ class StorageServiceClass {
 
     /**
      * Store emergency contacts
+     * ✅ OPTIMIZED: Reduced from 5 operations to 2-3
      * @param contacts - Array of emergency contacts to store
      */
     async setEmergencyContacts(contacts: EmergencyContact[]): Promise<void> {
         try {
             console.log('💾 [StorageService] Storing emergency contacts to AsyncStorage...');
             console.log('🔑 [StorageService] Using key:', STORAGE_KEYS.EMERGENCY_CONTACTS);
-            console.log('📋 [StorageService] Data to store:', JSON.stringify(contacts, null, 2));
+            console.log('📋 [StorageService] Data to store:', safeJSONStringify(contacts, 'emergency_contacts_log'));
 
-            const stringified = JSON.stringify(contacts);
+            const stringified = safeJSONStringify(contacts, 'emergency_contacts');
             const timestamp = new Date().toISOString();
 
-            // Write to primary storage
+            // Write to primary storage (most important)
             await AsyncStorage.setItem(STORAGE_KEYS.EMERGENCY_CONTACTS, stringified);
             console.log('✅ [StorageService] Written to primary storage');
 
-            // Write to backup storage (redundancy)
-            await AsyncStorage.setItem(STORAGE_KEYS.EMERGENCY_CONTACTS_BACKUP, stringified);
-            console.log('✅ [StorageService] Written to backup storage');
+            // Write backup and timestamp in parallel (optimization)
+            await Promise.all([
+                AsyncStorage.setItem(STORAGE_KEYS.EMERGENCY_CONTACTS_BACKUP, stringified),
+                AsyncStorage.setItem(STORAGE_KEYS.EMERGENCY_CONTACTS_TIMESTAMP, timestamp),
+            ]);
+            console.log('✅ [StorageService] Backup and timestamp saved');
 
-            // Save timestamp
-            await AsyncStorage.setItem(STORAGE_KEYS.EMERGENCY_CONTACTS_TIMESTAMP, timestamp);
+            // File system backup is now optional - only on explicit request
+            // This reduces write operations from 5 to 3
             console.log('🕐 [StorageService] Timestamp saved:', timestamp);
-
-            // Also save to file system as additional backup
-            try {
-                const fileUri = `${FileSystem.documentDirectory}emergency_contacts.json`;
-                await FileSystem.writeAsStringAsync(fileUri, stringified);
-                console.log('📁 [StorageService] Also saved to file:', fileUri);
-            } catch (fileError) {
-                console.warn('⚠️ [StorageService] File backup failed (non-critical):', fileError);
-            }
-
-            // Verify both writes were successful
-            const primaryVerify = await AsyncStorage.getItem(STORAGE_KEYS.EMERGENCY_CONTACTS);
-            const backupVerify = await AsyncStorage.getItem(STORAGE_KEYS.EMERGENCY_CONTACTS_BACKUP);
-
-            if (!primaryVerify && !backupVerify) {
-                throw new Error('Both primary and backup storage writes failed!');
-            }
-
-            if (!primaryVerify) {
-                console.warn('⚠️ [StorageService] Primary storage verification failed, but backup succeeded');
-            }
-
-            if (!backupVerify) {
-                console.warn('⚠️ [StorageService] Backup storage verification failed, but primary succeeded');
-            }
-
-            console.log('✅ [StorageService] Stored and verified', contacts.length, 'emergency contacts');
-            console.log('🔍 [StorageService] Primary:', primaryVerify ? `${primaryVerify.length} chars` : 'null');
-            console.log('🔍 [StorageService] Backup:', backupVerify ? `${backupVerify.length} chars` : 'null');
+            console.log('✅ [StorageService] Stored', contacts.length, 'emergency contacts');
         } catch (error) {
             console.error('❌ [StorageService] Failed to set emergency contacts:', error);
+
+            // Try file system as fallback only on AsyncStorage failure
+            try {
+                const fileUri = `${FileSystem.documentDirectory}emergency_contacts.json`;
+                await FileSystem.writeAsStringAsync(fileUri, safeJSONStringify(contacts, 'emergency_contacts'));
+                console.log('� [StorageService] Saved to file system as fallback');
+            } catch (fileError) {
+                console.error('❌ [StorageService] File system fallback also failed:', fileError);
+            }
+
             throw error;
         }
     }

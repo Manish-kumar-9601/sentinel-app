@@ -1,4 +1,4 @@
-﻿import { fontSize, layout, useTheme } from '@/styles';
+﻿import { createGlobalStyles, fontSize, layout, useTheme } from '@/styles';
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -24,25 +24,28 @@ export default function BottomNavBar ()
   const { colors } = useTheme();
   const [hideBottomNav, setHideBottomNav] = useState(false);
   console.log("path name", pathname)
-  const hideOnPaths = pathname === '/fakeIncomingCall' ? true : false;
+  const hideOnPaths = pathname === '/fakeIncomingCall' || pathname === '/fakeCall' ? true : false;
   const handlePress = (item) =>
   {
     if (item.path === '/checkContact')
     {
       openContactModal()
       console.log('check Contact')
-    } else if (item.path === '/audioRecorder')
+    } else if (hideOnPaths)
     {
-      setHideBottomNav(true);
+      console.log(hideOnPaths)
       router.push(item.path);
+      
     } else
     {
-       console.log("path name", pathname)
+      console.log("path name", pathname)
       router.push(item.path);
     }
   };
 
   return (
+
+
     <View style={[
       layout.rowCenter,
       {
@@ -52,7 +55,7 @@ export default function BottomNavBar ()
         paddingBottom: 25,
         backgroundColor: colors.card,
         borderTopColor: colors.border,
-        display: hideBottomNav  ? 'none' : 'flex'
+        display: 'flex'
       }
     ]}>
       {NAV_ITEMS.map((item) =>

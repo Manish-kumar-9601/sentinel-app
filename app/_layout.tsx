@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { AuthProvider } from '../context/AuthContext';
 import { ModalProvider } from '../context/ModalContext';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -71,26 +72,28 @@ export default function RootLayout() {
     }
 
     return (
-        <SafeAreaProvider onLayout={onLayoutRootView}>
-            <ThemeProvider>
-                <AuthProvider>
-                    <I18nextProvider i18n={i18next}>
-                        <ModalProvider>
-                            {/* This Stack navigator defines the two main areas of your app:
-                              - The (app) group for authenticated users.
-                              - The (auth) group for login/registration.
-                              The root index.tsx file will handle redirecting between them.
-                            */}
-                            <Stack>
-                                <Stack.Screen name="(app)" options={{ headerShown: false }} />
-                                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                                <Stack.Screen name="index" options={{ headerShown: false }} />
-                            </Stack>
-                        </ModalProvider>
-                    </I18nextProvider>
-                </AuthProvider>
-            </ThemeProvider>
-        </SafeAreaProvider>
+        <ErrorBoundary>
+            <SafeAreaProvider onLayout={onLayoutRootView}>
+                <ThemeProvider>
+                    <AuthProvider>
+                        <I18nextProvider i18n={i18next}>
+                            <ModalProvider>
+                                {/* This Stack navigator defines the two main areas of your app:
+                                  - The (app) group for authenticated users.
+                                  - The (auth) group for login/registration.
+                                  The root index.tsx file will handle redirecting between them.
+                                */}
+                                <Stack>
+                                    <Stack.Screen name="(app)" options={{ headerShown: false }} />
+                                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                                    <Stack.Screen name="index" options={{ headerShown: false }} />
+                                </Stack>
+                            </ModalProvider>
+                        </I18nextProvider>
+                    </AuthProvider>
+                </ThemeProvider>
+            </SafeAreaProvider>
+        </ErrorBoundary>
     );
 }
 

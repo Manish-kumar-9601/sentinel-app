@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
     spinner: {
-        transform: [{ scale: 1.5 }], // Make the spinner slightly larger
+        transform: [{ scale: 1.5 }],
     },
     loadingText: {
         marginTop: 20,

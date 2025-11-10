@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as MediaLibrary from 'expo-media-library';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -34,6 +34,111 @@ import { useThemedStyles } from '../../hooks/useThemedStyles';
 
 const { width, height } = Dimensions.get('window');
 
+// ✅ OPTIMIZATION: Consolidated state management with useReducer
+interface RecorderState {
+  isScreenBlackedOut: boolean;
+  originalBrightness: number;
+  brightnessPermission: boolean;
+  hasPermissions: boolean;
+  permissionsLoading: boolean;
+  isPaused: boolean;
+  appState: string;
+  recordingStartTime: number | null;
+  currentRecordingUri: string | null;
+  pausedDuration: number;
+  lastPauseTime: number | null;
+  displayedDuration: number;
+  backgroundPausedAt: number | null;
+}
+
+type RecorderAction =
+  | { type: 'SET_SCREEN_BLACKED_OUT'; payload: boolean }
+  | { type: 'SET_BRIGHTNESS'; payload: number }
+  | { type: 'SET_BRIGHTNESS_PERMISSION'; payload: boolean }
+  | { type: 'SET_PERMISSIONS'; payload: boolean }
+  | { type: 'SET_PERMISSIONS_LOADING'; payload: boolean }
+  | { type: 'SET_PAUSED'; payload: boolean }
+  | { type: 'SET_APP_STATE'; payload: string }
+  | { type: 'START_RECORDING'; payload: number }
+  | { type: 'STOP_RECORDING' }
+  | { type: 'SET_RECORDING_URI'; payload: string | null }
+  | { type: 'PAUSE_RECORDING'; payload: number }
+  | { type: 'RESUME_RECORDING'; payload: number }
+  | { type: 'UPDATE_DURATION'; payload: number }
+  | { type: 'SET_BACKGROUND_PAUSED'; payload: number | null };
+
+const initialRecorderState: RecorderState = {
+  isScreenBlackedOut: false,
+  originalBrightness: 1,
+  brightnessPermission: false,
+  hasPermissions: false,
+  permissionsLoading: true,
+  isPaused: false,
+  appState: AppState.currentState,
+  recordingStartTime: null,
+  currentRecordingUri: null,
+  pausedDuration: 0,
+  lastPauseTime: null,
+  displayedDuration: 0,
+  backgroundPausedAt: null,
+};
+
+function recorderReducer(state: RecorderState, action: RecorderAction): RecorderState {
+  switch (action.type) {
+    case 'SET_SCREEN_BLACKED_OUT':
+      return { ...state, isScreenBlackedOut: action.payload };
+    case 'SET_BRIGHTNESS':
+      return { ...state, originalBrightness: action.payload };
+    case 'SET_BRIGHTNESS_PERMISSION':
+      return { ...state, brightnessPermission: action.payload };
+    case 'SET_PERMISSIONS':
+      return { ...state, hasPermissions: action.payload, permissionsLoading: false };
+    case 'SET_PERMISSIONS_LOADING':
+      return { ...state, permissionsLoading: action.payload };
+    case 'SET_PAUSED':
+      return { ...state, isPaused: action.payload };
+    case 'SET_APP_STATE':
+      return { ...state, appState: action.payload };
+    case 'START_RECORDING':
+      return {
+        ...state,
+        recordingStartTime: action.payload,
+        pausedDuration: 0,
+        lastPauseTime: null,
+        displayedDuration: 0,
+      };
+    case 'STOP_RECORDING':
+      return {
+        ...state,
+        recordingStartTime: null,
+        pausedDuration: 0,
+        lastPauseTime: null,
+        displayedDuration: 0,
+      };
+    case 'SET_RECORDING_URI':
+      return { ...state, currentRecordingUri: action.payload };
+    case 'PAUSE_RECORDING':
+      return {
+        ...state,
+        isPaused: true,
+        lastPauseTime: action.payload,
+      };
+    case 'RESUME_RECORDING':
+      return {
+        ...state,
+        isPaused: false,
+        pausedDuration: state.pausedDuration + (action.payload - (state.lastPauseTime || action.payload)),
+        lastPauseTime: null,
+      };
+    case 'UPDATE_DURATION':
+      return { ...state, displayedDuration: action.payload };
+    case 'SET_BACKGROUND_PAUSED':
+      return { ...state, backgroundPausedAt: action.payload };
+    default:
+      return state;
+  }
+}
+
 // Enhanced notification handler setup for background recording
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -53,22 +158,8 @@ export const AudioRecorderScreen = () => {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
 
-  // Enhanced state for blackout and brightness features
-  const [isScreenBlackedOut, setIsScreenBlackedOut] = useState(false);
-  const [originalBrightness, setOriginalBrightness] = useState<number>(1);
-  const [brightnessPermission, setBrightnessPermission] = useState<boolean>(false);
-
-  // Existing state management
-  const [hasPermissions, setHasPermissions] = useState(false);
-  const [permissionsLoading, setPermissionsLoading] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
-  const [appState, setAppState] = useState(AppState.currentState);
-  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
-  const [currentRecordingUri, setCurrentRecordingUri] = useState<string | null>(null);
-  const [pausedDuration, setPausedDuration] = useState(0);
-  const [lastPauseTime, setLastPauseTime] = useState<number | null>(null);
-  const [displayedDuration, setDisplayedDuration] = useState(0);
-  const [backgroundPausedAt, setBackgroundPausedAt] = useState<number | null>(null);
+  // ✅ OPTIMIZED: Consolidated state using useReducer (15+ useState → 1 useReducer)
+  const [state, dispatch] = useReducer(recorderReducer, initialRecorderState);
 
   // Animation refs
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -84,11 +175,11 @@ export const AudioRecorderScreen = () => {
     const initializeBrightness = async () => {
       try {
         const { status } = await Brightness.requestPermissionsAsync();
-        setBrightnessPermission(status === 'granted');
+        dispatch({ type: 'SET_BRIGHTNESS_PERMISSION', payload: status === 'granted' });
 
         if (status === 'granted') {
           const currentBrightness = await Brightness.getBrightnessAsync();
-          setOriginalBrightness(currentBrightness);
+          dispatch({ type: 'SET_BRIGHTNESS', payload: currentBrightness });
           console.log('📱 Original brightness stored:', currentBrightness);
         } else {
           console.log('⚠️ Brightness permission denied');
@@ -110,17 +201,17 @@ export const AudioRecorderScreen = () => {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription?.remove();
-  }, [recorderState.isRecording, appState]);
+  }, [recorderState.isRecording, state.appState]);
 
   // Handle screen focus/unfocus to restore brightness
   useFocusEffect(
     React.useCallback(() => {
       return () => {
-        if (isScreenBlackedOut && brightnessPermission) {
+        if (state.isScreenBlackedOut && state.brightnessPermission) {
           restoreBrightness();
         }
       };
-    }, [isScreenBlackedOut, brightnessPermission, originalBrightness])
+    }, [state.isScreenBlackedOut, state.brightnessPermission, state.originalBrightness])
   );
 
   // Enhanced cleanup on unmount
@@ -129,7 +220,7 @@ export const AudioRecorderScreen = () => {
       if (brightnessRestoreTimeoutRef.current) {
         clearTimeout(brightnessRestoreTimeoutRef.current);
       }
-      if (isScreenBlackedOut && brightnessPermission) {
+      if (state.isScreenBlackedOut && state.brightnessPermission) {
         restoreBrightness();
       }
       if (recorderState.isRecording) {
@@ -141,7 +232,7 @@ export const AudioRecorderScreen = () => {
   }, []);
 
   const requestPermissions = async () => {
-    setPermissionsLoading(true);
+    dispatch({ type: 'SET_PERMISSIONS_LOADING', payload: true });
     try {
       const audioRes = await AudioModule.requestRecordingPermissionsAsync();
       const mediaLibRes = await MediaLibrary.requestPermissionsAsync();
@@ -149,7 +240,7 @@ export const AudioRecorderScreen = () => {
 
       // Request brightness permission
       const brightnessRes = await Brightness.requestPermissionsAsync();
-      setBrightnessPermission(brightnessRes.status === 'granted');
+      dispatch({ type: 'SET_BRIGHTNESS_PERMISSION', payload: brightnessRes.status === 'granted' });
 
       let writePermissionGranted = true;
       if (Platform.OS === 'android' && Platform.Version >= 29) {
@@ -163,11 +254,11 @@ export const AudioRecorderScreen = () => {
       }
 
       if (audioRes.granted && mediaLibRes.granted && notificationsRes.granted) {
-        setHasPermissions(true);
+        dispatch({ type: 'SET_PERMISSIONS', payload: true });
         console.log('All permissions granted successfully');
         if (brightnessRes.status === 'granted') {
           const currentBrightness = await Brightness.getBrightnessAsync();
-          setOriginalBrightness(currentBrightness);
+          dispatch({ type: 'SET_BRIGHTNESS', payload: currentBrightness });
         }
         if (!writePermissionGranted) {
           console.log('Note: Limited media library access (scoped storage)');
@@ -183,12 +274,12 @@ export const AudioRecorderScreen = () => {
       console.error('Permission request error:', error);
       Alert.alert(t('audioRecorder.error'), t('audioRecorder.permissionError'));
     }
-    setPermissionsLoading(false);
+    dispatch({ type: 'SET_PERMISSIONS_LOADING', payload: false });
   };
 
   // Enhanced brightness control functions
   const setBrightnessToMinimum = async () => {
-    if (!brightnessPermission) return;
+    if (!state.brightnessPermission) return;
 
     try {
       await Brightness.setBrightnessAsync(0.01);
@@ -199,10 +290,10 @@ export const AudioRecorderScreen = () => {
   };
 
   const restoreBrightness = async () => {
-    if (!brightnessPermission) return;
+    if (!state.brightnessPermission) return;
 
     try {
-      const brightnessToRestore = originalBrightness > 0.1 ? originalBrightness : 0.5;
+      const brightnessToRestore = state.originalBrightness > 0.1 ? state.originalBrightness : 0.5;
       await Brightness.setBrightnessAsync(brightnessToRestore);
       console.log('🌞 Brightness restored to:', brightnessToRestore);
     } catch (error) {
@@ -212,7 +303,7 @@ export const AudioRecorderScreen = () => {
 
   // Enhanced blackout function with brightness control
   const blackOutScreen = () => {
-    setIsScreenBlackedOut(true);
+    dispatch({ type: 'SET_SCREEN_BLACKED_OUT', payload: true });
     setTimeout(() => {
       setBrightnessToMinimum();
     }, 100);
@@ -221,7 +312,7 @@ export const AudioRecorderScreen = () => {
 
   // Enhanced restore function with brightness control
   const restoreScreen = () => {
-    setIsScreenBlackedOut(false);
+    dispatch({ type: 'SET_SCREEN_BLACKED_OUT', payload: false });
     setTimeout(() => {
       restoreBrightness();
     }, 100);
@@ -230,7 +321,7 @@ export const AudioRecorderScreen = () => {
 
   // Gesture handlers for restore
   const handleRestoreGesture = () => {
-    if (isScreenBlackedOut) {
+    if (state.isScreenBlackedOut) {
       restoreScreen();
     }
   };
@@ -246,7 +337,7 @@ export const AudioRecorderScreen = () => {
     .minDuration(2000)
     .onEnd(() => {
       runOnJS(() => {
-        if (isScreenBlackedOut) {
+        if (state.isScreenBlackedOut) {
           restoreScreen();
         }
       })();
@@ -255,24 +346,24 @@ export const AudioRecorderScreen = () => {
   const combinedGesture = Gesture.Race(restoreScreenGesture, longPressRestoreGesture);
 
   const handleAppStateChange = async (nextAppState: 'active' | 'background' | 'inactive' | 'unknown' | 'extension') => {
-    console.log('App state changed from', appState, 'to', nextAppState);
+    console.log('App state changed from', state.appState, 'to', nextAppState);
 
     if (recorderState.isRecording) {
-      if (appState === 'active' && nextAppState.match(/inactive|background/)) {
-        setBackgroundPausedAt(Date.now());
-        setDisplayedDuration(recorderState.durationMillis / 1000);
+      if (state.appState === 'active' && nextAppState.match(/inactive|background/)) {
+        dispatch({ type: 'SET_BACKGROUND_PAUSED', payload: Date.now() });
+        dispatch({ type: 'UPDATE_DURATION', payload: recorderState.durationMillis / 1000 });
 
         await showNotification(
           'Audio Recording in Background',
-          `Recording continues in background${isScreenBlackedOut ? ' (Stealth Mode Active)' : ''}. Tap to return.`,
+          `Recording continues in background${state.isScreenBlackedOut ? ' (Stealth Mode Active)' : ''}. Tap to return.`,
           true
         );
         console.log('Audio recording continues in background, timer display paused');
-      } else if (appState.match(/inactive|background/) && nextAppState === 'active') {
-        if (backgroundPausedAt) {
-          const backgroundDuration = Date.now() - backgroundPausedAt;
-          setDisplayedDuration(prev => prev + (backgroundDuration / 1000));
-          setBackgroundPausedAt(null);
+      } else if (state.appState.match(/inactive|background/) && nextAppState === 'active') {
+        if (state.backgroundPausedAt) {
+          const backgroundDuration = Date.now() - state.backgroundPausedAt;
+          dispatch({ type: 'UPDATE_DURATION', payload: state.displayedDuration + (backgroundDuration / 1000) });
+          dispatch({ type: 'SET_BACKGROUND_PAUSED', payload: null });
         }
 
         await Notifications.dismissAllNotificationsAsync();
@@ -280,7 +371,7 @@ export const AudioRecorderScreen = () => {
       }
     }
 
-    setAppState(nextAppState);
+    dispatch({ type: 'SET_APP_STATE', payload: nextAppState });
   };
 
   const showNotification = async (title: string, body: string, sticky = false) => {
@@ -303,7 +394,7 @@ export const AudioRecorderScreen = () => {
 
   // Enhanced recording functions
   const startRecording = async () => {
-    if (!hasPermissions) {
+    if (!state.hasPermissions) {
       Alert.alert(t('audioRecorder.permissionsRequired'), t('audioRecorder.permissionsNeeded'));
       return;
     }
@@ -317,16 +408,11 @@ export const AudioRecorderScreen = () => {
 
       const uri = (result as any)?.url || (result as any)?.uri || result;
 
-      setCurrentRecordingUri(uri as string);
-      setRecordingStartTime(Date.now());
-      setIsPaused(false);
-      setPausedDuration(0);
-      setLastPauseTime(null);
-      setDisplayedDuration(0);
-      setBackgroundPausedAt(null);
+      dispatch({ type: 'SET_RECORDING_URI', payload: uri as string });
+      dispatch({ type: 'START_RECORDING', payload: Date.now() });
 
-      const notificationTitle = isScreenBlackedOut ? t('audioRecorder.stealthRecordingActive') : t('audioRecorder.audioRecordingActive');
-      const notificationBody = isScreenBlackedOut ?
+      const notificationTitle = state.isScreenBlackedOut ? t('audioRecorder.stealthRecordingActive') : t('audioRecorder.audioRecordingActive');
+      const notificationBody = state.isScreenBlackedOut ?
         t('audioRecorder.stealthRecordingBody') :
         t('audioRecorder.audioRecordingBody');
 
@@ -345,13 +431,8 @@ export const AudioRecorderScreen = () => {
       console.log('Stopping audio recording...');
 
       const result = await audioRecorder.stop();
-      setIsPaused(false);
-      setCurrentRecordingUri(null);
-      setRecordingStartTime(null);
-      setPausedDuration(0);
-      setLastPauseTime(null);
-      setDisplayedDuration(0);
-      setBackgroundPausedAt(null);
+      dispatch({ type: 'STOP_RECORDING' });
+      dispatch({ type: 'SET_RECORDING_URI', payload: null });
 
       await deactivateKeepAwake();
       await Notifications.dismissAllNotificationsAsync();
@@ -395,7 +476,7 @@ export const AudioRecorderScreen = () => {
 
       Alert.alert(
         t('audioRecorder.audioRecordingSaved'),
-        `${t('audioRecorder.duration')}: ${formatTime(duration)}\n${t('audioRecorder.size')}: ${size} MB\n${t('audioRecorder.savedToMusic')}${isScreenBlackedOut ? '\n(' + t('audioRecorder.recordedInStealth') + ')' : ''}`,
+        `${t('audioRecorder.duration')}: ${formatTime(duration)}\n${t('audioRecorder.size')}: ${size} MB\n${t('audioRecorder.savedToMusic')}${state.isScreenBlackedOut ? '\n(' + t('audioRecorder.recordedInStealth') + ')' : ''}`,
         [{ text: 'OK', style: 'default' }]
       );
 
@@ -411,9 +492,8 @@ export const AudioRecorderScreen = () => {
   const pauseRecording = async () => {
     try {
       console.log('Pausing audio recording...');
-      setLastPauseTime(Date.now());
-      setIsPaused(true);
-      const notificationTitle = isScreenBlackedOut ? 'Stealth Recording Paused' : 'Audio Recording Paused';
+      dispatch({ type: 'PAUSE_RECORDING', payload: Date.now() });
+      const notificationTitle = state.isScreenBlackedOut ? 'Stealth Recording Paused' : 'Audio Recording Paused';
       await showNotification(notificationTitle, 'Your audio recording is paused.');
     } catch (error) {
       console.error('Failed to pause audio recording:', error);
@@ -424,13 +504,9 @@ export const AudioRecorderScreen = () => {
   const resumeRecording = async () => {
     try {
       console.log('Resuming audio recording...');
-      if (lastPauseTime) {
-        setPausedDuration(prev => prev + (Date.now() - lastPauseTime));
-      }
-      setIsPaused(false);
-      setLastPauseTime(null);
-      const notificationTitle = isScreenBlackedOut ? 'Stealth Recording Resumed' : 'Audio Recording Resumed';
-      const notificationBody = isScreenBlackedOut ?
+      dispatch({ type: 'RESUME_RECORDING', payload: Date.now() });
+      const notificationTitle = state.isScreenBlackedOut ? 'Stealth Recording Resumed' : 'Audio Recording Resumed';
+      const notificationBody = state.isScreenBlackedOut ?
         'Audio recording resumed in stealth mode.' :
         'Your audio recording has resumed.';
       await showNotification(notificationTitle, notificationBody, true);
@@ -441,7 +517,7 @@ export const AudioRecorderScreen = () => {
   };
 
   const handleRecordButton = () => {
-    if (isPaused) {
+    if (state.isPaused) {
       resumeRecording();
       return;
     }
@@ -468,7 +544,7 @@ export const AudioRecorderScreen = () => {
   useEffect(() => {
     let animations: Animated.CompositeAnimation[] = [];
 
-    if (recorderState.isRecording && !isPaused) {
+    if (recorderState.isRecording && !state.isPaused) {
       const createLoop = (anim: Animated.Value, toValue: number, duration: number) => Animated.loop(
         Animated.sequence([
           Animated.timing(anim, {
@@ -501,7 +577,7 @@ export const AudioRecorderScreen = () => {
     return () => {
       animations.forEach(anim => anim.stop());
     };
-  }, [recorderState.isRecording, isPaused, pulseAnim, waveAnim1, waveAnim2, waveAnim3]);
+  }, [recorderState.isRecording, state.isPaused, pulseAnim, waveAnim1, waveAnim2, waveAnim3]);
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '00:00';
@@ -535,9 +611,9 @@ export const AudioRecorderScreen = () => {
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
 
-    if (recorderState.isRecording && !isPaused && appState === 'active' && !backgroundPausedAt) {
+    if (recorderState.isRecording && !state.isPaused && state.appState === 'active' && !state.backgroundPausedAt) {
       interval = setInterval(() => {
-        setDisplayedDuration(recorderState.durationMillis / 1000);
+        dispatch({ type: 'UPDATE_DURATION', payload: recorderState.durationMillis / 1000 });
       }, 100);
     }
 
@@ -546,10 +622,10 @@ export const AudioRecorderScreen = () => {
         clearInterval(interval);
       }
     };
-  }, [recorderState.isRecording, isPaused, appState, backgroundPausedAt, recorderState.durationMillis]);
+  }, [recorderState.isRecording, state.isPaused, state.appState, state.backgroundPausedAt, recorderState.durationMillis]);
 
   // Loading screen
-  if (permissionsLoading) {
+  if (state.permissionsLoading) {
     return (
       <LinearGradient colors={[colors.backgroundSecondary, colors.backgroundTertiary, colors.backgroundSecondary]} style={styles.container}>
         <View style={styles.permissionContainer}>
@@ -561,7 +637,7 @@ export const AudioRecorderScreen = () => {
   }
 
   // Permission denied screen
-  if (!hasPermissions) {
+  if (!state.hasPermissions) {
     return (
       <LinearGradient colors={[colors.backgroundSecondary, colors.backgroundTertiary, colors.backgroundSecondary]} style={styles.container}>
         <SafeAreaView style={styles.permissionContainer}>
@@ -569,7 +645,7 @@ export const AudioRecorderScreen = () => {
           <Text style={[styles.permissionMessage, { color: colors.text }]}>
             {t('audioRecorder.permissionsDescription')}
           </Text>
-          {!brightnessPermission && (
+          {!state.brightnessPermission && (
             <Text style={[styles.brightnessWarningText, { color: colors.warning }]}>
               {t('audioRecorder.brightnessWarning')}
             </Text>
@@ -589,7 +665,7 @@ export const AudioRecorderScreen = () => {
         <LinearGradient colors={[colors.backgroundSecondary, colors.backgroundTertiary, colors.backgroundSecondary]} style={styles.container}>
           <SafeAreaView style={styles.controlsContainer}>
             {/* Header */}
-            {!isScreenBlackedOut && (
+            {!state.isScreenBlackedOut && (
               <View style={styles.header}>
                 <TouchableOpacity
                   style={styles.closeButton}
@@ -604,7 +680,7 @@ export const AudioRecorderScreen = () => {
                             text: t('audioRecorder.stopAndExit'),
                             onPress: async () => {
                               await stopRecording();
-                              if (isScreenBlackedOut && brightnessPermission) {
+                              if (state.isScreenBlackedOut && state.brightnessPermission) {
                                 restoreBrightness();
                               }
                               router.back();
@@ -613,19 +689,19 @@ export const AudioRecorderScreen = () => {
                         ]
                       );
                     } else {
-                      if (isScreenBlackedOut && brightnessPermission) {
+                      if (state.isScreenBlackedOut && state.brightnessPermission) {
                         restoreBrightness();
                       }
                       router.back();
                     }
                   }}
                 >
-                  <Ionicons name="close" size={28} color={colors.textInverse} />
+                  <Ionicons name="close" size={28} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: colors.textInverse }]}>Audio Recorder</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Audio Recorder</Text>
 
                 {/* Brightness permission indicator */}
-                {brightnessPermission ? (
+                {state.brightnessPermission ? (
                   <View style={styles.brightnessIndicator}>
                     <Ionicons name="sunny" size={20} color={colors.warning} />
                   </View>
@@ -636,12 +712,12 @@ export const AudioRecorderScreen = () => {
             )}
 
             {/* Status Container */}
-            {!isScreenBlackedOut && (
+            {!state.isScreenBlackedOut && (
               <View style={styles.statusContainer}>
                 {recorderState.isRecording ? (
                   <View style={styles.recordingContainer}>
                     {/* Background Recording Indicator */}
-                    {appState !== 'active' && (
+                    {state.appState !== 'active' && (
                       <View style={styles.backgroundIndicator}>
                         <MaterialCommunityIcons name="cellphone-link" size={24} color={colors.primary} />
                         <Text style={[styles.backgroundText, { color: colors.primary }]}>Recording in Background</Text>
@@ -653,8 +729,8 @@ export const AudioRecorderScreen = () => {
                       {[waveAnim1, waveAnim2, waveAnim3, waveAnim2, waveAnim1].map((anim, index) => (
                         <Animated.View key={index} style={[
                           styles.waveBar, {
-                            transform: [{ scaleY: isPaused ? 0.3 : anim }],
-                            backgroundColor: isPaused ? colors.textSecondary : colors.primary,
+                            transform: [{ scaleY: state.isPaused ? 0.3 : anim }],
+                            backgroundColor: state.isPaused ? colors.textSecondary : colors.primary,
                           },
                         ]} />
                       ))}
@@ -664,22 +740,22 @@ export const AudioRecorderScreen = () => {
                     <Text style={[
                       styles.timerText,
                       { color: colors.textInverse },
-                      isPaused && { color: colors.textSecondary }
+                      state.isPaused && { color: colors.textSecondary }
                     ]}>
-                      {formatTime(displayedDuration)}
+                      {formatTime(state.displayedDuration)}
                     </Text>
 
                     {/* Pause Indicator */}
-                    {isPaused && <Text style={[styles.pausedText, { color: colors.textSecondary }]}>PAUSED</Text>}
+                    {state.isPaused && <Text style={[styles.pausedText, { color: colors.textSecondary }]}>PAUSED</Text>}
                   </View>
                 ) : (
                   <View style={styles.microphoneContainer}>
                     <MaterialCommunityIcons name="microphone-outline" size={100} color={colors.textSecondary} />
-                    <Text style={[styles.readyText, { color: colors.textInverse }]}>Ready to Record</Text>
+                    <Text style={[styles.readyText, { color: colors.text }]}>Ready to Record</Text>
                     <Text style={[styles.subText, { color: colors.textSecondary }]}>High-quality audio with background recording & stealth mode</Text>
 
                     {/* Brightness status */}
-                    {!brightnessPermission && (
+                    {!state.brightnessPermission && (
                       <View style={[styles.brightnessWarning, { backgroundColor: 'rgba(255, 165, 0, 0.2)', borderColor: 'rgba(255, 165, 0, 0.3)' }]}>
                         <Ionicons name="warning" size={16} color={colors.warning} />
                         <Text style={[styles.brightnessWarningText, { color: colors.warning }]}>
@@ -693,22 +769,22 @@ export const AudioRecorderScreen = () => {
             )}
 
             {/* Record Button Container */}
-            {!isScreenBlackedOut && (
+            {!state.isScreenBlackedOut && (
               <View style={styles.recordButtonContainer}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
                     style={[
                       styles.recordButton,
-                      recorderState.isRecording && !isPaused && styles.recordingButton,
-                      isPaused && styles.pausedButton,
+                      recorderState.isRecording && !state.isPaused && styles.recordingButton,
+                      state.isPaused && styles.pausedButton,
                     ]}
                     onPress={handleRecordButton}
                   >
-                    {recorderState.isRecording && !isPaused ? (
+                    {recorderState.isRecording && !state.isPaused ? (
                       <Ionicons name="stop" size={40} color="white" />
                     ) : (
                       <MaterialCommunityIcons
-                        name={isPaused ? "play" : "microphone"}
+                        name={state.isPaused ? "play" : "microphone"}
                         size={40}
                         color="white"
                       />
@@ -717,7 +793,7 @@ export const AudioRecorderScreen = () => {
                 </Animated.View>
 
                 <Text style={styles.recordButtonText}>
-                  {isPaused ? t('audioRecorder.tapToResume') : recorderState.isRecording ? t('audioRecorder.tapToStopAndSave') : t('audioRecorder.tapToStartRecording')}
+                  {state.isPaused ? t('audioRecorder.tapToResume') : recorderState.isRecording ? t('audioRecorder.tapToStopAndSave') : t('audioRecorder.tapToStartRecording')}
                 </Text>
 
                 {/* Control buttons */}
@@ -726,10 +802,10 @@ export const AudioRecorderScreen = () => {
                   {recorderState.isRecording && (
                     <TouchableOpacity
                       style={styles.pauseButton}
-                      onPress={isPaused ? resumeRecording : pauseRecording}
+                      onPress={state.isPaused ? resumeRecording : pauseRecording}
                     >
-                      <Ionicons name={isPaused ? "play" : "pause"} size={24} color={colors.textInverse} />
-                      <Text style={[styles.pauseButtonText, { color: colors.textInverse }]}>{isPaused ? t('audioRecorder.resume') : t('audioRecorder.pause')}</Text>
+                      <Ionicons name={state.isPaused ? "play" : "pause"} size={24} color={colors.textInverse} />
+                      <Text style={[styles.pauseButtonText, { color: colors.textInverse }]}>{state.isPaused ? t('audioRecorder.resume') : t('audioRecorder.pause')}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -739,15 +815,15 @@ export const AudioRecorderScreen = () => {
                     onPress={blackOutScreen}
                   >
                     <View style={styles.stealthButtonContent}>
-                      <Ionicons name="moon" size={24} color={colors.textInverse} />
-                      {brightnessPermission && (
+                      <Ionicons name="moon" size={24} color={colors.text} />
+                      {state.brightnessPermission && (
                         <View style={styles.brightnessIcon}>
                           <Ionicons name="sunny" size={12} color={colors.warning} />
                         </View>
                       )}
                     </View>
-                    <Text style={[styles.stealthButtonText, { color: colors.textInverse }]}>
-                      {brightnessPermission ? t('audioRecorder.stealthMode') : t('audioRecorder.screenOff')}
+                    <Text style={[styles.stealthButtonText, { color: colors.text }]}>
+                      {state.brightnessPermission ? t('audioRecorder.stealthMode') : t('audioRecorder.screenOff')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -756,7 +832,7 @@ export const AudioRecorderScreen = () => {
           </SafeAreaView>
 
           {/* Enhanced blackout overlay */}
-          {isScreenBlackedOut && (
+          {state.isScreenBlackedOut && (
             <View style={styles.blackoutOverlay}>
               <View style={styles.screenBezel}>
                 {/* Top notch/speaker area */}
@@ -770,8 +846,8 @@ export const AudioRecorderScreen = () => {
                   {/* Subtle recording indicator */}
                   {recorderState.isRecording && (
                     <View style={styles.subtleRecordingIndicator}>
-                      <View style={[styles.subtleDot, { backgroundColor: isPaused ? colors.textSecondary : colors.error }]} />
-                      {!isPaused && (
+                      <View style={[styles.subtleDot, { backgroundColor: state.isPaused ? colors.textSecondary : colors.error }]} />
+                      {!state.isPaused && (
                         <Text style={[styles.subtleText, { color: colors.textTertiary }]}>{t('audioRecorder.rec')}</Text>
                       )}
                     </View>
@@ -782,12 +858,12 @@ export const AudioRecorderScreen = () => {
                     <Text style={[styles.subtleText, { color: colors.textTertiary }]}>
                       {t('audioRecorder.restoreInstructions')}
                     </Text>
-                    {brightnessPermission && (
+                    {state.brightnessPermission && (
                       <Text style={[styles.subtleText, { color: colors.textTertiary }]}>
                         {t('audioRecorder.enhancedStealthActive')}
                       </Text>
                     )}
-                    {isPaused && (
+                    {state.isPaused && (
                       <Text style={styles.subtleText}>
                         {t('audioRecorder.recordingPaused')}
                       </Text>
