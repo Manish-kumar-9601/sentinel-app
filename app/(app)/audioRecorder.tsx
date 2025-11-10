@@ -63,12 +63,12 @@ export const AudioRecorderScreen = () => {
   const [permissionsLoading, setPermissionsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState);
-  const [recordingStartTime, setRecordingStartTime] = useState(null);
-  const [currentRecordingUri, setCurrentRecordingUri] = useState(null);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(null);
+  const [currentRecordingUri, setCurrentRecordingUri] = useState<string | null>(null);
   const [pausedDuration, setPausedDuration] = useState(0);
-  const [lastPauseTime, setLastPauseTime] = useState(null);
+  const [lastPauseTime, setLastPauseTime] = useState<number | null>(null);
   const [displayedDuration, setDisplayedDuration] = useState(0);
-  const [backgroundPausedAt, setBackgroundPausedAt] = useState(null);
+  const [backgroundPausedAt, setBackgroundPausedAt] = useState<number | null>(null);
 
   // Animation refs
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -254,7 +254,7 @@ export const AudioRecorderScreen = () => {
 
   const combinedGesture = Gesture.Race(restoreScreenGesture, longPressRestoreGesture);
 
-  const handleAppStateChange = async (nextAppState) => {
+  const handleAppStateChange = async (nextAppState: 'active' | 'background' | 'inactive' | 'unknown' | 'extension') => {
     console.log('App state changed from', appState, 'to', nextAppState);
 
     if (recorderState.isRecording) {
@@ -283,7 +283,7 @@ export const AudioRecorderScreen = () => {
     setAppState(nextAppState);
   };
 
-  const showNotification = async (title, body, sticky = false) => {
+  const showNotification = async (title: string, body: string, sticky = false) => {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -315,9 +315,9 @@ export const AudioRecorderScreen = () => {
       await audioRecorder.prepareToRecordAsync();
       const result = await audioRecorder.record();
 
-      const uri = result?.url || result?.uri || result;
+      const uri = (result as any)?.url || (result as any)?.uri || result;
 
-      setCurrentRecordingUri(uri);
+      setCurrentRecordingUri(uri as string);
       setRecordingStartTime(Date.now());
       setIsPaused(false);
       setPausedDuration(0);
@@ -356,7 +356,7 @@ export const AudioRecorderScreen = () => {
       await deactivateKeepAwake();
       await Notifications.dismissAllNotificationsAsync();
 
-      const uri = result?.url || result?.uri || result;
+      const uri = (result as any)?.url || (result as any)?.uri || result;
 
       if (uri && typeof uri === 'string') {
         console.log('Audio recording stopped, URI:', uri);
@@ -371,7 +371,7 @@ export const AudioRecorderScreen = () => {
     }
   };
 
-  const saveRecordingToLibrary = async (uri) => {
+  const saveRecordingToLibrary = async (uri: string) => {
     try {
       console.log('Saving audio recording to media library...');
 
@@ -466,10 +466,10 @@ export const AudioRecorderScreen = () => {
 
   // Animation logic
   useEffect(() => {
-    let animations = [];
+    let animations: Animated.CompositeAnimation[] = [];
 
     if (recorderState.isRecording && !isPaused) {
-      const createLoop = (anim, toValue, duration) => Animated.loop(
+      const createLoop = (anim: Animated.Value, toValue: number, duration: number) => Animated.loop(
         Animated.sequence([
           Animated.timing(anim, {
             toValue,
@@ -503,7 +503,7 @@ export const AudioRecorderScreen = () => {
     };
   }, [recorderState.isRecording, isPaused, pulseAnim, waveAnim1, waveAnim2, waveAnim3]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '00:00';
 
     const totalSeconds = Math.floor(seconds);
@@ -533,7 +533,7 @@ export const AudioRecorderScreen = () => {
 
   // Timer update effect
   useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
     if (recorderState.isRecording && !isPaused && appState === 'active' && !backgroundPausedAt) {
       interval = setInterval(() => {
