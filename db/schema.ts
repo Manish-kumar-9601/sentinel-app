@@ -1,4 +1,4 @@
-﻿import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+﻿import { boolean, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
 
 // USERS TABLE
 export const users = pgTable('users', {
@@ -6,7 +6,7 @@ export const users = pgTable('users', {
     name: text('name'),
     email: text('email').unique().notNull(),
     phone: text('phone'),
-    hashedPassword: text('hashed_password'),  
+    hashedPassword: text('hashed_password'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -32,12 +32,10 @@ export const emergencyContacts = pgTable('emergency_contacts', {
         .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     phone: text('phone').notNull(),
+    email: text('email'),
     relationship: text('relationship'), // e.g., "Mother", "Spouse", "Friend"
-    
+    priority: integer('priority').default(3), // 1=highest, 5=lowest
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-
-// Add indexes for better performance
-// CREATE INDEX idx_emergency_contacts_user_id ON emergency_contacts(user_id);
-// CREATE INDEX idx_emergency_contacts_is_primary ON emergency_contacts(user_id, is_primary) WHERE is_primary = true;

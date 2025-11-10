@@ -2,8 +2,8 @@
 import 'dotenv/config';
 
 // Ensure the DATABASE_URL is set in your .env file
-if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set in .env file');
+if (!process.env.EXPO_DATABASE_URL) {
+    throw new Error('EXPO_DATABASE_URL is not set in .env file');
 }
 
 export default defineConfig({
@@ -13,7 +13,7 @@ export default defineConfig({
     dialect: 'postgresql',
     dbCredentials: {
         // This tells Drizzle to get the connection string from your .env file.
-        url: process.env.DATABASE_URL,
+        url: process.env.EXPO_DATABASE_URL as string,
     },
     // This is recommended for Drizzle Kit to generate migrations
     migrations: {

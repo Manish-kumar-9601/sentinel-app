@@ -10,16 +10,16 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from './schema';
 
 // Validate environment variable
-if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL is not set in environment variables');
-    throw new Error('DATABASE_URL is not set in environment variables');
+if (!process.env.EXPO_DATABASE_URL) {
+    console.error('❌ EXPO_DATABASE_URL is not set in environment variables');
+    throw new Error('EXPO_DATABASE_URL is not set in environment variables');
 }
 
 console.log('🔧 Initializing database connection...');
 console.log('📍 Environment:', process.env.NODE_ENV);
-console.log('🌐 Database URL exists:', !!process.env.DATABASE_URL);
+console.log('🌐 Database URL exists:', !!process.env.EXPO_DATABASE_URL);
 
-const connectionString: string = process.env.DATABASE_URL;
+const connectionString: string = process.env.EXPO_DATABASE_URL;
 
 // Validate URL format
 try {
@@ -31,8 +31,8 @@ try {
         user: url.username
     });
 } catch (e) {
-    console.error('❌ Invalid DATABASE_URL format:', e);
-    throw new Error('Invalid DATABASE_URL format');
+    console.error('❌ Invalid EXPO_DATABASE_URL format:', e);
+    throw new Error('Invalid EXPO_DATABASE_URL format');
 }
 
 // Create Neon client

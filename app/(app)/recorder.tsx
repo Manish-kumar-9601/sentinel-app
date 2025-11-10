@@ -32,8 +32,8 @@ const EvidenceRecorderScreen: React.FC = () => {
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
 
   const cameraRef = useRef<CameraView>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const brightnessRestoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const brightnessRestoreTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize brightness permissions and store original brightness
   useEffect(() => {
@@ -200,7 +200,7 @@ const EvidenceRecorderScreen: React.FC = () => {
         setIsRecording(true);
         const recordedVideo = await cameraRef.current.recordAsync({
           quality: '720p',
-          maxDuration: 300,
+          maxDuration: 3000,
         });
         if (recordedVideo && recordedVideo.uri) {
           await MediaLibrary.saveToLibraryAsync(recordedVideo.uri);
