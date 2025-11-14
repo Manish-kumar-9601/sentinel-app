@@ -18,6 +18,7 @@ import { useContacts } from '@/store';
 import { FontAwesome5 } from '@expo/vector-icons';
 // @ts-ignore
 import SentinelIcon from '@/assets/images/sentinel-nav-icon.png';
+import { borderRadius } from '@/styles';
 import * as ExpoLocation from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -43,83 +44,23 @@ import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
 import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
-import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from '@/styles';
 // --- Configuration ---
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-// --- WhatsApp Service ---
-class WhatsAppService {
-    static async isWhatsAppInstalled() {
-        try {
-            const canOpen = await Linking.canOpenURL('whatsapp://send');
-            return canOpen;
-        } catch (error) {
-            console.error('Error checking WhatsApp availability:', error);
-            return false;
-        }
-    }
-
-    static formatPhoneNumber(phone: string): string {
-        let cleaned = phone.replace(/\D/g, '');
-        if (!cleaned.startsWith('91') && cleaned.length === 10) {
-            cleaned = '91' + cleaned;
-        }
-        return cleaned;
-    }
-
-    static async sendWhatsAppMessage(phoneNumber: string, message: string): Promise<boolean> {
-        try {
-            const formattedNumber = this.formatPhoneNumber(phoneNumber);
-            const encodedMessage = encodeURIComponent(message);
-            const whatsappUrl = `whatsapp://send?phone=${formattedNumber}&text=${encodedMessage}`;
-
-            const canOpen = await Linking.canOpenURL(whatsappUrl);
-            if (canOpen) {
-                await Linking.openURL(whatsappUrl);
-                return true;
-            } else {
-                throw new Error('WhatsApp not available');
-            }
-        } catch (error) {
-            console.error('Error sending WhatsApp message:', error);
-            throw error;
-        }
-    }
-
-    static async sendToMultipleContacts(contacts: any[], message: string) {
-        const results: any[] = [];
-        for (let i = 0; i < contacts.length; i++) {
-            const contact = contacts[i];
-            try {
-                await this.sendWhatsAppMessage(contact.phone, message);
-                results.push({ contact: contact.name, success: true });
-                if (i < contacts.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-            } catch (error) {
-                const err = error as Error;
-                results.push({ contact: contact.name, success: false, error: err.message });
-            }
-        }
-        return results;
-    }
-}
 
 // --- Enhanced SOS Service ---
 interface SOSOptions {
     includeSMS?: boolean;
-    includeWhatsApp?: boolean;
 }
 
 interface SOSResult {
     sms: { success: boolean; count?: number; error?: string } | null;
-    whatsapp: { success: boolean; count?: number; total?: number; details?: any[]; error?: string } | null;
 }
 
 class SOSService {
     static async sendEmergencyMessages(contacts: any[], location: any, options: SOSOptions = {}): Promise<SOSResult> {
-        const { includeSMS = true, includeWhatsApp = true } = options;
-        const results: SOSResult = { sms: null, whatsapp: null };
+        const { includeSMS = true } = options;
+        const results: SOSResult = { sms: null };
 
         // Handle both CurrentLocation and LocationData formats
         const lat = location.latitude || location.coords?.latitude;
@@ -141,28 +82,6 @@ class SOSService {
                 console.error('SMS sending failed:', error);
                 const err = error as Error;
                 results.sms = { success: false, error: err.message };
-            }
-        }
-
-        if (includeWhatsApp) {
-            try {
-                const isWhatsAppAvailable = await WhatsAppService.isWhatsAppInstalled();
-                if (isWhatsAppAvailable) {
-                    const whatsappResults = await WhatsAppService.sendToMultipleContacts(contacts, message);
-                    const successCount = whatsappResults.filter((r: any) => r.success).length;
-                    results.whatsapp = {
-                        success: successCount > 0,
-                        count: successCount,
-                        total: contacts.length,
-                        details: whatsappResults
-                    };
-                } else {
-                    results.whatsapp = { success: false, error: 'WhatsApp not installed' };
-                }
-            } catch (error) {
-                console.error('WhatsApp sending failed:', error);
-                const err = error as Error;
-                results.whatsapp = { success: false, error: err.message };
             }
         }
 
@@ -238,7 +157,7 @@ interface HeaderProps {
 // --- UI Components ---
 const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
     <View style={styles.header}>
-        <Image style={[styles.brandLogo,{borderRadius: borderRadius.circle}]} source={SentinelIcon}
+        <Image style={[styles.brandLogo, { borderRadius: borderRadius.circle }]} source={SentinelIcon}
         />
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
@@ -268,7 +187,6 @@ export default function HomeScreen() {
     // Other local state
     const [isSending, setIsSending] = useState(false);
     const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null);
-    const [whatsappAvailable, setWhatsappAvailable] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
     const router = useRouter();
@@ -360,14 +278,7 @@ export default function HomeScreen() {
         }
     }, []);
 
-    // Check WhatsApp availability on mount
-    useEffect(() => {
-        const checkWhatsAppAvailability = async () => {
-            const isAvailable = await WhatsAppService.isWhatsAppInstalled();
-            setWhatsappAvailable(isAvailable);
-        };
-        checkWhatsAppAvailability();
-    }, []);
+
 
     // Contacts are automatically loaded by the global store on app startup
     // No need to reload on focus - the store is the single source of truth
@@ -461,10 +372,6 @@ export default function HomeScreen() {
             // Reload contacts from global store
             await loadContacts();
 
-            // Re-check WhatsApp
-            const isAvailable = await WhatsAppService.isWhatsAppInstalled();
-            setWhatsappAvailable(isAvailable);
-
         } catch (error) {
             console.error('Pull-to-refresh: Error during refresh:', error);
         } finally {
@@ -491,15 +398,6 @@ export default function HomeScreen() {
                 hasSuccess = true;
             } else {
                 message += `❌ SMS failed: ${results.sms.error}\n`;
-            }
-        }
-
-        if (results.whatsapp) {
-            if (results.whatsapp.success) {
-                message += `✅ WhatsApp messages initiated for ${results.whatsapp.count}/${results.whatsapp.total} contact(s)\n`;
-                hasSuccess = true;
-            } else {
-                message += `❌ WhatsApp failed: ${results.whatsapp.error}\n`;
             }
         }
 
@@ -582,8 +480,7 @@ export default function HomeScreen() {
                 emergencyContacts,
                 location,
                 {
-                    includeSMS: true,
-                    includeWhatsApp: whatsappAvailable
+                    includeSMS: true
                 }
             );
 
@@ -741,20 +638,9 @@ export default function HomeScreen() {
             { text: 'Cancel', style: 'cancel' },
             {
                 text: t('home.sosOptionsSms'),
-                onPress: () => sendSOSWithOptions({ includeSMS: true, includeWhatsApp: false })
+                onPress: () => sendSOSWithOptions({ includeSMS: true })
             }
         ];
-
-        if (whatsappAvailable) {
-            options.push({
-                text: t('home.sosOptionsWhatsapp'),
-                onPress: () => sendSOSWithOptions({ includeSMS: false, includeWhatsApp: true })
-            });
-            options.push({
-                text: t('home.sosOptionsBoth'),
-                onPress: () => sendSOSWithOptions({ includeSMS: true, includeWhatsApp: true })
-            });
-        }
 
         Alert.alert(t('home.sosOptionsTitle'), t('home.sosOptionsMessage'), options);
     };

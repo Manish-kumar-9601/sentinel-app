@@ -44,8 +44,6 @@
     "sosOptionsTitle": "SOS ಆಯ್ಕೆಗಳು",
     "sosOptionsMessage": "ತುರ್ತು ಎಚ್ಚರಿಕೆಗಳನ್ನು ಹೇಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ:",
     "sosOptionsSms": "SMS ಮಾತ್ರ",
-    "sosOptionsWhatsapp": "WhatsApp ಮಾತ್ರ",
-    "sosOptionsBoth": "SMS ಮತ್ತು WhatsApp ಎರಡೂ",
     "sosFailedMessage": "ತುರ್ತು ಎಚ್ಚರಿಕೆಗಳನ್ನು ಕಳುಹಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     "permissionDenied": "ಅನುಮತಿ ನಿರಾಕರಿಸಲಾಗಿದೆ",
     "locationAccessNeeded": "ಚೆಕ್-ಇನ್ ಸಂದೇಶಗಳಿಗಾಗಿ ಸ್ಥಳ ಪ್ರವೇಶದ ಅಗತ್ಯವಿದೆ."

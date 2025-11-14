@@ -44,8 +44,6 @@
     "sosOptionsTitle": "SOS पर्याय",
     "sosOptionsMessage": "आपत्कालीन सूचना कशा पाठवायच्या ते निवडा:",
     "sosOptionsSms": "फक्त SMS",
-    "sosOptionsWhatsapp": "फक्त WhatsApp",
-    "sosOptionsBoth": "SMS आणि WhatsApp दोन्ही",
     "sosFailedMessage": "आपत्कालीन सूचना पाठवण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
     "permissionDenied": "परवानगी नाकारली",
     "locationAccessNeeded": "चेक-इन संदेशांसाठी स्थान प्रवेशाची आवश्यकता आहे."

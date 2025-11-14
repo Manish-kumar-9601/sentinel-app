@@ -44,8 +44,6 @@
     "sosOptionsTitle": "SOS Options",
     "sosOptionsMessage": "Choose how to send emergency alerts:",
     "sosOptionsSms": "SMS Only",
-    "sosOptionsWhatsapp": "WhatsApp Only",
-    "sosOptionsBoth": "Both SMS & WhatsApp",
     "sosFailedMessage": "Failed to send emergency alerts. Please try again.",
     "permissionDenied": "Permission Denied",
     "locationAccessNeeded": "Location access is needed for check-in messages."

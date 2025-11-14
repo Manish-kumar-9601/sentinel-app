@@ -44,8 +44,6 @@
     "sosOptionsTitle": "SOS रा विकल्प",
     "sosOptionsMessage": "आपातकालीन अलर्ट भेजण रो तरीको चुणो:",
     "sosOptionsSms": "फकत SMS",
-    "sosOptionsWhatsapp": "फकत WhatsApp",
-    "sosOptionsBoth": "SMS अर WhatsApp दोनों",
     "sosFailedMessage": "आपातकालीन अलर्ट भेजण में गड़बड़ होगी। पाछो कोसिस करो सा।",
     "permissionDenied": "इजाजत कोनी मिली",
     "locationAccessNeeded": "चेक-इन संदेशां सारू लोकेशन री इजाजत जरूरी है।"

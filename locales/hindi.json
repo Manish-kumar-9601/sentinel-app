@@ -44,8 +44,6 @@
     "sosOptionsTitle": "SOS विकल्प",
     "sosOptionsMessage": "आपातकालीन अलर्ट भेजने का तरीका चुनें:",
     "sosOptionsSms": "केवल SMS",
-    "sosOptionsWhatsapp": "केवल WhatsApp",
-    "sosOptionsBoth": "SMS और WhatsApp दोनों",
     "sosFailedMessage": "आपातकालीन अलर्ट भेजने में विफल। कृपया पुनः प्रयास करें।",
     "permissionDenied": "अनुमति अस्वीकृत",
     "locationAccessNeeded": "चेक-इन संदेशों के लिए लोकेशन एक्सेस की आवश्यकता है।"

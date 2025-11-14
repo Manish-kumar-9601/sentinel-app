@@ -243,8 +243,6 @@ export const sosAlertSchema = z.object({
 
     includeSMS: z.boolean().optional().default(true),
 
-    includeWhatsApp: z.boolean().optional().default(false),
-
     timestamp: z.string().datetime().optional(),
 });
 

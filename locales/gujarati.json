@@ -44,8 +44,6 @@
     "sosOptionsTitle": "SOS વિકલ્પો",
     "sosOptionsMessage": "ઇમરજન્સી એલર્ટ કેવી રીતે મોકલવા તે પસંદ કરો:",
     "sosOptionsSms": "ફક્ત SMS",
-    "sosOptionsWhatsapp": "ફક્ત WhatsApp",
-    "sosOptionsBoth": "SMS અને WhatsApp બંને",
     "sosFailedMessage": "ઇમરજન્સી એલર્ટ મોકલવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.",
     "permissionDenied": "પરવાનગી નકારી",
     "locationAccessNeeded": "ચેક-ઇન સંદેશાઓ માટે લોકેશન એક્સેસની જરૂર છે."
