@@ -204,12 +204,10 @@ export const useUserInfo = () => {
             } catch (error: any) {
                 lastError = error;
                 console.error(`❌ Fetch attempt ${attempt} failed:`, error.message);
-
                 // Don't retry on auth errors
                 if (error.message.includes('Session expired')) {
                     throw error;
                 }
-
                 // Wait before retry
                 if (attempt < SYNC_CONFIG.MAX_RETRIES) {
                     await new Promise(resolve =>
@@ -230,17 +228,14 @@ export const useUserInfo = () => {
             console.log('⏳ Fetch already in progress');
             return;
         }
-
         if (!token || !authUser) {
             setError('Authentication required');
             setLoading(false);
             return;
         }
-
         fetchInProgressRef.current = true;
         setLoading(true);
         setError(null);
-
         try {
             // Cache-first strategy (unless force refresh)
             if (!forceRefresh) {
@@ -267,7 +262,6 @@ export const useUserInfo = () => {
                     return;
                 }
             }
-
             // If offline, must use cache
             if (!isOnline) {
                 const cached = await loadFromCache();
@@ -280,7 +274,6 @@ export const useUserInfo = () => {
                 }
                 return;
             }
-
             // Fetch from API
             const fetchedData = await fetchFromAPI();
 
@@ -291,7 +284,6 @@ export const useUserInfo = () => {
                 setLastSync(new Date());
                 setError(null);
             }
-
         } catch (err: any) {
             const errorMessage = err.message || 'Failed to load user information';
             console.error('❌ Fetch error:', errorMessage);

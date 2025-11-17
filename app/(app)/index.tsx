@@ -688,50 +688,6 @@ export default function HomeScreen() {
                     locationText={locationDisplay.text}
                     locationStatus={locationDisplay.status}
                 />
-
-                {/* Emergency Contacts Display */}
-                {/* {emergencyContacts.length > 0 && (
-                    <View style={styles.contactsSection}>
-                        <View style={styles.contactsHeader}>
-                            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                {t('home.myCircle') || 'My Emergency Circle'}
-                            </Text>
-                            <TouchableOpacity
-                                onPress={() => router.push('/settings/myCircle')}
-                                style={styles.viewAllButton}
-                            >
-                                <Text style={[styles.viewAllText, { color: colors.primary }]}>
-                                    {t('common.viewAll') || 'View All'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={styles.contactsList}>
-                            {emergencyContacts.slice(0, 3).map((contact) => (
-                                <View key={contact.id} style={[styles.contactCard, { backgroundColor: colors.card }]}>
-                                    <View style={[styles.contactAvatar, { backgroundColor: colors.primary }]}>
-                                        <Text style={[styles.contactAvatarText, { color: colors.textInverse }]}>
-                                            {contact.name.charAt(0).toUpperCase()}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.contactInfo}>
-                                        <Text style={[styles.contactName, { color: colors.text }]} numberOfLines={1}>
-                                            {contact.name}
-                                        </Text>
-                                        <Text style={[styles.contactPhone, { color: colors.textSecondary }]} numberOfLines={1}>
-                                            {contact.phone}
-                                        </Text>
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                        {emergencyContacts.length > 3 && (
-                            <Text style={[styles.moreContactsText, { color: colors.textSecondary }]}>
-                                +{emergencyContacts.length - 3} more contact{emergencyContacts.length - 3 > 1 ? 's' : ''}
-                            </Text>
-                        )}
-                    </View>
-                )} */}
-
                 <EmergencyGrid onCategorySelect={handleCategorySelect}
                 />
             </ScrollView>

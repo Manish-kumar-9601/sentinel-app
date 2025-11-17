@@ -254,15 +254,12 @@ const postHandler = async (request: Request, user: AuthUser) => {
                 .select({ id: emergencyContacts.id })
                 .from(emergencyContacts)
                 .where(eq(emergencyContacts.userId, userId));
-
             const existingIds = existingContacts.map(c => c.id);
             const incomingIds = emergencyContactsData
                 .filter(c => c.id && !c.id.startsWith('temp_') && !c.id.startsWith('contact_'))
                 .map(c => c.id);
-
             // Delete removed contacts
             const toDelete = existingIds.filter(id => !incomingIds.includes(id));
-
             if (toDelete.length > 0) {
                 for (const contactId of toDelete) {
                     await db
@@ -271,21 +268,17 @@ const postHandler = async (request: Request, user: AuthUser) => {
                 }
                 console.log(`🗑️ Deleted ${toDelete.length} contacts`);
             }
-
             // Upsert contacts
             let added = 0;
             let updated = 0;
-
             for (const contact of emergencyContactsData) {
                 if (!contact.name?.trim() || !contact.phone?.trim()) {
                     console.warn('⚠️ Skipping invalid contact');
                     continue;
                 }
-
                 const isNew = !contact.id ||
                     contact.id.startsWith('temp_') ||
                     contact.id.startsWith('contact_');
-
                 if (isNew) {
                     // Generate a proper UUID for new contacts
                     const newId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -335,10 +328,8 @@ const postHandler = async (request: Request, user: AuthUser) => {
         console.error('💥 POST ERROR:', error.message);
         console.error('Stack:', error.stack);
         console.log('=== POST USER INFO END (ERROR) ===');
-
         let errorMessage = 'Failed to save user information';
         let statusCode = 500;
-
         if (error.message?.includes('foreign key')) {
             errorMessage = 'User not found';
             statusCode = 404;
@@ -349,7 +340,6 @@ const postHandler = async (request: Request, user: AuthUser) => {
             errorMessage = 'Duplicate data detected';
             statusCode = 409;
         }
-
         return addCorsHeaders(new Response(
             JSON.stringify({
                 error: errorMessage,
