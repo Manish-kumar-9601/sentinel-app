@@ -44,6 +44,7 @@ import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
 import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
+import LocationTrackingService from '../../services/LocationTrackingService';
 // --- Configuration ---
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -295,6 +296,8 @@ export default function HomeScreen() {
 
     // App initialization with automatic location setup
     useEffect(() => {
+        LocationTrackingService.startTracking();
+
         const initializeApp = async () => {
             if (initialLocationRequest.current) return;
             initialLocationRequest.current = true;
@@ -304,6 +307,10 @@ export default function HomeScreen() {
         };
 
         initializeApp();
+
+        return () => {
+            LocationTrackingService.stopTracking();
+        };
     }, []);
 
     // Simplified permission request
@@ -474,6 +481,7 @@ export default function HomeScreen() {
 
         try {
             console.log('🚨 Sending Emergency SOS...');
+            LocationTrackingService.trackLocation();
 
             // Send emergency messages using SOSService
             const results = await SOSService.sendEmergencyMessages(

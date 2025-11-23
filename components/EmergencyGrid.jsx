@@ -1,6 +1,7 @@
 ﻿import { borderRadius, fontSize, fontWeight, layout, spacing, useTheme } from "@/styles";
 import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import PropTypes from 'prop-types';
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -122,4 +123,8 @@ export const EmergencyGrid = React.memo(({ onCategorySelect }) =>
 // ✅ Add display name for debugging
 EmergencyGrid.displayName = 'EmergencyGrid';
 EmergencyCategory.displayName = 'EmergencyCategory';
+
+EmergencyGrid.propTypes = {
+    onCategorySelect: PropTypes.func.isRequired,
+};
 

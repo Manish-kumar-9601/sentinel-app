@@ -1,4 +1,4 @@
-﻿import { boolean, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
+﻿import { integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // USERS TABLE
 export const users = pgTable('users', {
@@ -9,6 +9,7 @@ export const users = pgTable('users', {
     hashedPassword: text('hashed_password'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    location: jsonb('location').$type<{ latitude: number; longitude: number; timestamp: string }[]>(),
 });
 
 // MEDICAL INFO TABLE

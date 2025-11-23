@@ -35,7 +35,7 @@ const ChatBubble = ({ message, isUser }) => {
 // --- AI Help Modal Component ---
 const AiHelpModal = ({ visible, onClose, guideContent }) => {
   const { colors } = useThemedStyles();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef(null);
@@ -62,62 +62,77 @@ Never provide strong prescription drugs or complex treatments. If the user descr
   }, [visible, guideContent]);
 
 
-  const handleSend = async () => {
+const handleSend = async () => {
     if (input.trim() === '' || isLoading) return;
 
-    const newUserMessage = { role: 'user', text: input };
-    // Add the new user message to the state immediately for a responsive UI
-    const updatedMessages = [...messages, newUserMessage];
+    const newUserMessage: { role: string; text: string } = { role: 'user', text: input };
+    
+    // Optimistic UI update
+    const updatedMessages: { role: string; text: string }[] = [...messages, newUserMessage];
     setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-      // For Expo, environment variables must be prefixed with EXPO_PUBLIC_
-      // Ensure you have this set in your .env file
       const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
-      // --- FIX 1: Use the correct, latest model name ---
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+      // FIX 1: Use a valid model version (1.5-flash or 2.0-flash-exp)
+      const apiUrl: string = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
 
-      // --- FIX 2: Send the entire conversation history in the payload ---
       const payload = {
-        // Map messages to the format required by the API
         contents: updatedMessages.map(msg => ({
-          // The API expects "user" and "model" roles
           role: msg.role === 'user' ? 'user' : 'model',
           parts: [{ text: msg.text }]
         })),
         systemInstruction: {
           parts: [{ text: systemPrompt }]
         },
+        // FIX 2: The Simplified Tool Structure required for this API version
+        tools: [
+          {
+            googleSearch: {} 
+          }
+        ]
       };
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          // FIX 3: TypeScript safety fallback
+          'x-goog-api-key': apiKey || '',
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("AI API Error Details:", errorData);
+        throw new Error(`API Error: ${errorData?.error?.message || response.statusText}`);
+      }
 
       const result = await response.json();
 
       // Safely access the AI response text
       let aiText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
+      // Optional: Access Search Metadata (Sources) if needed
+      // const sources = result?.candidates?.[0]?.groundingMetadata; 
+      // console.log("Sources found:", sources);
+
       // Remove all ** from the text
       aiText = aiText.replace(/\*\*/g, "");
+
       if (aiText) {
         const aiMessage = { role: 'model', text: aiText };
         setMessages(prev => [...prev, aiMessage]);
       } else {
-        // Log the actual error response from the API for better debugging
-        console.error("AI API Error Response:", JSON.stringify(result, null, 2));
         throw new Error("Invalid response structure from AI.");
       }
 
     } catch (error) {
       console.error("AI Help Error:", error);
-      const errorMessage = { role: 'model', text: "Sorry, I'm having trouble connecting. Please rely on the guide and call emergency services if needed." };
+      const errorMessage = { role: 'model', text: "Sorry, I'm having trouble connecting. Please check your connection." };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);

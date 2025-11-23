@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import PropTypes from 'prop-types';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -109,6 +110,16 @@ export const SOSCard = React.memo(({ onSOSPress, isReady, buttonText, locationTe
 
 // ✅ Add display name for debugging
 SOSCard.displayName = 'SOSCard';
+
+SOSCard.propTypes = {
+    onSOSPress: PropTypes.func.isRequired,
+    isReady: PropTypes.bool.isRequired,
+    buttonText: PropTypes.string.isRequired,
+    locationText: PropTypes.string.isRequired,
+    onLocationPress: PropTypes.func.isRequired,
+    locationStatus: PropTypes.string.isRequired,
+    onSOSOptions: PropTypes.func.isRequired,
+};
 
 const styles = StyleSheet.create({
     sosCard: {

@@ -69,7 +69,7 @@ interface QueuedOperation {
     type: 'CREATE' | 'UPDATE' | 'DELETE';
     entity: 'USER_INFO' | 'CONTACTS' | 'MEDICAL_INFO' | 'LOCATION';
     data: any;
-    timestamp: number;
+    timestamp: number; // Added timestamp field
     retries: number;
     token: string;
 }
@@ -637,6 +637,28 @@ export class OfflineQueueManager {
         await this.saveQueue();
         console.log('🗑️ Queue cleared');
     }
+
+    // ==================== LOCATION QUEUE MANAGER ====================
+    static async getQueue(key: string) {
+        const stored = await AsyncStorage.getItem(key);
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    static async add(item: any) {
+        const queue = await this.getQueue('LOCATION_UPDATE');
+        queue.push(item);
+        await AsyncStorage.setItem('LOCATION_UPDATE', JSON.stringify(queue));
+    }
+
+    static async clearQueue(key: string) {
+        await AsyncStorage.removeItem(key);
+    }
+
+    static async remove(timestamp: number) {
+        const queue = await this.getQueue('LOCATION_UPDATE');
+        const updatedQueue = queue.filter((item: QueuedOperation) => item.timestamp !== timestamp);
+        await AsyncStorage.setItem('LOCATION_UPDATE', JSON.stringify(updatedQueue));
+    }
 }
 
 // ==================== SYNC MANAGER ====================
@@ -995,3 +1017,4 @@ export type {
     CachedData, ConflictInfo,
     MergeStrategy, QueuedOperation, SyncMetadata, SyncState
 };
+
