@@ -14,8 +14,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { AppState, AppStateStatus } from 'react-native';
-import { authenticatedFetch } from './apiClient';
-import { NetworkManager } from './syncManager';
+import { authenticatedFetch } from '../utils/apiClient';
+import { NetworkManager } from '../utils/syncManager';
 
 // ==================== TYPES ====================
 
