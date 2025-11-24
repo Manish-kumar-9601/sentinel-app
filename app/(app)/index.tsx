@@ -1,20 +1,16 @@
 ﻿/**
- * Home Screen - MIGRATED TO GLOBAL STORE
+ * Home Screen - WITH LOCATION TRACKING INTEGRATION
  * 
- * Main app screen with SOS functionality and emergency contacts.
- * Now uses centralized Zustand store for contacts management.
- * 
- * Changes:
- * - ✅ Replaced local emergencyContacts state with useContacts() hook
- * - ✅ Removed manual StorageService calls for contacts
- * - ✅ Automatic sync when screen is focused
- * - ✅ Real-time updates from other screens
- * 
- * Note: Location management remains local to this screen as it's UI-specific.
+ * ✅ Changes:
+ * 1. Added useLocationSync hook (performance-optimized)
+ * 2. Added LocationStatusPill component
+ * 3. No unnecessary re-renders (React.memo + useMemo)
  */
 
 import { GlobalSyncStatus } from '@/components/GlobalSyncStatus';
+import { LocationStatusPill } from '@/components/LocationStatusPill';
 import { useContacts } from '@/store';
+import { useLocationSync } from '@/hooks/useLocationSync';
 import { FontAwesome5 } from '@expo/vector-icons';
 // @ts-ignore
 import SentinelIcon from '@/assets/images/sentinel-nav-icon.png';
@@ -22,7 +18,7 @@ import { borderRadius } from '@/styles';
 import * as ExpoLocation from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Alert,
@@ -44,7 +40,8 @@ import { EmergencyGrid } from '../../components/EmergencyGrid';
 import { SOSCard } from '../../components/SOSCard';
 import { useModal } from '../../context/ModalContext';
 import { useThemedStyles } from '../../hooks/useThemedStyles';
-import LocationTrackingService from '../../services/LocationTrackingService';
+import { useAuth } from '../../context/AuthContext';
+
 // --- Configuration ---
 const LOCATION_TIMEOUT = 15000; // 15 seconds
 const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -63,7 +60,6 @@ class SOSService {
         const { includeSMS = true } = options;
         const results: SOSResult = { sms: null };
 
-        // Handle both CurrentLocation and LocationData formats
         const lat = location.latitude || location.coords?.latitude;
         const lng = location.longitude || location.coords?.longitude;
 
@@ -153,26 +149,33 @@ class LocationService {
 interface HeaderProps {
     onProfile: () => void;
     colors: any;
+    locationStatus?: 'tracking' | 'syncing' | 'idle' | 'error';
 }
 
-// --- UI Components ---
-const Header: React.FC<HeaderProps> = ({ onProfile, colors }) => (
+// ✅ NEW: Header with Location Status
+const Header: React.FC<HeaderProps> = React.memo(({ onProfile, colors, locationStatus }) => (
     <View style={styles.header}>
-        <Image style={[styles.brandLogo, { borderRadius: borderRadius.circle }]} source={SentinelIcon}
-        />
+        <Image style={[styles.brandLogo, { borderRadius: borderRadius.circle }]} source={SentinelIcon} />
+        
+        {/* ✅ NEW: Location Status Pill */}
+        <LocationStatusPill status={locationStatus} />
+        
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
                 <FontAwesome5 name="user-circle" size={30} color={colors.text} />
             </TouchableOpacity>
         </View>
     </View>
-);
-
+));
 
 export default function HomeScreen() {
     const { colors } = useThemedStyles();
+    const { user, token } = useAuth();
 
-    // 🎯 GLOBAL STORE HOOK - replaces local state & manual loading
+    // 🎯 LOCATION TRACKING HOOK (Performance-Optimized)
+    const { status: locationSyncStatus, trackLocation } = useLocationSync();
+
+    // 🎯 GLOBAL STORE HOOK
     const {
         contacts: emergencyContacts,
         loading: contactsLoading,
@@ -196,8 +199,12 @@ export default function HomeScreen() {
 
     // Refs
     const locationRequestInProgress = useRef(false);
-    const appStateRef = useRef(AppState.currentState);
     const initialLocationRequest = useRef(false);
+
+    // ✅ OPTIMIZATION: Memoize location status for Header
+    const headerLocationStatus = useMemo(() => {
+        return locationSyncStatus;
+    }, [locationSyncStatus]);
 
     // Request location permission
     const requestLocationPermission = async (): Promise<ExpoLocation.PermissionStatus> => {
@@ -226,7 +233,6 @@ export default function HomeScreen() {
         try {
             console.log('🔄 Refreshing location...');
 
-            // Check permission
             const status = await LocationService.checkPermissionStatus();
             setPermissionStatus(status as ExpoLocation.PermissionStatus);
 
@@ -236,7 +242,6 @@ export default function HomeScreen() {
                 return;
             }
 
-            // Check location services
             const servicesEnabled = await LocationService.checkLocationServices();
             setLocationServicesEnabled(servicesEnabled);
 
@@ -246,14 +251,12 @@ export default function HomeScreen() {
                 return;
             }
 
-            // Try to get last known location first (faster)
             const lastKnown = await LocationService.getLastKnownLocation();
             if (lastKnown) {
                 console.log('✅ Using last known location');
                 setLocation(lastKnown);
             }
 
-            // Then get current location (more accurate)
             try {
                 const currentLocation = await LocationService.getCurrentLocationWithTimeout(
                     ExpoLocation.Accuracy.High,
@@ -279,13 +282,6 @@ export default function HomeScreen() {
         }
     }, []);
 
-
-
-    // Contacts are automatically loaded by the global store on app startup
-    // No need to reload on focus - the store is the single source of truth
-    // and will be updated automatically when contacts are added/removed from any screen
-
-    // Debug: Log contacts whenever they change
     useEffect(() => {
         console.log('📋 [HomeScreen] Emergency contacts updated:', {
             count: emergencyContacts.length,
@@ -294,10 +290,8 @@ export default function HomeScreen() {
         });
     }, [emergencyContacts, contactsLoading]);
 
-    // App initialization with automatic location setup
+    // App initialization
     useEffect(() => {
-        LocationTrackingService.startTracking();
-
         const initializeApp = async () => {
             if (initialLocationRequest.current) return;
             initialLocationRequest.current = true;
@@ -307,13 +301,8 @@ export default function HomeScreen() {
         };
 
         initializeApp();
-
-        return () => {
-            LocationTrackingService.stopTracking();
-        };
     }, []);
 
-    // Simplified permission request
     const requestLocationPermissionAndSetup = async () => {
         try {
             console.log('📍 Starting location permission request...');
@@ -364,7 +353,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Simplified refresh function using global store
     const refreshAppState = async () => {
         setRefreshing(true);
         try {
@@ -376,7 +364,6 @@ export default function HomeScreen() {
             setLocation(null);
             setLocationError(null);
 
-            // Reload contacts from global store
             await loadContacts();
 
         } catch (error) {
@@ -386,7 +373,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Focus effect to refresh location when screen becomes focused
     useFocusEffect(
         React.useCallback(() => {
             if (permissionStatus === 'granted' && !locationError) {
@@ -415,16 +401,8 @@ export default function HomeScreen() {
         );
     };
 
-
-
     const handleSOSPress = async () => {
-        console.log('🚨 [SOS] Button pressed', {
-            isSending,
-            contactsCount: emergencyContacts.length,
-            contacts: emergencyContacts,
-            hasLocation: !!location,
-            permissionStatus
-        });
+        console.log('🚨 [SOS] Button pressed');
 
         if (isSending) return;
 
@@ -481,9 +459,12 @@ export default function HomeScreen() {
 
         try {
             console.log('🚨 Sending Emergency SOS...');
-            LocationTrackingService.trackLocation();
+            
+            // ✅ NEW: Trigger location tracking explicitly
+            if (token) {
+                trackLocation();
+            }
 
-            // Send emergency messages using SOSService
             const results = await SOSService.sendEmergencyMessages(
                 emergencyContacts,
                 location,
@@ -492,7 +473,6 @@ export default function HomeScreen() {
                 }
             );
 
-            // Show results
             showSOSResults(results);
 
         } catch (error) {
@@ -538,7 +518,6 @@ export default function HomeScreen() {
                 },
             });
         } else {
-            // Try to resolve location issues
             if (permissionStatus !== 'granted') {
                 Alert.alert(
                     'Location Permission Needed',
@@ -565,7 +544,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Determine location display text and status
     const getLocationDisplay = () => {
         if (isLoadingLocation) {
             return { text: t('home.gettingLocation'), status: 'loading' };
@@ -602,7 +580,6 @@ export default function HomeScreen() {
         return { text: t('home.unavailable'), status: 'error' };
     };
 
-    // Determine SOS button state
     const getSosButtonState = () => {
         if (isSending) {
             return { isReady: false, text: t('home.sending') };
@@ -681,7 +658,13 @@ export default function HomeScreen() {
                     />
                 }
             >
-                <Header onProfile={onProfile} colors={colors} />
+                {/* ✅ UPDATED: Header with location status */}
+                <Header 
+                    onProfile={onProfile} 
+                    colors={colors}
+                    locationStatus={headerLocationStatus}
+                />
+                
                 <GlobalSyncStatus />
                 <View style={styles.titleContainer}>
                     <Text style={[styles.mainTitle, { color: colors.text }]}>{t('home.title')}</Text>
@@ -696,10 +679,8 @@ export default function HomeScreen() {
                     locationText={locationDisplay.text}
                     locationStatus={locationDisplay.status}
                 />
-                <EmergencyGrid onCategorySelect={handleCategorySelect}
-                />
+                <EmergencyGrid onCategorySelect={handleCategorySelect} />
             </ScrollView>
-            {/* <BottomNavBar /> */}
             <ContactListModal
                 refreshAppState={refreshAppState}
                 visible={isContactModalVisible}
@@ -729,7 +710,6 @@ const styles = StyleSheet.create({
         paddingTop: 0,
         paddingBottom: 0,
     },
-
     headerIcons: {
         flexDirection: 'row',
         gap: 2,
@@ -747,116 +727,5 @@ const styles = StyleSheet.create({
         marginTop: 10,
         lineHeight: 20,
     },
-    sosHelpText: {
-        fontSize: 12,
-        marginTop: 8,
-        textAlign: 'center',
-        fontStyle: 'italic',
-    },
-    categoriesSection: {
-        paddingHorizontal: 20,
-        marginTop: 0,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    categoriesGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginTop: 15,
-    },
-    categoryBox: {
-        width: '30%',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    iconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    categoryText: {
-        fontSize: 13,
-        fontWeight: '500',
-    },
-    navBar: {
-        height: 45,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        borderTopWidth: 0,
-    },
-    navItem: {
-        alignItems: 'center',
-    },
-    navText: {
-        fontSize: 12,
-        marginTop: 2,
-    },
-    contactsSection: {
-        paddingHorizontal: 20,
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    contactsHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-    },
-    viewAllButton: {
-        padding: 5,
-    },
-    viewAllText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    contactsList: {
-        gap: 10,
-    },
-    contactCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    contactAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    contactAvatarText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    contactInfo: {
-        flex: 1,
-    },
-    contactName: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 2,
-    },
-    contactPhone: {
-        fontSize: 14,
-    },
-    moreContactsText: {
-        fontSize: 14,
-        textAlign: 'center',
-        marginTop: 10,
-        fontStyle: 'italic',
-    },
+    
 });
