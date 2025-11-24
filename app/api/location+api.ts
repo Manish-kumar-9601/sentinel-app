@@ -11,6 +11,7 @@ import { db } from '@/db/client';
 import { users } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { logger } from '@/utils/logger';
 
 // ==================== TYPES ====================
 
@@ -22,6 +23,11 @@ interface LocationPayload {
     altitude?: number;
     speed?: number;
     heading?: number;
+    meta?: {
+        emergencyContact?: string;
+        trigger?: 'SOS' | 'background' | 'manual';
+        [key: string]: any;
+    };
 }
 
 interface LocationSyncResponse {
@@ -113,7 +119,7 @@ export async function POST(request: Request) {
     const requestId = `req_${crypto.randomBytes(4).toString('hex')}`;
 
     try {
-        console.log(`[Location API] ${requestId} Request received`, {
+        logger.info(`[Location API] ${requestId} Request received`, {
             method: request.method,
             url: request.url,
             time: new Date().toISOString(),
@@ -121,7 +127,7 @@ export async function POST(request: Request) {
 
         // Handle CORS preflight
         if (request.method === 'OPTIONS') {
-            console.log(`[Location API] ${requestId} CORS preflight`);
+            logger.info(`[Location API] ${requestId} CORS preflight`);
             return addCorsHeaders(new Response(null, { status: 200 }));
         }
 
@@ -131,7 +137,7 @@ export async function POST(request: Request) {
         const token = authHeader?.replace('Bearer ', '').trim();
 
         if (!token) {
-            console.warn(`[Location API] ${requestId} Missing authorization token`);
+            logger.warn(`[Location API] ${requestId} Missing authorization token`);
             return addCorsHeaders(
                 new Response(
                     JSON.stringify({
@@ -146,7 +152,7 @@ export async function POST(request: Request) {
         // Verify token and extract userId
         const userId = await verifyToken(token);
         if (!userId) {
-            console.warn(`[Location API] ${requestId} Invalid or expired token`);
+            logger.warn(`[Location API] ${requestId} Invalid or expired token`);
             return addCorsHeaders(
                 new Response(
                     JSON.stringify({
@@ -166,7 +172,7 @@ export async function POST(request: Request) {
         try {
             body = await request.json();
         } catch {
-            console.error(`[Location API] ${requestId} Invalid JSON in request body`);
+            logger.error(`[Location API] ${requestId} Invalid JSON in request body`);
             return addCorsHeaders(
                 new Response(
                     JSON.stringify({
@@ -182,7 +188,7 @@ export async function POST(request: Request) {
         const locationsToProcess = Array.isArray(body) ? body : [body];
 
         if (locationsToProcess.length === 0) {
-            console.log(`[Location API] ${requestId} No locations in request`);
+            logger.info(`[Location API] ${requestId} No locations in request`);
             return addCorsHeaders(
                 new Response(
                     JSON.stringify({
@@ -197,7 +203,7 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log(`[Location API] ${requestId} 📦 Processing batch`, {
+        logger.info(`[Location API] ${requestId} 📦 Processing batch`, {
             batchSize: locationsToProcess.length,
             userId,
         });
@@ -217,7 +223,7 @@ export async function POST(request: Request) {
         }
 
         if (validLocations.length === 0) {
-            console.error(`[Location API] ${requestId} No valid locations in batch`);
+            logger.error(`[Location API] ${requestId} No valid locations in batch`);
             return addCorsHeaders(
                 new Response(
                     JSON.stringify({
@@ -232,7 +238,7 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log(`[Location API] ${requestId} ✅ Validation complete`, {
+        logger.info(`[Location API] ${requestId} ✅ Validation complete`, {
             valid: validLocations.length,
             invalid: invalidLocations.length,
         });
@@ -249,11 +255,14 @@ export async function POST(request: Request) {
                 altitude: loc.altitude || null,
                 speed: loc.speed || null,
                 heading: loc.heading || null,
+                meta: loc.meta || null,
             }));
 
             console.log(`[Location API] ${requestId} Preparing database update`, {
                 userId,
                 locations: locationObjects.length,
+                // Log if we have meta data for debugging
+                hasMeta: locationObjects.some(l => l.meta !== null)
             });
 
             // Use PostgreSQL JSONB array concatenation to append (not overwrite)
@@ -269,7 +278,7 @@ export async function POST(request: Request) {
                 .where(eq(users.id, userId))
                 .execute();
 
-            console.log(`[Location API] ${requestId} ✅ Database updated`, {
+            logger.info(`[Location API] ${requestId} ✅ Database updated`, {
                 userId,
                 processedCount: validLocations.length,
             });

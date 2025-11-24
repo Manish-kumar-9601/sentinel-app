@@ -9,7 +9,19 @@ export const users = pgTable('users', {
     hashedPassword: text('hashed_password'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    location: jsonb('location').$type<{ latitude: number; longitude: number; timestamp: string }[]>(),
+    location: jsonb('location').$type<{
+        latitude: number;
+        longitude: number;
+        timestamp: string;
+        accuracy?: number | null;
+        altitude?: number | null;
+        speed?: number | null;
+        heading?: number | null;
+        meta?: {
+            emergencyContact?: string;
+            trigger?: string;
+        } | null;
+    }[]>(),
 });
 
 // MEDICAL INFO TABLE
