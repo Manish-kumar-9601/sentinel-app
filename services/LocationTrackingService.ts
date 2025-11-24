@@ -280,25 +280,43 @@ class LocationSyncServiceClass {
      */
     private async getCurrentLocation(): Promise<LocationQueueItem | null> {
         try {
-            const locationData = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High,
-            });
+            const locationData = await Promise.race([
+                Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced, // Balanced is faster than High
+                }),
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Location timeout')), 3000)
+                )
+            ]) as Location.LocationObject;
 
-            return {
-                latitude: locationData.coords.latitude,
-                longitude: locationData.coords.longitude,
-                timestamp: new Date(locationData.timestamp).toISOString(),
-                accuracy: locationData.coords.accuracy ?? undefined,
-                altitude: locationData.coords.altitude ?? undefined,
-                speed: locationData.coords.speed ?? undefined,
-                heading: locationData.coords.heading ?? undefined,
-            };
+            return this.formatLocation(locationData)
         } catch (error) {
-            console.error('❌ [LocationSync] Failed to get location:', error);
+            console.warn('⚠️ [LocationSync] Current location failed, trying last known:', error);
+
+            try {
+                // 2. Fallback: Get last known position (instant)
+                const lastKnown = await Location.getLastKnownPositionAsync();
+                if (lastKnown) {
+                    console.log('✅ [LocationSync] Using last known location');
+                    return this.formatLocation(lastKnown);
+                }
+            } catch (fallbackError) {
+                console.error('❌ [LocationSync] Fallback failed:', fallbackError);
+            }
             return null;
         }
     }
-
+    private formatLocation(locationData: Location.LocationObject): LocationQueueItem {
+        return {
+            latitude: locationData.coords.latitude,
+            longitude: locationData.coords.longitude,
+            timestamp: new Date(locationData.timestamp).toISOString(),
+            accuracy: locationData.coords.accuracy ?? undefined,
+            altitude: locationData.coords.altitude ?? undefined,
+            speed: locationData.coords.speed ?? undefined,
+            heading: locationData.coords.heading ?? undefined,
+        };
+    }
     /**
      * Add location to queue
      */

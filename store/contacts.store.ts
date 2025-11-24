@@ -96,7 +96,14 @@ export const useContactsStore = create<ContactsState>((set, get) => ({
             if (verifyContacts.length !== updatedContacts.length) {
                 throw new Error('Storage verification failed');
             }
-
+//  Auto-sync to server
+            const token = await StorageService.getAuthToken();
+            if (token) {
+                // Run in background (don't await) to keep UI snappy
+                get().syncToServer(token).catch(err => 
+                    console.warn('⚠️ [ContactsStore] Background sync failed:', err)
+                );
+            }
             console.log('✅ [ContactsStore] Contact added:', contact.name);
         } catch (error) {
             console.error('❌ [ContactsStore] Failed to add contact:', error);

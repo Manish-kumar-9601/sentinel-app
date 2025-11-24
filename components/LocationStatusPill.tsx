@@ -1,91 +1,60 @@
-﻿/**
- * LocationStatusPill Component
- * 
- * Lightweight status indicator for location tracking.
- * Performance-optimized with React.memo and minimal re-renders.
- * 
- * Usage:
- *   <LocationStatusPill status={locationSyncStatus} />
- * 
- * @module components/LocationStatusPill
- */
-
-import { useTheme } from '@/context/ThemeContext';
+﻿import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-// ==================== TYPES ====================
-
-type LocationStatus = 'tracking' | 'syncing' | 'idle' | 'error';
-
 interface LocationStatusPillProps {
-    status?: LocationStatus;
+    status: 'tracking' | 'syncing' | 'idle' | 'error' | 'offline';
+    queueSize?: number;
 }
 
-interface StatusConfig {
-    icon: keyof typeof Ionicons.glyphMap;
-    color: string;
-    backgroundColor: string;
-    text: string;
-    showSpinner?: boolean;
-}
-
-// ==================== COMPONENT ====================
-
-export const LocationStatusPill: React.FC<LocationStatusPillProps> = React.memo(({ status = 'idle' }) => {
+export const LocationStatusPill: React.FC<LocationStatusPillProps> = React.memo(({ status = 'idle', queueSize = 0 }) => {
     const { colors } = useTheme();
 
-    // ✅ OPTIMIZATION: Memoize status configuration
-    const config = useMemo((): StatusConfig => {
+    const config = useMemo(() => {
         switch (status) {
             case 'tracking':
                 return {
-                    icon: 'location',
-                    color: colors.success,
-                    backgroundColor: colors.successLight,
-                    text: 'Tracking',
-                    showSpinner: false,
+                    icon: 'radio-button-on',
+                    color: '#fff',
+                    backgroundColor: colors.success, // Green
+                    text: 'Live Tracking',
                 };
             case 'syncing':
                 return {
                     icon: 'cloud-upload',
-                    color: colors.info,
-                    backgroundColor: colors.infoLight,
-                    text: 'Syncing',
-                    showSpinner: true,
+                    color: '#fff',
+                    backgroundColor: colors.info, // Blue
+                    text: `Syncing (${queueSize})`,
+                    isLoading: true
+                };
+            case 'offline':
+                return {
+                    icon: 'cloud-offline',
+                    color: '#000',
+                    backgroundColor: colors.warning, // Yellow
+                    text: `Offline (Queued: ${queueSize})`,
                 };
             case 'error':
                 return {
                     icon: 'alert-circle',
-                    color: colors.error,
-                    backgroundColor: colors.errorLight,
-                    text: 'Error',
-                    showSpinner: false,
+                    color: '#fff',
+                    backgroundColor: colors.error, // Red
+                    text: 'Sync Error',
                 };
-            case 'idle':
             default:
-                return {
-                    icon: 'location-outline',
-                    color: colors.textTertiary,
-                    backgroundColor: colors.backgroundTertiary,
-                    text: 'Idle',
-                    showSpinner: false,
-                };
+                return null;
         }
-    }, [status, colors]);
+    }, [status, queueSize, colors]);
 
-    // Don't render if idle (reduce visual noise)
-    if (status === 'idle') {
-        return null;
-    }
+    if (!config) return null;
 
     return (
         <View style={[styles.container, { backgroundColor: config.backgroundColor }]}>
-            {config.showSpinner ? (
-                <ActivityIndicator size="small" color={config.color} />
+            {config.isLoading ? (
+                <ActivityIndicator size="small" color={config.color} style={{ marginRight: 4 }} />
             ) : (
-                <Ionicons name={config.icon} size={12} color={config.color} />
+                <Ionicons name={config.icon as any} size={14} color={config.color} style={{ marginRight: 4 }} />
             )}
             <Text style={[styles.text, { color: config.color }]}>
                 {config.text}
@@ -94,22 +63,18 @@ export const LocationStatusPill: React.FC<LocationStatusPillProps> = React.memo(
     );
 });
 
-LocationStatusPill.displayName = 'LocationStatusPill';
-
-// ==================== STYLES ====================
-
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginRight: 10,
     },
     text: {
-        fontSize: 11,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '700',
     },
 });
 

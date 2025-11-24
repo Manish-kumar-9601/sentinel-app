@@ -149,17 +149,16 @@ class LocationService {
 interface HeaderProps {
     onProfile: () => void;
     colors: any;
-    locationStatus?: 'tracking' | 'syncing' | 'idle' | 'error';
+    locationStatus?: 'tracking' | 'syncing' | 'idle' | 'error' | 'offline';
+    queueSize?: number; // <--- ADD THIS
 }
-
 // ✅ NEW: Header with Location Status
-const Header: React.FC<HeaderProps> = React.memo(({ onProfile, colors, locationStatus }) => (
+const Header: React.FC<HeaderProps> = React.memo(({ onProfile, colors, locationStatus, queueSize }) => (
     <View style={styles.header}>
         <Image style={[styles.brandLogo, { borderRadius: borderRadius.circle }]} source={SentinelIcon} />
-        
-        {/* ✅ NEW: Location Status Pill */}
-        <LocationStatusPill status={locationStatus} />
-        
+
+        <LocationStatusPill status={locationStatus} queueSize={queueSize} />
+
         <View style={styles.headerIcons}>
             <TouchableOpacity style={{ marginLeft: 0 }} onPress={onProfile}>
                 <FontAwesome5 name="user-circle" size={30} color={colors.text} />
@@ -173,8 +172,14 @@ export default function HomeScreen() {
     const { user, token } = useAuth();
 
     // 🎯 LOCATION TRACKING HOOK (Performance-Optimized)
-    const { status: locationSyncStatus, trackLocation } = useLocationSync();
-
+    const {
+        status,
+        connectionStatus,
+        trackLocation
+    } = useLocationSync();
+    const headerLocationStatus = useMemo(() => {
+        return connectionStatus;
+    }, [connectionStatus]);
     // 🎯 GLOBAL STORE HOOK
     const {
         contacts: emergencyContacts,
@@ -202,9 +207,7 @@ export default function HomeScreen() {
     const initialLocationRequest = useRef(false);
 
     // ✅ OPTIMIZATION: Memoize location status for Header
-    const headerLocationStatus = useMemo(() => {
-        return locationSyncStatus;
-    }, [locationSyncStatus]);
+
 
     // Request location permission
     const requestLocationPermission = async (): Promise<ExpoLocation.PermissionStatus> => {
@@ -459,7 +462,7 @@ export default function HomeScreen() {
 
         try {
             console.log('🚨 Sending Emergency SOS...');
-            
+
             // ✅ NEW: Trigger location tracking explicitly
             if (token) {
                 trackLocation();
@@ -659,12 +662,12 @@ export default function HomeScreen() {
                 }
             >
                 {/* ✅ UPDATED: Header with location status */}
-                <Header 
-                    onProfile={onProfile} 
+                <Header
+                    onProfile={onProfile}
                     colors={colors}
                     locationStatus={headerLocationStatus}
+                    queueSize={status.queueSize}
                 />
-                
                 <GlobalSyncStatus />
                 <View style={styles.titleContainer}>
                     <Text style={[styles.mainTitle, { color: colors.text }]}>{t('home.title')}</Text>
@@ -727,5 +730,5 @@ const styles = StyleSheet.create({
         marginTop: 10,
         lineHeight: 20,
     },
-    
+
 });

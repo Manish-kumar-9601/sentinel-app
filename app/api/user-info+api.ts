@@ -271,21 +271,32 @@ const postHandler = async (request: Request, user: AuthUser) => {
             // Upsert contacts
             let added = 0;
             let updated = 0;
+
             for (const contact of emergencyContactsData) {
                 if (!contact.name?.trim() || !contact.phone?.trim()) {
                     console.warn('⚠️ Skipping invalid contact');
                     continue;
                 }
-                const isNew = !contact.id ||
-                    contact.id.startsWith('temp_') ||
-                    contact.id.startsWith('contact_');
-                if (isNew) {
+                const existingContact = await db
+                    .select({ id: emergencyContacts.id })
+                    .from(emergencyContacts)
+                    .where(eq(emergencyContacts.id, contact.id))
+                    .limit(1);
+
+                const existsInDb = existingContact.length > 0;
+                const shouldUseIncomingId = contact.id &&
+                    !contact.id.startsWith('temp_') &&
+                    !contact.id.startsWith('contact_');
+                if (!existsInDb) {
                     // Generate a proper UUID for new contacts
-                    const newId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    const finalId = shouldUseIncomingId
+                        ? contact.id
+                        : `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
                     await db
                         .insert(emergencyContacts)
                         .values({
-                            id: newId,
+                            id: finalId,
                             userId: userId,
                             name: contact.name.trim(),
                             phone: contact.phone.trim(),
@@ -308,7 +319,56 @@ const postHandler = async (request: Request, user: AuthUser) => {
                     updated++;
                 }
             }
+            for (const contact of emergencyContactsData) {
+                if (!contact.name?.trim() || !contact.phone?.trim()) {
+                    console.warn('⚠️ Skipping invalid contact');
+                    continue;
+                }
 
+                // ✅ FIX: Check if contact actually exists in DB, regardless of ID format
+                const existingContact = await db
+                    .select({ id: emergencyContacts.id })
+                    .from(emergencyContacts)
+                    .where(eq(emergencyContacts.id, contact.id))
+                    .limit(1);
+
+                const existsInDb = existingContact.length > 0;
+
+                if (!existsInDb) {
+                    // INSERT (New record)
+                    // Use the incoming ID if it looks like a valid UUID/ID, otherwise generate new
+                    const shouldUseIncomingId = contact.id &&
+                        !contact.id.startsWith('temp_') &&
+                        !contact.id.startsWith('contact_');
+
+                    const finalId = shouldUseIncomingId
+                        ? contact.id
+                        : `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+                    await db.insert(emergencyContacts).values({
+                        id: finalId,
+                        userId: userId,
+                        name: contact.name.trim(),
+                        phone: contact.phone.trim(),
+                        relationship: contact.relationship?.trim() || null,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+                    added++;
+                } else {
+                    // UPDATE (Existing record)
+                    await db
+                        .update(emergencyContacts)
+                        .set({
+                            name: contact.name.trim(),
+                            phone: contact.phone.trim(),
+                            relationship: contact.relationship?.trim() || null,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(emergencyContacts.id, contact.id));
+                    updated++;
+                }
+            }
             console.log(`✅ Contacts: ${added} added, ${updated} updated`);
         }
 
