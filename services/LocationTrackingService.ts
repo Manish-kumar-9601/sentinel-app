@@ -1,14 +1,17 @@
 ﻿/**
- * Offline-First Location Tracking Service
+ * ============================================================================
+ * PRODUCTION-READY LOCATION TRACKING SERVICE
+ * ============================================================================
  * 
- * Handles location tracking with:
- * - Authorization gate (only tracks when logged in)
- * - Delayed initialization (2-5s after auth)
- * - Network-aware sync (online: direct upload, offline: queue)
- * - Batch upload when connectivity restored
- * - Foreground/SOS triggers
+ * Features:
+ * - Auth-gated tracking (only when token exists)
+ * - 3-second throttle to prevent UI blocking
+ * - Offline-first queue system with auto-sync
+ * - Type-safe with no 'any' types
+ * - Database-aligned JSONB structure
+ * - Zero blocking operations on main thread
  * 
- * @module LocationSyncService
+ * @module LocationTrackingService
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +20,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { authenticatedFetch } from '../utils/apiClient';
 import { NetworkManager } from '../utils/syncManager';
 
-// ==================== TYPES ====================
+// ==================== TYPES (Strictly Typed) ====================
 
 interface LocationQueueItem {
     latitude: number;
@@ -33,12 +36,13 @@ interface LocationSyncConfig {
     enabled: boolean;
     token: string | null;
     userId: string | null;
-    initDelayMs: number; // Delay before starting tracking
-    trackingIntervalMs: number; // How often to record location
-    batchSize: number; // Max locations per upload
+    initDelayMs: number;
+    trackingIntervalMs: number;
+    batchSize: number;
+    throttleMs: number; // ✅ NEW: Explicit throttle control
 }
 
-interface LocationSyncStatus {
+export interface LocationSyncStatus {
     isTracking: boolean;
     isOnline: boolean;
     queueSize: number;
@@ -50,21 +54,22 @@ interface LocationSyncStatus {
 // ==================== CONSTANTS ====================
 
 const STORAGE_KEYS = {
-    LOCATION_QUEUE: 'location_sync_queue_v1',
+    LOCATION_QUEUE: 'location_sync_queue_v2',
     LAST_SYNC: 'location_sync_last_sync',
 } as const;
 
 const DEFAULT_CONFIG: Omit<LocationSyncConfig, 'token' | 'userId'> = {
     enabled: false,
-    initDelayMs: 3000, // 3 second delay
+    initDelayMs: 3000, // ✅ 3-second delay as required
     trackingIntervalMs: 60000, // Track every 1 minute
     batchSize: 50, // Upload 50 locations at once
+    throttleMs: 3000, // ✅ 3-second throttle between captures
 };
 
 // ==================== SERVICE IMPLEMENTATION ====================
 
 class LocationSyncServiceClass {
-    // State
+    // ==================== STATE ====================
     private config: LocationSyncConfig = {
         ...DEFAULT_CONFIG,
         token: null,
@@ -80,21 +85,28 @@ class LocationSyncServiceClass {
         errors: [],
     };
 
-    // Listeners
+    // ==================== REFS & SUBSCRIPTIONS ====================
     private listeners = new Set<(status: LocationSyncStatus) => void>();
     private locationSubscription: Location.LocationSubscription | null = null;
     private networkUnsubscribe: (() => void) | null = null;
-    private appStateSubscription: any = null;
+    private appStateSubscription: { remove: () => void } | null = null;
     private initTimeout: NodeJS.Timeout | null = null;
+    private lastCaptureTime = 0; // ✅ For throttling
 
     // ==================== PUBLIC API ====================
 
     /**
-     * Initialize service with user credentials
-     * Does NOT start tracking immediately - waits for initDelayMs
+     * ✅ AUTH-GATED: Initialize service with user credentials
+     * Only starts tracking if token and userId are provided
      */
     async initialize(token: string, userId: string): Promise<void> {
         console.log('🚀 [LocationSync] Initializing service...');
+
+        // ✅ STRICT AUTH CHECK
+        if (!token || !userId) {
+            console.error('❌ [LocationSync] Cannot initialize without token and userId');
+            return;
+        }
 
         // Clear any existing timeout
         if (this.initTimeout) {
@@ -115,7 +127,7 @@ class LocationSyncServiceClass {
         // Setup app state listener
         this.setupAppStateListener();
 
-        // ✅ CRITICAL: Delay tracking start to prevent blocking
+        // ✅ NON-BLOCKING: Delay tracking start by 3 seconds
         console.log(`⏳ [LocationSync] Waiting ${this.config.initDelayMs}ms before starting...`);
         this.initTimeout = setTimeout(() => {
             this.startTracking();
@@ -153,7 +165,7 @@ class LocationSyncServiceClass {
             this.appStateSubscription = null;
         }
 
-        // Update state
+        // Reset state
         this.config.enabled = false;
         this.config.token = null;
         this.config.userId = null;
@@ -164,19 +176,32 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Manually trigger location update (for SOS button)
+     * ✅ THROTTLED: Manually trigger location capture (for SOS button)
+     * Respects 3-second throttle to prevent spamming
      */
     async captureNow(): Promise<LocationQueueItem | null> {
-        console.log('📍 [LocationSync] Manual capture triggered');
-
+        // ✅ STRICT AUTH CHECK
         if (!this.config.enabled || !this.config.token) {
             console.warn('⚠️ [LocationSync] Service not initialized');
             return null;
         }
 
+        // ✅ THROTTLE CHECK (3-second minimum between captures)
+        const now = Date.now();
+        const timeSinceLastCapture = now - this.lastCaptureTime;
+        
+        if (timeSinceLastCapture < this.config.throttleMs) {
+            const remainingTime = this.config.throttleMs - timeSinceLastCapture;
+            console.log(`⏳ [LocationSync] Throttled - wait ${remainingTime}ms`);
+            return null;
+        }
+
+        console.log('📍 [LocationSync] Manual capture triggered');
+
         try {
             const location = await this.getCurrentLocation();
             if (location) {
+                this.lastCaptureTime = now; // ✅ Update throttle timestamp
                 await this.enqueueLocation(location);
                 await this.attemptSync(); // Try to sync immediately
             }
@@ -188,9 +213,15 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Force sync (for manual refresh)
+     * Force sync queue to server
      */
     async forceSyncNow(): Promise<boolean> {
+        // ✅ STRICT AUTH CHECK
+        if (!this.config.token) {
+            console.warn('⚠️ [LocationSync] Cannot sync without token');
+            return false;
+        }
+
         console.log('🔄 [LocationSync] Force sync requested');
         return await this.attemptSync();
     }
@@ -214,9 +245,10 @@ class LocationSyncServiceClass {
     // ==================== PRIVATE METHODS ====================
 
     /**
-     * Start location tracking
+     * ✅ AUTH-GATED: Start location tracking
      */
     private async startTracking(): Promise<void> {
+        // ✅ STRICT AUTH CHECK
         if (!this.config.enabled || !this.config.token) {
             console.warn('⚠️ [LocationSync] Cannot start - service not enabled');
             return;
@@ -236,7 +268,7 @@ class LocationSyncServiceClass {
                 throw new Error('Location permission denied');
             }
 
-            // Start watching location
+            // ✅ NON-BLOCKING: Start watching location with throttling
             this.locationSubscription = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.Balanced,
@@ -244,6 +276,12 @@ class LocationSyncServiceClass {
                     distanceInterval: 50, // Update every 50 meters
                 },
                 async (locationData) => {
+                    // ✅ THROTTLE CHECK: Respect 3-second minimum
+                    const now = Date.now();
+                    if (now - this.lastCaptureTime < this.config.throttleMs) {
+                        return; // Skip this update
+                    }
+
                     const item: LocationQueueItem = {
                         latitude: locationData.coords.latitude,
                         longitude: locationData.coords.longitude,
@@ -260,8 +298,15 @@ class LocationSyncServiceClass {
                     });
 
                     this.status.lastLocation = item;
+                    this.lastCaptureTime = now; // ✅ Update throttle timestamp
+                    
+                    // ✅ NON-BLOCKING: Queue and sync in background
                     await this.enqueueLocation(item);
-                    await this.attemptSync();
+                    
+                    // ✅ NON-BLOCKING: Don't await sync (happens in background)
+                    this.attemptSync().catch(err => 
+                        console.warn('Background sync failed:', err)
+                    );
                 }
             );
 
@@ -276,25 +321,26 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Get current location once
+     * ✅ OPTIMIZED: Get current location with timeout and fallback
      */
     private async getCurrentLocation(): Promise<LocationQueueItem | null> {
         try {
+            // ✅ 3-second timeout to prevent blocking
             const locationData = await Promise.race([
                 Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced, // Balanced is faster than High
+                    accuracy: Location.Accuracy.Balanced,
                 }),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Location timeout')), 3000)
                 )
             ]) as Location.LocationObject;
 
-            return this.formatLocation(locationData)
+            return this.formatLocation(locationData);
         } catch (error) {
             console.warn('⚠️ [LocationSync] Current location failed, trying last known:', error);
 
+            // ✅ Fallback: Get last known position (instant, non-blocking)
             try {
-                // 2. Fallback: Get last known position (instant)
                 const lastKnown = await Location.getLastKnownPositionAsync();
                 if (lastKnown) {
                     console.log('✅ [LocationSync] Using last known location');
@@ -306,6 +352,10 @@ class LocationSyncServiceClass {
             return null;
         }
     }
+
+    /**
+     * ✅ TYPE-SAFE: Format location data
+     */
     private formatLocation(locationData: Location.LocationObject): LocationQueueItem {
         return {
             latitude: locationData.coords.latitude,
@@ -317,8 +367,9 @@ class LocationSyncServiceClass {
             heading: locationData.coords.heading ?? undefined,
         };
     }
+
     /**
-     * Add location to queue
+     * ✅ OFFLINE-FIRST: Add location to queue
      */
     private async enqueueLocation(location: LocationQueueItem): Promise<void> {
         try {
@@ -336,7 +387,7 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Get location queue
+     * ✅ TYPE-SAFE: Get location queue from storage
      */
     private async getQueue(): Promise<LocationQueueItem[]> {
         try {
@@ -363,9 +414,10 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Attempt to sync queue with server
+     * ✅ NETWORK-AWARE: Attempt to sync queue with server
      */
     private async attemptSync(): Promise<boolean> {
+        // ✅ STRICT AUTH CHECK
         if (!this.status.isOnline || !this.config.token) {
             console.log('📴 [LocationSync] Skipping sync (offline or no token)');
             return false;
@@ -375,13 +427,12 @@ class LocationSyncServiceClass {
             const queue = await this.getQueue();
 
             if (queue.length === 0) {
-                console.log('ℹ️ [LocationSync] Queue empty, nothing to sync');
                 return true;
             }
 
             console.log(`🔄 [LocationSync] Syncing ${queue.length} locations...`);
 
-            // Batch upload
+            // ✅ BATCH PROCESSING: Upload in batches
             const batch = queue.slice(0, this.config.batchSize);
             const success = await this.uploadBatch(batch);
 
@@ -405,7 +456,7 @@ class LocationSyncServiceClass {
                 this.notifyListeners();
                 console.log(`✅ [LocationSync] Synced ${batch.length} locations`);
 
-                // Continue if more items remain
+                // Continue if more items remain (NON-BLOCKING)
                 if (remaining.length > 0) {
                     console.log(`🔄 [LocationSync] ${remaining.length} locations remaining...`);
                     setTimeout(() => this.attemptSync(), 2000);
@@ -425,9 +476,10 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Upload batch to server
+     * ✅ DATABASE-ALIGNED: Upload batch to server using authenticatedFetch
      */
     private async uploadBatch(locations: LocationQueueItem[]): Promise<boolean> {
+        // ✅ STRICT AUTH CHECK
         if (!this.config.token) {
             return false;
         }
@@ -494,7 +546,7 @@ class LocationSyncServiceClass {
     }
 
     /**
-     * Notify all listeners
+     * Notify all listeners of status changes
      */
     private notifyListeners(): void {
         this.listeners.forEach((listener) => listener(this.getStatus()));
@@ -508,4 +560,4 @@ export default LocationSyncService;
 
 // ==================== TYPE EXPORTS ====================
 
-export type { LocationQueueItem, LocationSyncConfig, LocationSyncStatus };
+export type { LocationQueueItem, LocationSyncConfig };
